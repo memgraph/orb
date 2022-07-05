@@ -1,0 +1,29 @@
+# Compiled output
+dist/
+
+# Dependencies
+node_modules/
+
+# IDEs and editors
+.idea/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Misc
+coverage/
+npm-debug.log
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Other directories
+.out/

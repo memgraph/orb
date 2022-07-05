@@ -1,0 +1,69 @@
+{
+  "name": "@memgraph/orb",
+  "version": "0.0.1",
+  "description": "Graph visualization library",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/memgraph/orb.git"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "contributors": [
+    {
+      "name": "David Lozic",
+      "url": "https://github.com/cizl"
+    },
+    {
+      "name": "Toni Lastre",
+      "url": "https://github.com/tonilastre"
+    }
+  ],
+  "author": "Memgraph Ltd. <contact@memgraph.com>",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --runInBand --detectOpenHandles --forceExit --verbose --useStderr",
+    "coverage": "npm test -- --coverage --collectCoverageFrom='./src/**'",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "release": "semantic-release --branches main"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "17.0.0",
+    "@commitlint/config-conventional": "17.0.0",
+    "@semantic-release/changelog": "6.0.1",
+    "@semantic-release/git": "10.0.1",
+    "@types/jest": "27.4.1",
+    "@typescript-eslint/eslint-plugin": "5.24.0",
+    "@typescript-eslint/parser": "5.24.0",
+    "conventional-changelog-eslint": "3.0.9",
+    "eslint": "8.15.0",
+    "eslint-config-google": "0.14.0",
+    "eslint-config-prettier": "8.5.0",
+    "eslint-plugin-jest": "26.2.2",
+    "eslint-plugin-prettier": "4.0.0",
+    "jest": "27.5.1",
+    "semantic-release": "19.0.2",
+    "ts-jest": "27.1.4",
+    "ts-node": "10.8.0",
+    "typescript": "4.6.3"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "",
+    "testRegex": ".spec.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "coverageDirectory": "coverage",
+    "testEnvironment": "node",
+    "testTimeout": 5000
+  }
+}
