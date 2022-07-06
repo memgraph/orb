@@ -31,12 +31,22 @@
     "lint:fix": "eslint --fix .",
     "release": "semantic-release --branches main"
   },
+  "dependencies": {
+    "d3-drag": "3.0.0",
+    "d3-force": "3.0.0",
+    "d3-zoom": "3.0.0",
+    "leaflet": "1.7.1"
+  },
   "devDependencies": {
     "@commitlint/cli": "17.0.0",
     "@commitlint/config-conventional": "17.0.0",
     "@semantic-release/changelog": "6.0.1",
     "@semantic-release/git": "10.0.1",
+    "@types/d3-drag": "3.0.1",
+    "@types/d3-force": "3.0.3",
+    "@types/d3-zoom": "3.0.1",
     "@types/jest": "27.4.1",
+    "@types/leaflet": "1.7.9",
     "@typescript-eslint/eslint-plugin": "5.24.0",
     "@typescript-eslint/parser": "5.24.0",
     "conventional-changelog-eslint": "3.0.9",
@@ -46,7 +56,7 @@
     "eslint-plugin-jest": "26.2.2",
     "eslint-plugin-prettier": "4.0.0",
     "jest": "27.5.1",
-    "semantic-release": "19.0.2",
+    "semantic-release": "19.0.3",
     "ts-jest": "27.1.4",
     "ts-node": "10.8.0",
     "typescript": "4.6.3"
