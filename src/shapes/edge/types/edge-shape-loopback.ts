@@ -3,8 +3,9 @@ import { IBorderPosition, IEdgeArrowShape } from '../interface';
 import { IPosition } from '../../../common/position';
 import { ICircle } from '../../../common/circle';
 import { INodeShape } from '../../node/interface';
+import { IEdgeBase, INodeBase } from '../../../models/graph.model';
 
-export class EdgeShapeLoopback extends EdgeShape {
+export class EdgeShapeLoopback<N extends INodeBase, E extends IEdgeBase> extends EdgeShape<N, E> {
   override getCenterPosition(): IPosition {
     const offset = Math.abs(this.style?.roundness ?? 1);
     const circle = this.getCircleData();
@@ -77,7 +78,7 @@ export class EdgeShapeLoopback extends EdgeShape {
     };
   }
 
-  protected override findBorderPoint(nearNode: INodeShape): IBorderPosition {
+  protected override findBorderPoint(nearNode: INodeShape<N, E>): IBorderPosition {
     const circle = this.getCircleData();
     const options = { low: 0.6, high: 1.0, direction: 1 };
 

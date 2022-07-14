@@ -1,6 +1,7 @@
 import { INodeShape } from '../node/interface';
 import { IPosition } from '../../common/position';
-import { IGraphEdge } from '../../models/graph.model';
+import { IEdgeBase, INodeBase } from '../../models/graph.model';
+import { IEdgeStyle } from '../../models/style/edge-style';
 
 export interface IBorderPosition extends IPosition {
   t: number;
@@ -28,38 +29,17 @@ export interface IEdgeShapeDrawOptions {
   isLabelEnabled: boolean;
 }
 
-export interface IEdgeStyle {
-  arrowSize?: number;
-  color?: string;
-  colorHover?: string;
-  colorSelected?: string;
-  fontBackgroundColor?: string;
-  fontColor?: string;
-  fontFamily?: string;
-  fontSize?: number;
-  label?: string;
-  shadowColor?: string;
-  shadowSize?: number;
-  shadowOffsetX?: number;
-  shadowOffsetY?: number;
-  width?: number;
-  widthHover?: number;
-  widthSelected?: number;
-  roundness?: number;
-  type?: EdgeLineStyleType;
-}
-
-export interface IEdgeShape {
+export interface IEdgeShape<N extends INodeBase, E extends IEdgeBase> {
   draw(context: CanvasRenderingContext2D, options?: Partial<IEdgeShapeDrawOptions>): void;
   getId(): number;
-  getData(): IGraphEdge;
+  getData(): E;
   getLabel(): string | undefined;
   getStyle(): IEdgeStyle | undefined;
   setStyle(style: IEdgeStyle): void;
   getWidth(): number;
   getCenterPosition(): IPosition;
-  getSourceNodeShape(): INodeShape;
-  getTargetNodeShape(): INodeShape;
+  getSourceNodeShape(): INodeShape<N, E>;
+  getTargetNodeShape(): INodeShape<N, E>;
   setState(state: EdgeShapeState): void;
   clearState(): void;
   isSelected(): boolean;

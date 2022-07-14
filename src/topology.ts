@@ -1,12 +1,13 @@
-import { EdgeLineStyleType, EdgeShapeState, IEdgeShape, IEdgeStyle } from './shapes/edge/interface';
-import { INodeShape, INodeStyle, NodeShapeState } from './shapes/node/interface';
+import { EdgeLineStyleType, EdgeShapeState, IEdgeShape } from './shapes/edge/interface';
+import { INodeShape, NodeShapeState } from './shapes/node/interface';
 import { NodeShapeFactory } from './shapes/node/factory';
 import { EdgeShapeFactory } from './shapes/edge/factory';
 import { IPosition } from './common/position';
-import { IGraph, IGraphEdge } from './models/graph.model';
+import { Graph, IEdgeBase, INodeBase } from './models/graph.model';
 import { ISimulationNode } from './simulator/interface';
 import { ImageHandler } from './images';
 import { IRectangle } from './common/rectangle';
+import { IGraphStyle } from './models/style/graph-style';
 
 type IEdgeOffsetsByUniqueKey = Record<string, number[]>;
 
@@ -15,9 +16,9 @@ interface IEdgeStyleOffset {
   roundness: number;
 }
 
-type IEdgeShapeFilter = (edgeShape: IEdgeShape) => boolean;
+type IEdgeShapeFilter = <N extends INodeBase, E extends IEdgeBase>(edgeShape: IEdgeShape<N, E>) => boolean;
 
-type INodeShapeFilter = (nodeShape: INodeShape) => boolean;
+type INodeShapeFilter = <N extends INodeBase, E extends IEdgeBase>(nodeShape: INodeShape<N, E>) => boolean;
 
 export interface IGraphTopologyDrawOptions {
   labelsIsEnabled: boolean;
@@ -26,8 +27,8 @@ export interface IGraphTopologyDrawOptions {
   contextAlphaOnEventIsEnabled: boolean;
 }
 
-export interface IGraphTopologyOptions {
-  graph: IGraph;
+export interface IGraphTopologyOptions<N extends INodeBase, E extends IEdgeBase> {
+  graph: Graph<N, E>;
   style?: IGraphStyle;
 }
 
@@ -42,20 +43,15 @@ export interface GraphTopologyStyleCallbackOptions {
   onImageLoaded?: () => void;
 }
 
-export interface IGraphStyle {
-  nodeStyleById: Record<number, INodeStyle>;
-  edgeStyleById: Record<number, IEdgeStyle>;
-}
+export class GraphTopology<N extends INodeBase, E extends IEdgeBase> {
+  public graph: Graph<N, E>;
+  public style?: IGraphStyle;
 
-export class GraphTopology {
-  protected graph: IGraph;
-  protected style?: IGraphStyle;
-
-  protected nodeShapeById: Record<number, INodeShape> = {};
-  protected edgeShapeById: Record<number, IEdgeShape> = {};
+  protected nodeShapeById: Record<number, INodeShape<N, E>> = {};
+  protected edgeShapeById: Record<number, IEdgeShape<N, E>> = {};
   protected edgeStyleOffsetById: Record<number, IEdgeStyleOffset> = {};
 
-  constructor(options: IGraphTopologyOptions) {
+  constructor(options: IGraphTopologyOptions<N, E>) {
     this.graph = options.graph;
     this.style = options.style;
 
@@ -65,60 +61,60 @@ export class GraphTopology {
     }
   }
 
-  getNodeShapeById(id: number): INodeShape | undefined {
-    return this.nodeShapeById[id];
-  }
+  // getNodeShapeById(id: number): INodeShape<N, E> | undefined {
+  //   return this.nodeShapeById[id];
+  // }
 
-  getNodeShapes(filterBy?: INodeShapeFilter): INodeShape[] {
-    const nodeShapes = Object.values(this.nodeShapeById);
-    if (!filterBy) {
-      return nodeShapes;
-    }
+  // getNodeShapes(filterBy?: INodeShapeFilter): INodeShape<N, E>[] {
+  //   const nodeShapes = Object.values(this.nodeShapeById);
+  //   if (!filterBy) {
+  //     return nodeShapes;
+  //   }
+  //
+  //   const filteredNodeShapes: INodeShape<N, E>[] = [];
+  //   for (let i = 0; i < nodeShapes.length; i++) {
+  //     if (filterBy(nodeShapes[i])) {
+  //       filteredNodeShapes.push(nodeShapes[i]);
+  //     }
+  //   }
+  //   return filteredNodeShapes;
+  // }
 
-    const filteredNodeShapes: INodeShape[] = [];
-    for (let i = 0; i < nodeShapes.length; i++) {
-      if (filterBy(nodeShapes[i])) {
-        filteredNodeShapes.push(nodeShapes[i]);
-      }
-    }
-    return filteredNodeShapes;
-  }
+  // setNodePositions(positions: ISimulationNode[]) {
+  //   for (let i = 0; i < positions.length; i++) {
+  //     this.nodeShapeById[positions[i].id]?.setPosition(positions[i]);
+  //   }
+  // }
+  //
+  // getNodePositions(): ISimulationNode[] {
+  //   const nodeShapes = this.getNodeShapes();
+  //   const positions: ISimulationNode[] = new Array<ISimulationNode>(nodeShapes.length);
+  //   for (let i = 0; i < nodeShapes.length; i++) {
+  //     positions[i] = nodeShapes[i].getPosition();
+  //   }
+  //   return positions;
+  // }
 
-  setNodePositions(positions: ISimulationNode[]) {
-    for (let i = 0; i < positions.length; i++) {
-      this.nodeShapeById[positions[i].id]?.setPosition(positions[i]);
-    }
-  }
+  // getEdgeShapeById(id: number): IEdgeShape<N, E> | undefined {
+  //   return this.edgeShapeById[id];
+  // }
+  //
+  // getEdgeShapes(filterBy?: IEdgeShapeFilter): IEdgeShape<N, E>[] {
+  //   const edgeShapes = Object.values(this.edgeShapeById);
+  //   if (!filterBy) {
+  //     return edgeShapes;
+  //   }
+  //
+  //   const filteredEdgeShapes: IEdgeShape<N, E>[] = [];
+  //   for (let i = 0; i < edgeShapes.length; i++) {
+  //     if (filterBy(edgeShapes[i])) {
+  //       filteredEdgeShapes.push(edgeShapes[i]);
+  //     }
+  //   }
+  //   return filteredEdgeShapes;
+  // }
 
-  getNodePositions(): ISimulationNode[] {
-    const nodeShapes = this.getNodeShapes();
-    const positions: ISimulationNode[] = new Array<ISimulationNode>(nodeShapes.length);
-    for (let i = 0; i < nodeShapes.length; i++) {
-      positions[i] = nodeShapes[i].getPosition();
-    }
-    return positions;
-  }
-
-  getEdgeShapeById(id: number): IEdgeShape | undefined {
-    return this.edgeShapeById[id];
-  }
-
-  getEdgeShapes(filterBy?: IEdgeShapeFilter): IEdgeShape[] {
-    const edgeShapes = Object.values(this.edgeShapeById);
-    if (!filterBy) {
-      return edgeShapes;
-    }
-
-    const filteredEdgeShapes: IEdgeShape[] = [];
-    for (let i = 0; i < edgeShapes.length; i++) {
-      if (filterBy(edgeShapes[i])) {
-        filteredEdgeShapes.push(edgeShapes[i]);
-      }
-    }
-    return filteredEdgeShapes;
-  }
-
-  setGraph(graph: IGraph) {
+  setGraph(graph: Graph<N, E>) {
     this.graph = graph;
 
     const existingNodeIds = objectKeys(this.nodeShapeById);
@@ -135,12 +131,13 @@ export class GraphTopology {
         continue;
       }
 
-      const nodeStyle = this.style?.nodeStyleById?.[node.id];
+      const nodeStyle = this.style?.getNodeStyleById(node.id);
       const nodePosition: ISimulationNode = {
         id: node.id,
-        mass: nodeStyle?.mass,
+        // TODO: Handle this
+        // mass: nodeStyle?.mass,
       };
-      this.nodeShapeById[node.id] = NodeShapeFactory.createNodeShape({
+      this.nodeShapeById[node.id] = NodeShapeFactory.createNodeShape<N, E>({
         data: node,
         position: nodePosition,
         style: nodeStyle,
@@ -167,7 +164,7 @@ export class GraphTopology {
         continue;
       }
 
-      const edgeStyle = this.style?.edgeStyleById?.[edge.id];
+      const edgeStyle = this.style?.getEdgeStyleById(edge.id);
       this.edgeShapeById[edge.id] = EdgeShapeFactory.createEdgeShape({
         data: edge,
         style: { ...edgeStyle, ...edgeStyleOffset },
@@ -186,16 +183,17 @@ export class GraphTopology {
       const nodeShape = nodeShapes[i];
       const nodeId = nodeShape.getId();
 
-      const newStyle = this.style.nodeStyleById[nodeId];
-      if (newStyle.imageUrl) {
+      const newStyle = this.style.getNodeStyleById(nodeId);
+      if (newStyle?.imageUrl) {
         styleImageUrls.add(newStyle.imageUrl);
       }
-      if (newStyle.imageUrlSelected) {
+      if (newStyle?.imageUrlSelected) {
         styleImageUrls.add(newStyle.imageUrlSelected);
       }
 
       const existingPosition = nodeShape.getPosition();
-      existingPosition.mass = newStyle?.mass;
+      // TODO: Handle this
+      // existingPosition.mass = newStyle?.mass;
 
       this.nodeShapeById[nodeId] = NodeShapeFactory.createNodeShape({
         data: nodeShape.getData(),
@@ -215,7 +213,7 @@ export class GraphTopology {
       };
       this.edgeShapeById[edgeId] = EdgeShapeFactory.createEdgeShape({
         data: edgeShape.getData(),
-        style: { ...style.edgeStyleById[edgeId], ...existingStyleOffset },
+        style: { ...style.getEdgeStyleById(edgeId), ...existingStyleOffset },
         sourceNodeShape: this.nodeShapeById[edgeShape.getSourceNodeShape().getId()],
         targetNodeShape: this.nodeShapeById[edgeShape.getTargetNodeShape().getId()],
       });
@@ -226,97 +224,97 @@ export class GraphTopology {
     }
   }
 
-  getViewRectangle(): IRectangle {
-    const nodeShapes = this.getNodeShapes();
-    const minPoint: IPosition = { x: 0, y: 0 };
-    const maxPoint: IPosition = { x: 0, y: 0 };
+  // getViewRectangle(): IRectangle {
+  //   const nodeShapes = this.getNodeShapes();
+  //   const minPoint: IPosition = { x: 0, y: 0 };
+  //   const maxPoint: IPosition = { x: 0, y: 0 };
+  //
+  //   for (let i = 0; i < nodeShapes.length; i++) {
+  //     const { x, y } = nodeShapes[i].getPosition();
+  //
+  //     if (x === undefined || y === undefined) {
+  //       continue;
+  //     }
+  //
+  //     const size = nodeShapes[i].getBorderedRadius();
+  //
+  //     if (i === 0) {
+  //       minPoint.x = x - size;
+  //       maxPoint.x = x + size;
+  //       minPoint.y = y - size;
+  //       maxPoint.y = y + size;
+  //       continue;
+  //     }
+  //
+  //     if (x + size > maxPoint.x) {
+  //       maxPoint.x = x + size;
+  //     }
+  //     if (x - size < minPoint.x) {
+  //       minPoint.x = x - size;
+  //     }
+  //     if (y + size > maxPoint.y) {
+  //       maxPoint.y = y + size;
+  //     }
+  //     if (y - size < minPoint.y) {
+  //       minPoint.y = y - size;
+  //     }
+  //   }
+  //
+  //   return {
+  //     x: minPoint.x,
+  //     y: minPoint.y,
+  //     width: Math.abs(maxPoint.x - minPoint.x),
+  //     height: Math.abs(maxPoint.y - minPoint.y),
+  //   };
+  // }
 
-    for (let i = 0; i < nodeShapes.length; i++) {
-      const { x, y } = nodeShapes[i].getPosition();
-
-      if (x === undefined || y === undefined) {
-        continue;
-      }
-
-      const size = nodeShapes[i].getBorderedRadius();
-
-      if (i === 0) {
-        minPoint.x = x - size;
-        maxPoint.x = x + size;
-        minPoint.y = y - size;
-        maxPoint.y = y + size;
-        continue;
-      }
-
-      if (x + size > maxPoint.x) {
-        maxPoint.x = x + size;
-      }
-      if (x - size < minPoint.x) {
-        minPoint.x = x - size;
-      }
-      if (y + size > maxPoint.y) {
-        maxPoint.y = y + size;
-      }
-      if (y - size < minPoint.y) {
-        minPoint.y = y - size;
-      }
-    }
-
-    return {
-      x: minPoint.x,
-      y: minPoint.y,
-      width: Math.abs(maxPoint.x - minPoint.x),
-      height: Math.abs(maxPoint.y - minPoint.y),
-    };
-  }
-
-  draw(context: CanvasRenderingContext2D, options?: Partial<IGraphTopologyDrawOptions>) {
-    this.drawShapes(context, this.getEdgeShapes(), options);
-    this.drawShapes(context, this.getNodeShapes(), options);
-  }
-
-  protected drawShapes(
-    context: CanvasRenderingContext2D,
-    shapes: (INodeShape | IEdgeShape)[],
-    options?: Partial<IGraphTopologyDrawOptions>,
-  ) {
-    const drawOptions = Object.assign(DEFAULT_DRAW_OPTIONS, options);
-    // TODO: Have a single IShape and IShapeState!
-    const selectedShapes: (INodeShape | IEdgeShape)[] = [];
-    const hoveredShapes: (INodeShape | IEdgeShape)[] = [];
-
-    for (let i = 0; i < shapes.length; i++) {
-      const shape = shapes[i];
-      if (shape.isSelected()) {
-        selectedShapes.push(shape);
-      }
-      if (shape.isHovered()) {
-        hoveredShapes.push(shape);
-      }
-    }
-    const hasStateChangedShapes = selectedShapes.length || hoveredShapes.length;
-
-    if (drawOptions.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
-      context.globalAlpha = drawOptions.contextAlphaOnEvent;
-    }
-
-    for (let i = 0; i < shapes.length; i++) {
-      if (!shapes[i].isSelected() && !shapes[i].isHovered()) {
-        shapes[i].draw(context, { isLabelEnabled: drawOptions.labelsIsEnabled });
-      }
-    }
-
-    if (drawOptions.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
-      context.globalAlpha = 1;
-    }
-
-    for (let i = 0; i < selectedShapes.length; i++) {
-      selectedShapes[i].draw(context, { isLabelEnabled: drawOptions.labelsOnEventIsEnabled });
-    }
-    for (let i = 0; i < hoveredShapes.length; i++) {
-      hoveredShapes[i].draw(context, { isLabelEnabled: drawOptions.labelsOnEventIsEnabled });
-    }
-  }
+  // draw(context: CanvasRenderingContext2D, options?: Partial<IGraphTopologyDrawOptions>) {
+  //   this.drawShapes(context, this.getEdgeShapes(), options);
+  //   this.drawShapes(context, this.getNodeShapes(), options);
+  // }
+  //
+  // protected drawShapes(
+  //   context: CanvasRenderingContext2D,
+  //   shapes: (INodeShape<N, E> | IEdgeShape<N, E>)[],
+  //   options?: Partial<IGraphTopologyDrawOptions>,
+  // ) {
+  //   const drawOptions = Object.assign(DEFAULT_DRAW_OPTIONS, options);
+  //   // TODO: Have a single IShape and IShapeState!
+  //   const selectedShapes: (INodeShape<N, E> | IEdgeShape<N, E>)[] = [];
+  //   const hoveredShapes: (INodeShape<N, E> | IEdgeShape<N, E>)[] = [];
+  //
+  //   for (let i = 0; i < shapes.length; i++) {
+  //     const shape = shapes[i];
+  //     if (shape.isSelected()) {
+  //       selectedShapes.push(shape);
+  //     }
+  //     if (shape.isHovered()) {
+  //       hoveredShapes.push(shape);
+  //     }
+  //   }
+  //   const hasStateChangedShapes = selectedShapes.length || hoveredShapes.length;
+  //
+  //   if (drawOptions.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
+  //     context.globalAlpha = drawOptions.contextAlphaOnEvent;
+  //   }
+  //
+  //   for (let i = 0; i < shapes.length; i++) {
+  //     if (!shapes[i].isSelected() && !shapes[i].isHovered()) {
+  //       shapes[i].draw(context, { isLabelEnabled: drawOptions.labelsIsEnabled });
+  //     }
+  //   }
+  //
+  //   if (drawOptions.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
+  //     context.globalAlpha = 1;
+  //   }
+  //
+  //   for (let i = 0; i < selectedShapes.length; i++) {
+  //     selectedShapes[i].draw(context, { isLabelEnabled: drawOptions.labelsOnEventIsEnabled });
+  //   }
+  //   for (let i = 0; i < hoveredShapes.length; i++) {
+  //     hoveredShapes[i].draw(context, { isLabelEnabled: drawOptions.labelsOnEventIsEnabled });
+  //   }
+  // }
 
   // TODO: Return this code when we will have LabelViewPortStrategy implemented
   // getLabelledShapes(activeView: IRectangle, maxActiveNodes = 150) {
@@ -354,157 +352,168 @@ export class GraphTopology {
   //   return labelledNodeShapes;
   // }
 
-  getNearestNodeShape(point: IPosition): INodeShape | undefined {
-    // Reverse is needed to check from the top drawn to the bottom drawn node
-    const nodeShapes = this.getNodeShapes();
-    for (let i = nodeShapes.length - 1; i >= 0; i--) {
-      if (nodeShapes[i].includesPoint(point)) {
-        return nodeShapes[i];
-      }
-    }
-  }
+  // getNearestNodeShape(point: IPosition): INodeShape<N, E> | undefined {
+  //   // Reverse is needed to check from the top drawn to the bottom drawn node
+  //   const nodeShapes = this.getNodeShapes();
+  //   for (let i = nodeShapes.length - 1; i >= 0; i--) {
+  //     if (nodeShapes[i].includesPoint(point)) {
+  //       return nodeShapes[i];
+  //     }
+  //   }
+  // }
+  //
+  // getNearestEdgeShape(point: IPosition, minDistance = 3): IEdgeShape<N, E> | undefined {
+  //   let nearestShape: IEdgeShape<N, E> | undefined;
+  //   let nearestDistance = minDistance;
+  //
+  //   const edgeShapes = this.getEdgeShapes();
+  //   for (let i = 0; i < edgeShapes.length; i++) {
+  //     const distance = edgeShapes[i].getDistance(point);
+  //     if (distance <= nearestDistance) {
+  //       nearestDistance = distance;
+  //       nearestShape = edgeShapes[i];
+  //     }
+  //   }
+  //   return nearestShape;
+  // }
 
-  getNearestEdgeShape(point: IPosition, minDistance = 3): IEdgeShape | undefined {
-    let nearestShape: IEdgeShape | undefined;
-    let nearestDistance = minDistance;
-
-    const edgeShapes = this.getEdgeShapes();
-    for (let i = 0; i < edgeShapes.length; i++) {
-      const distance = edgeShapes[i].getDistance(point);
-      if (distance <= nearestDistance) {
-        nearestDistance = distance;
-        nearestShape = edgeShapes[i];
-      }
-    }
-    return nearestShape;
-  }
-
-  selectNodeShape(nodeShape: INodeShape) {
-    this.unselectAll();
-    setNodeShapeState(nodeShape, NodeShapeState.SELECT, { isStateOverride: true });
-  }
-
-  selectEdgeShape(edgeShape: IEdgeShape) {
-    this.unselectAll();
-    setEdgeShapeState(edgeShape, EdgeShapeState.SELECT, { isStateOverride: true });
-  }
-
-  unselectAll(): { changedShapeCount: number } {
-    const selectedNodeShapes = this.getNodeShapes((shape) => shape.isSelected());
-    for (let i = 0; i < selectedNodeShapes.length; i++) {
-      selectedNodeShapes[i].clearState();
-    }
-
-    const selectedEdgeShapes = this.getEdgeShapes((shape) => shape.isSelected());
-    for (let i = 0; i < selectedEdgeShapes.length; i++) {
-      selectedEdgeShapes[i].clearState();
-    }
-
-    return { changedShapeCount: selectedNodeShapes.length + selectedEdgeShapes.length };
-  }
-
-  hoverNodeShape(nodeShape: INodeShape) {
-    this.unhoverAll();
-    setNodeShapeState(nodeShape, NodeShapeState.HOVER);
-  }
-
-  hoverEdgeShape(edgeShape: IEdgeShape) {
-    this.unhoverAll();
-    setEdgeShapeState(edgeShape, EdgeShapeState.HOVER);
-  }
-
-  unhoverAll(): { changedShapeCount: number } {
-    const hoveredNodeShapes = this.getNodeShapes((shape) => shape.isHovered());
-    for (let i = 0; i < hoveredNodeShapes.length; i++) {
-      hoveredNodeShapes[i].clearState();
-    }
-
-    const hoveredEdgeShapes = this.getEdgeShapes((shape) => shape.isHovered());
-    for (let i = 0; i < hoveredEdgeShapes.length; i++) {
-      hoveredEdgeShapes[i].clearState();
-    }
-
-    return { changedShapeCount: hoveredNodeShapes.length + hoveredEdgeShapes.length };
-  }
+  // selectNodeShape(nodeShape: INodeShape<N, E>) {
+  //   this.unselectAll();
+  //   setNodeShapeState(nodeShape, NodeShapeState.SELECT, { isStateOverride: true });
+  // }
+  //
+  // selectEdgeShape(edgeShape: IEdgeShape<N, E>) {
+  //   this.unselectAll();
+  //   setEdgeShapeState(edgeShape, EdgeShapeState.SELECT, { isStateOverride: true });
+  // }
+  //
+  // unselectAll(): { changedShapeCount: number } {
+  //   const selectedNodeShapes = this.getNodeShapes((shape) => shape.isSelected());
+  //   for (let i = 0; i < selectedNodeShapes.length; i++) {
+  //     selectedNodeShapes[i].clearState();
+  //   }
+  //
+  //   const selectedEdgeShapes = this.getEdgeShapes((shape) => shape.isSelected());
+  //   for (let i = 0; i < selectedEdgeShapes.length; i++) {
+  //     selectedEdgeShapes[i].clearState();
+  //   }
+  //
+  //   return { changedShapeCount: selectedNodeShapes.length + selectedEdgeShapes.length };
+  // }
+  //
+  // hoverNodeShape(nodeShape: INodeShape<N, E>) {
+  //   this.unhoverAll();
+  //   setNodeShapeState(nodeShape, NodeShapeState.HOVER);
+  // }
+  //
+  // hoverEdgeShape(edgeShape: IEdgeShape<N, E>) {
+  //   this.unhoverAll();
+  //   setEdgeShapeState(edgeShape, EdgeShapeState.HOVER);
+  // }
+  //
+  // unhoverAll(): { changedShapeCount: number } {
+  //   const hoveredNodeShapes = this.getNodeShapes((shape) => shape.isHovered());
+  //   for (let i = 0; i < hoveredNodeShapes.length; i++) {
+  //     hoveredNodeShapes[i].clearState();
+  //   }
+  //
+  //   const hoveredEdgeShapes = this.getEdgeShapes((shape) => shape.isHovered());
+  //   for (let i = 0; i < hoveredEdgeShapes.length; i++) {
+  //     hoveredEdgeShapes[i].clearState();
+  //   }
+  //
+  //   return { changedShapeCount: hoveredNodeShapes.length + hoveredEdgeShapes.length };
+  // }
 }
 
-interface ISetShapeStateOptions {
-  isStateOverride: boolean;
-}
+// interface ISetShapeStateOptions {
+//   isStateOverride: boolean;
+// }
+//
+// const setNodeShapeState = <N extends INodeBase, E extends IEdgeBase>(
+//   nodeShape: INodeShape<N, E>,
+//   state: NodeShapeState,
+//   options?: ISetShapeStateOptions,
+// ): void => {
+//   if (isShapeStateChangeable(nodeShape, options)) {
+//     nodeShape.setState(state);
+//   }
+//
+//   const edgeState = getEdgeShapeStateFromNodeShapeState(state);
+//
+//   nodeShape.getInEdgeShapes().forEach((edgeShape) => {
+//     if (edgeState !== undefined && isShapeStateChangeable(edgeShape, options)) {
+//       edgeShape.setState(edgeState);
+//     }
+//     const nodeShape = edgeShape.getSourceNodeShape();
+//     if (isShapeStateChangeable(nodeShape, options)) {
+//       nodeShape.setState(state);
+//     }
+//   });
+//
+//   nodeShape.getOutEdgeShapes().forEach((edgeShape) => {
+//     if (edgeState !== undefined && isShapeStateChangeable(edgeShape, options)) {
+//       edgeShape.setState(edgeState);
+//     }
+//     const nodeShape = edgeShape.getTargetNodeShape();
+//     if (isShapeStateChangeable(nodeShape, options)) {
+//       nodeShape.setState(state);
+//     }
+//   });
+// };
+//
+// const setEdgeShapeState = <N extends INodeBase, E extends IEdgeBase>(
+//   edgeShape: IEdgeShape<N, E>,
+//   state: EdgeShapeState,
+//   options?: ISetShapeStateOptions,
+// ): void => {
+//   if (isShapeStateChangeable(edgeShape, options)) {
+//     edgeShape.setState(state);
+//   }
+//
+//   const nodeState = getNodeShapeStateFromEdgeShapeState(state);
+//   if (nodeState === undefined) {
+//     return;
+//   }
+//
+//   const sourceNodeShape = edgeShape.getSourceNodeShape();
+//   if (isShapeStateChangeable(sourceNodeShape, options)) {
+//     sourceNodeShape.setState(nodeState);
+//   }
+//
+//   const targetNodeShape = edgeShape.getTargetNodeShape();
+//   if (isShapeStateChangeable(targetNodeShape, options)) {
+//     targetNodeShape.setState(nodeState);
+//   }
+// };
+//
+// const isShapeStateChangeable = <N extends INodeBase, E extends IEdgeBase>(
+//   shape: INodeShape<N, E> | IEdgeShape<N, E>,
+//   options?: ISetShapeStateOptions,
+// ): boolean => {
+//   const isOverride = options?.isStateOverride;
+//   return isOverride || (!isOverride && !shape.hasState());
+// };
+//
+// const getEdgeShapeStateFromNodeShapeState = (state: NodeShapeState): EdgeShapeState | undefined => {
+//   if (state === NodeShapeState.SELECT) {
+//     return EdgeShapeState.SELECT;
+//   }
+//   if (state === NodeShapeState.HOVER) {
+//     return EdgeShapeState.HOVER;
+//   }
+// };
+//
+// const getNodeShapeStateFromEdgeShapeState = (state: EdgeShapeState): NodeShapeState | undefined => {
+//   if (state === EdgeShapeState.SELECT) {
+//     return NodeShapeState.SELECT;
+//   }
+//   if (state === EdgeShapeState.HOVER) {
+//     return NodeShapeState.HOVER;
+//   }
+// };
 
-const setNodeShapeState = (nodeShape: INodeShape, state: NodeShapeState, options?: ISetShapeStateOptions): void => {
-  if (isShapeStateChangeable(nodeShape, options)) {
-    nodeShape.setState(state);
-  }
-
-  const edgeState = getEdgeShapeStateFromNodeShapeState(state);
-
-  nodeShape.getInEdgeShapes().forEach((edgeShape) => {
-    if (edgeState !== undefined && isShapeStateChangeable(edgeShape, options)) {
-      edgeShape.setState(edgeState);
-    }
-    const nodeShape = edgeShape.getSourceNodeShape();
-    if (isShapeStateChangeable(nodeShape, options)) {
-      nodeShape.setState(state);
-    }
-  });
-
-  nodeShape.getOutEdgeShapes().forEach((edgeShape) => {
-    if (edgeState !== undefined && isShapeStateChangeable(edgeShape, options)) {
-      edgeShape.setState(edgeState);
-    }
-    const nodeShape = edgeShape.getTargetNodeShape();
-    if (isShapeStateChangeable(nodeShape, options)) {
-      nodeShape.setState(state);
-    }
-  });
-};
-
-const setEdgeShapeState = (edgeShape: IEdgeShape, state: EdgeShapeState, options?: ISetShapeStateOptions): void => {
-  if (isShapeStateChangeable(edgeShape, options)) {
-    edgeShape.setState(state);
-  }
-
-  const nodeState = getNodeShapeStateFromEdgeShapeState(state);
-  if (nodeState === undefined) {
-    return;
-  }
-
-  const sourceNodeShape = edgeShape.getSourceNodeShape();
-  if (isShapeStateChangeable(sourceNodeShape, options)) {
-    sourceNodeShape.setState(nodeState);
-  }
-
-  const targetNodeShape = edgeShape.getTargetNodeShape();
-  if (isShapeStateChangeable(targetNodeShape, options)) {
-    targetNodeShape.setState(nodeState);
-  }
-};
-
-const isShapeStateChangeable = (shape: INodeShape | IEdgeShape, options?: ISetShapeStateOptions): boolean => {
-  const isOverride = options?.isStateOverride;
-  return isOverride || (!isOverride && !shape.hasState());
-};
-
-const getEdgeShapeStateFromNodeShapeState = (state: NodeShapeState): EdgeShapeState | undefined => {
-  if (state === NodeShapeState.SELECT) {
-    return EdgeShapeState.SELECT;
-  }
-  if (state === NodeShapeState.HOVER) {
-    return EdgeShapeState.HOVER;
-  }
-};
-
-const getNodeShapeStateFromEdgeShapeState = (state: EdgeShapeState): NodeShapeState | undefined => {
-  if (state === EdgeShapeState.SELECT) {
-    return NodeShapeState.SELECT;
-  }
-  if (state === EdgeShapeState.HOVER) {
-    return NodeShapeState.HOVER;
-  }
-};
-
-const getEdgeStyleOffsetById = (edges: IGraphEdge[]): Record<number, IEdgeStyleOffset> => {
+const getEdgeStyleOffsetById = <E extends IEdgeBase>(edges: E[]): Record<number, IEdgeStyleOffset> => {
   const edgeStyleOffsetById: { [id: number]: IEdgeStyleOffset } = {};
   const edgeOffsetsByUniqueKey = getEdgeOffsetsByUniqueKey(edges);
 
@@ -536,13 +545,13 @@ const getEdgeStyleOffsetById = (edges: IGraphEdge[]): Record<number, IEdgeStyleO
   return edgeStyleOffsetById;
 };
 
-const getUniqueEdgeKey = (edge: IGraphEdge): string => {
+const getUniqueEdgeKey = <E extends IEdgeBase>(edge: E): string => {
   const sid = edge.start;
   const tid = edge.end;
   return sid < tid ? `${sid}-${tid}` : `${tid}-${sid}`;
 };
 
-const getEdgeOffsetsByUniqueKey = (edges: IGraphEdge[]): IEdgeOffsetsByUniqueKey => {
+const getEdgeOffsetsByUniqueKey = <E extends IEdgeBase>(edges: E[]): IEdgeOffsetsByUniqueKey => {
   const edgeCountByUniqueKey: Record<string, number> = {};
   const loopbackUniqueKeys: Set<string> = new Set<string>();
 

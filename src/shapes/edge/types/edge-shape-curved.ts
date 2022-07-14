@@ -1,13 +1,14 @@
 import { EdgeShape } from '../base';
 import { IBorderPosition, IEdgeArrowShape } from '../interface';
 import { IPosition } from '../../../common/position';
-import { getDistanceToLine } from '../utils/distance';
+import { getDistanceToLine } from '../../../render/canvas/edge/utils/distance';
 import { INodeShape } from '../../node/interface';
+import { IEdgeBase, INodeBase } from '../../../models/graph.model';
 
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
 const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;
 
-export class EdgeShapeCurved extends EdgeShape {
+export class EdgeShapeCurved<N extends INodeBase, E extends IEdgeBase> extends EdgeShape<N, E> {
   override getCenterPosition(): IPosition {
     return this.getControlPoint(CURVED_CONTROL_POINT_OFFSET_MULTIPLIER / 2);
   }
@@ -115,7 +116,7 @@ export class EdgeShapeCurved extends EdgeShape {
     return { x: x, y: y };
   }
 
-  protected override findBorderPoint(nearNode: INodeShape): IBorderPosition {
+  protected override findBorderPoint(nearNode: INodeShape<N, E>): IBorderPosition {
     const maxIterations = 10;
     let iteration = 0;
     let low = 0;

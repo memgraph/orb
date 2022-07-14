@@ -1,39 +1,33 @@
 import { INodeShape } from '../node/interface';
 import { IPosition } from '../../common/position';
-import {
-  EdgeShapeState,
-  IBorderPosition,
-  IEdgeArrowShape,
-  IEdgeShape,
-  IEdgeShapeDrawOptions,
-  IEdgeStyle,
-} from './interface';
-import { getDistanceToLine } from './utils/distance';
-import { IGraphEdge } from '../../models/graph.model';
+import { EdgeShapeState, IBorderPosition, IEdgeArrowShape, IEdgeShape, IEdgeShapeDrawOptions } from './interface';
+import { getDistanceToLine } from '../../render/canvas/edge/utils/distance';
 import { LabelShape, LabelShapeTextBaseline } from '../label';
+import { IEdgeBase, INodeBase } from '../../models/graph.model';
+import { IEdgeStyle } from '../../models/style/edge-style';
 
 const DEFAULT_IS_SHADOW_DRAW_ENABLED = true;
 const DEFAULT_IS_LABEL_DRAW_ENABLED = true;
 
-export interface IEdgeShapeDefinition {
-  data: IGraphEdge;
+export interface IEdgeShapeDefinition<N extends INodeBase, E extends IEdgeBase> {
+  data: E;
   style?: IEdgeStyle;
-  sourceNodeShape: INodeShape;
-  targetNodeShape: INodeShape;
+  sourceNodeShape: INodeShape<N, E>;
+  targetNodeShape: INodeShape<N, E>;
 }
 
-export class EdgeShape implements IEdgeShape {
-  protected readonly data: IGraphEdge;
+export class EdgeShape<N extends INodeBase, E extends IEdgeBase> implements IEdgeShape<N, E> {
+  protected readonly data: E;
   protected readonly label: LabelShape;
-  protected readonly sourceNodeShape: INodeShape;
-  protected readonly targetNodeShape: INodeShape;
+  protected readonly sourceNodeShape: INodeShape<N, E>;
+  protected readonly targetNodeShape: INodeShape<N, E>;
   protected style?: IEdgeStyle;
 
   protected hasShadow = false;
 
   protected state?: EdgeShapeState;
 
-  constructor(definition: IEdgeShapeDefinition) {
+  constructor(definition: IEdgeShapeDefinition<N, E>) {
     this.data = definition.data;
     this.label = new LabelShape({ data: { textBaseline: LabelShapeTextBaseline.MIDDLE } });
     if (definition.style) {
@@ -47,13 +41,13 @@ export class EdgeShape implements IEdgeShape {
     this.targetNodeShape.connectEdgeShape(this);
   }
 
-  getId(): number {
-    return this.data.id;
-  }
-
-  getData(): IGraphEdge {
-    return this.data;
-  }
+  // getId(): number {
+  //   return this.data.id;
+  // }
+  //
+  // getData(): E {
+  //   return this.data;
+  // }
 
   getStyle(): IEdgeStyle | undefined {
     return this.style;
@@ -65,48 +59,48 @@ export class EdgeShape implements IEdgeShape {
     this.label.setStyle(this.style);
   }
 
-  getWidth(): number {
-    let width = 0;
-    if (this.style?.width !== undefined) {
-      width = this.style.width;
-    }
-    if (this.isHovered() && this.style?.widthHover !== undefined) {
-      width = this.style.widthHover;
-    }
-    if (this.isSelected() && this.style?.widthSelected !== undefined) {
-      width = this.style.widthSelected;
-    }
-    return width;
-  }
+  // getWidth(): number {
+  //   let width = 0;
+  //   if (this.style?.width !== undefined) {
+  //     width = this.style.width;
+  //   }
+  //   if (this.isHovered() && this.style?.widthHover !== undefined) {
+  //     width = this.style.widthHover;
+  //   }
+  //   if (this.isSelected() && this.style?.widthSelected !== undefined) {
+  //     width = this.style.widthSelected;
+  //   }
+  //   return width;
+  // }
+  //
+  // getLabel(): string | undefined {
+  //   return this.style?.label;
+  // }
+  //
+  // getCenterPosition(): IPosition {
+  //   const sourcePoint = this.sourceNodeShape.getCenterPosition();
+  //   const targetPoint = this.targetNodeShape.getCenterPosition();
+  //   return {
+  //     x: (sourcePoint.x + targetPoint.x) / 2,
+  //     y: (sourcePoint.y + targetPoint.y) / 2,
+  //   };
+  // }
 
-  getLabel(): string | undefined {
-    return this.style?.label;
-  }
-
-  getCenterPosition(): IPosition {
-    const sourcePoint = this.sourceNodeShape.getCenterPosition();
-    const targetPoint = this.targetNodeShape.getCenterPosition();
-    return {
-      x: (sourcePoint.x + targetPoint.x) / 2,
-      y: (sourcePoint.y + targetPoint.y) / 2,
-    };
-  }
-
-  getSourceNodeShape(): INodeShape {
-    return this.sourceNodeShape;
-  }
-
-  getTargetNodeShape(): INodeShape {
-    return this.targetNodeShape;
-  }
-
-  setState(state: EdgeShapeState) {
-    this.state = state;
-  }
-
-  clearState() {
-    this.state = undefined;
-  }
+  // getSourceNodeShape(): INodeShape<N, E> {
+  //   return this.sourceNodeShape;
+  // }
+  //
+  // getTargetNodeShape(): INodeShape<N, E> {
+  //   return this.targetNodeShape;
+  // }
+  //
+  // setState(state: EdgeShapeState) {
+  //   this.state = state;
+  // }
+  //
+  // clearState() {
+  //   this.state = undefined;
+  // }
 
   getDistance(point: IPosition): number {
     const startPoint = this.sourceNodeShape.getCenterPosition();
@@ -114,47 +108,47 @@ export class EdgeShape implements IEdgeShape {
     return getDistanceToLine(startPoint, endPoint, point);
   }
 
-  draw(context: CanvasRenderingContext2D, options?: Partial<IEdgeShapeDrawOptions>) {
-    if (!this.getWidth()) {
-      return;
-    }
+  // draw(context: CanvasRenderingContext2D, options?: Partial<IEdgeShapeDrawOptions>) {
+  //   if (!this.getWidth()) {
+  //     return;
+  //   }
+  //
+  //   if (!this.sourceNodeShape || !this.targetNodeShape) {
+  //     return;
+  //   }
+  //
+  //   const isShadowEnabled = options?.isShadowEnabled ?? DEFAULT_IS_SHADOW_DRAW_ENABLED;
+  //   const isLabelEnabled = options?.isLabelEnabled ?? DEFAULT_IS_LABEL_DRAW_ENABLED;
+  //
+  //   this.setupStyle(context);
+  //   if (isShadowEnabled) {
+  //     this.setupShadow(context);
+  //   }
+  //   this.drawArrow(context);
+  //   this.drawLine(context);
+  //   if (isShadowEnabled) {
+  //     this.clearShadow(context);
+  //   }
+  //
+  //   if (isLabelEnabled && this.label.isDrawable()) {
+  //     // Positions of the edge change depending on the positions of the nodes
+  //     const center = this.getCenterPosition();
+  //     this.label.setPosition(center);
+  //     this.label.draw(context);
+  //   }
+  // }
 
-    if (!this.sourceNodeShape || !this.targetNodeShape) {
-      return;
-    }
-
-    const isShadowEnabled = options?.isShadowEnabled ?? DEFAULT_IS_SHADOW_DRAW_ENABLED;
-    const isLabelEnabled = options?.isLabelEnabled ?? DEFAULT_IS_LABEL_DRAW_ENABLED;
-
-    this.setupStyle(context);
-    if (isShadowEnabled) {
-      this.setupShadow(context);
-    }
-    this.drawArrow(context);
-    this.drawLine(context);
-    if (isShadowEnabled) {
-      this.clearShadow(context);
-    }
-
-    if (isLabelEnabled && this.label.isDrawable()) {
-      // Positions of the edge change depending on the positions of the nodes
-      const center = this.getCenterPosition();
-      this.label.setPosition(center);
-      this.label.draw(context);
-    }
-  }
-
-  isSelected(): boolean {
-    return this.state === EdgeShapeState.SELECT;
-  }
-
-  isHovered(): boolean {
-    return this.state === EdgeShapeState.HOVER;
-  }
-
-  hasState(): boolean {
-    return this.state !== undefined;
-  }
+  // isSelected(): boolean {
+  //   return this.state === EdgeShapeState.SELECT;
+  // }
+  //
+  // isHovered(): boolean {
+  //   return this.state === EdgeShapeState.HOVER;
+  // }
+  //
+  // hasState(): boolean {
+  //   return this.state !== undefined;
+  // }
 
   protected drawLine(context: CanvasRenderingContext2D) {
     // Default line is the straight line
@@ -216,7 +210,7 @@ export class EdgeShape implements IEdgeShape {
     return { point: arrowPoint, core: arrowCore, angle, length };
   }
 
-  protected findBorderPoint(nearNode: INodeShape): IBorderPosition {
+  protected findBorderPoint(nearNode: INodeShape<N, E>): IBorderPosition {
     let endNode = this.targetNodeShape;
     let startNode = this.sourceNodeShape;
     if (nearNode.getId() === this.sourceNodeShape.getId()) {
@@ -249,16 +243,16 @@ export class EdgeShape implements IEdgeShape {
 
     // context.fillStyle is set for the sake of arrow colors
     if (this.style?.color) {
-      context.strokeStyle = this.style.color;
-      context.fillStyle = this.style.color;
+      context.strokeStyle = this.style.color.toString();
+      context.fillStyle = this.style.color.toString();
     }
     if (this.isHovered() && this.style?.colorHover) {
-      context.strokeStyle = this.style.colorHover;
-      context.fillStyle = this.style.colorHover;
+      context.strokeStyle = this.style.colorHover.toString();
+      context.fillStyle = this.style.colorHover.toString();
     }
     if (this.isSelected() && this.style?.colorSelected) {
-      context.strokeStyle = this.style.colorSelected;
-      context.fillStyle = this.style.colorSelected;
+      context.strokeStyle = this.style.colorSelected.toString();
+      context.fillStyle = this.style.colorSelected.toString();
     }
   }
 
@@ -267,7 +261,7 @@ export class EdgeShape implements IEdgeShape {
       return;
     }
     if (this.style?.shadowColor) {
-      context.shadowColor = this.style.shadowColor;
+      context.shadowColor = this.style.shadowColor.toString();
     }
     if (this.style?.shadowSize) {
       context.shadowBlur = this.style.shadowSize;
