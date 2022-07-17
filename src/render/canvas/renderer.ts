@@ -1,7 +1,13 @@
 import { ZoomTransform, zoomIdentity } from 'd3-zoom';
-import { GraphTopology, IGraphTopologyDrawOptions } from './topology';
-import { IPosition } from './common/position';
-import { IRectangle } from './common/rectangle';
+import { IPosition } from '../../common/position';
+import { IRectangle } from '../../common/rectangle';
+import { INodeBase } from '../../models/node';
+import { IEdgeBase } from '../../models/edge';
+import { Graph } from '../../models/graph';
+import { NodeCanvas } from './node/base';
+import { EdgeCanvas } from './edge/base';
+import { EdgeCanvasFactory } from './edge/factory';
+import { NodeCanvasFactory } from './node/factory';
 
 const DEBUG = false;
 const DEBUG_RED = '#FF5733';
@@ -17,6 +23,20 @@ export interface RendererFitZoomOptions {
   minZoom: number;
   maxZoom: number;
 }
+
+export interface IGraphDrawOptions {
+  labelsIsEnabled: boolean;
+  labelsOnEventIsEnabled: boolean;
+  contextAlphaOnEvent: number;
+  contextAlphaOnEventIsEnabled: boolean;
+}
+
+const DEFAULT_DRAW_OPTIONS: IGraphDrawOptions = {
+  labelsIsEnabled: true,
+  labelsOnEventIsEnabled: true,
+  contextAlphaOnEvent: 0.3,
+  contextAlphaOnEventIsEnabled: true,
+};
 
 export class Renderer {
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
@@ -40,8 +60,8 @@ export class Renderer {
     this.transform = zoomIdentity;
   }
 
-  render(topology: GraphTopology, topologyDrawOptions?: Partial<IGraphTopologyDrawOptions>) {
-    if (!topology.getNodeShapes().length) {
+  render<N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>, drawOptions?: Partial<IGraphDrawOptions>) {
+    if (!graph.getNodeCount()) {
       return;
     }
 
@@ -81,8 +101,66 @@ export class Renderer {
       this.context.fillRect(0, 0, this.width, this.height);
     }
 
-    topology.draw(this.context, topologyDrawOptions);
+    // TODO: Move to function
+    const edges = graph.getEdges();
+    const edgeObjects: EdgeCanvas<N, E>[] = new Array<EdgeCanvas<N, E>>(edges.length);
+    for (let i = 0; i < edges.length; i++) {
+      edgeObjects[i] = EdgeCanvasFactory.createEdgeCanvas<N, E>(edges[i]);
+    }
+
+    const nodes = graph.getNodes();
+    const nodeObjects: NodeCanvas<N, E>[] = new Array<NodeCanvas<N, E>>(nodes.length);
+    for (let i = 0; i < nodes.length; i++) {
+      nodeObjects[i] = NodeCanvasFactory.createNodeCanvas<N, E>(nodes[i]);
+    }
+
+    this.drawObjects<N, E>(edgeObjects, drawOptions);
+    this.drawObjects<N, E>(nodeObjects, drawOptions);
+
     this.context.restore();
+  }
+
+  private drawObjects<N extends INodeBase, E extends IEdgeBase>(
+    objects: (NodeCanvas<N, E> | EdgeCanvas<N, E>)[],
+    options?: Partial<IGraphDrawOptions>,
+  ) {
+    const drawOptions = Object.assign(DEFAULT_DRAW_OPTIONS, options);
+
+    const selectedObjects: (NodeCanvas<N, E> | EdgeCanvas<N, E>)[] = [];
+    const hoveredObjects: (NodeCanvas<N, E> | EdgeCanvas<N, E>)[] = [];
+
+    for (let i = 0; i < objects.length; i++) {
+      const obj = objects[i];
+      if (obj.item.isSelected()) {
+        selectedObjects.push(obj);
+      }
+      if (obj.item.isHovered()) {
+        hoveredObjects.push(obj);
+      }
+    }
+    const hasStateChangedShapes = selectedObjects.length || hoveredObjects.length;
+
+    if (drawOptions.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
+      this.context.globalAlpha = drawOptions.contextAlphaOnEvent;
+    }
+
+    for (let i = 0; i < objects.length; i++) {
+      const obj = objects[i];
+      if (!obj.item.isSelected() && !obj.item.isHovered()) {
+        obj.draw(this.context, { isLabelEnabled: drawOptions.labelsIsEnabled });
+      }
+    }
+
+    if (drawOptions.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
+      this.context.globalAlpha = 1;
+    }
+
+    for (let i = 0; i < selectedObjects.length; i++) {
+      selectedObjects[i].draw(this.context, { isLabelEnabled: drawOptions.labelsOnEventIsEnabled });
+    }
+    for (let i = 0; i < hoveredObjects.length; i++) {
+      hoveredObjects[i].draw(this.context, { isLabelEnabled: drawOptions.labelsOnEventIsEnabled });
+    }
   }
 
   reset() {
@@ -93,15 +171,18 @@ export class Renderer {
     this.context.save();
   }
 
-  getFitZoomTransform(topology: GraphTopology, options: RendererFitZoomOptions): ZoomTransform {
-    const topologyView = topology.getViewRectangle();
+  getFitZoomTransform<N extends INodeBase, E extends IEdgeBase>(
+    graph: Graph<N, E>,
+    options: RendererFitZoomOptions,
+  ): ZoomTransform {
+    const graphView = graph.getBoundingBox();
     const simulationView = this.getSimulationViewRectangle();
 
-    const heightScale = simulationView.height / (topologyView.height * (1 + DEFAULT_RENDERER_FIT_ZOOM_MARGIN));
-    const widthScale = simulationView.width / (topologyView.width * (1 + DEFAULT_RENDERER_FIT_ZOOM_MARGIN));
+    const heightScale = simulationView.height / (graphView.height * (1 + DEFAULT_RENDERER_FIT_ZOOM_MARGIN));
+    const widthScale = simulationView.width / (graphView.width * (1 + DEFAULT_RENDERER_FIT_ZOOM_MARGIN));
     const scale = Math.min(heightScale, widthScale);
 
-    // TODO: @Toni add explanation why this works ok
+    // TODO @toni: Add explanation why this works ok
     const previousZoomLevel = this.transform.k;
     const newZoomLevel = Math.max(Math.min(scale * previousZoomLevel, options.maxZoom), options.minZoom);
     const newX = (simulationView.width / 2) * previousZoomLevel * (1 - newZoomLevel);

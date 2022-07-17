@@ -1,6 +1,6 @@
-import { IPosition } from '../common/position';
-import { INodeStyle } from './node/interface';
-import { IEdgeStyle } from './edge/interface';
+import { IPosition } from '../../common/position';
+import { INodeProperties } from '../../models/node';
+import { IEdgeProperties } from '../../models/edge';
 
 const DEFAULT_FONT_FAMILY = 'Roboto, sans-serif';
 const DEFAULT_FONT_SIZE = 4;
@@ -9,71 +9,46 @@ const DEFAULT_FONT_COLOR = '#000000';
 const FONT_BACKGROUND_MARGIN = 0.12;
 const FONT_LINE_SPACING = 1.2;
 
-export enum LabelShapeTextBaseline {
+export enum LabelTextBaseline {
   TOP = 'top',
   MIDDLE = 'middle',
 }
 
-export interface ILabelShapeData {
-  textBaseline: LabelShapeTextBaseline;
+export interface ILabelData {
+  textBaseline: LabelTextBaseline;
 }
 
-export interface ILabelShapeDefinition {
-  data: ILabelShapeData;
-  position?: IPosition;
-  style?: IEdgeStyle | INodeStyle;
+export interface ILabelDefinition {
+  settings: ILabelData;
+  position: IPosition;
+  properties: Partial<INodeProperties> | Partial<IEdgeProperties>;
 }
 
-export class LabelShape {
-  protected readonly data: ILabelShapeData;
+export class LabelCanvas {
+  protected readonly settings: ILabelData;
   protected position?: IPosition;
   protected text: string | undefined;
   protected textLines: string[] = [];
-  protected style?: IEdgeStyle | INodeStyle;
 
   protected fontSize = DEFAULT_FONT_SIZE;
   protected fontFamily = getFontFamily(DEFAULT_FONT_SIZE, DEFAULT_FONT_FAMILY);
 
-  constructor(definition: ILabelShapeDefinition) {
-    this.data = definition.data;
-    if (definition.position) {
-      this.setPosition(definition.position);
-    }
-    if (definition.style) {
-      this.setStyle(definition.style);
-    }
-  }
+  protected properties: Partial<INodeProperties> | Partial<IEdgeProperties>;
 
-  setPosition(position: IPosition) {
-    // When nodes/edges are initializing, it is not defined
-    if (position.x === undefined || position.y === undefined) {
-      return;
+  constructor(definition: ILabelDefinition) {
+    this.settings = definition.settings;
+    this.position = definition.position;
+
+    this.properties = definition.properties;
+    this.text = this.properties.label ?? '';
+    this.textLines = splitTextLines(this.text);
+
+    if (this.properties.fontSize !== undefined || this.properties.fontFamily) {
+      this.fontSize = Math.max(this.properties.fontSize ?? 0, 0);
+      this.fontFamily = getFontFamily(this.fontSize, this.properties.fontFamily ?? DEFAULT_FONT_FAMILY);
     }
-    this.position = position;
+
     this.fixPosition();
-  }
-
-  setStyle(style: IEdgeStyle | INodeStyle) {
-    this.style = style;
-    let isLabelChanged = false;
-
-    // Text has changed
-    if (this.style?.label && this.style?.label !== this.text) {
-      this.text = this.style?.label;
-      this.textLines = splitTextLines(this.text);
-      isLabelChanged = true;
-    }
-
-    // Font has changed
-    if (this.style?.fontSize !== undefined || this.style?.fontFamily) {
-      this.fontSize = Math.max(this.style?.fontSize ?? 0, 0);
-      this.fontFamily = getFontFamily(this.fontSize, this.style?.fontFamily ?? DEFAULT_FONT_FAMILY);
-      isLabelChanged = true;
-    }
-
-    if (isLabelChanged) {
-      this.fixPosition();
-    }
   }
 
   isDrawable(): boolean {
@@ -90,15 +65,15 @@ export class LabelShape {
   }
 
   protected drawTextBackground(context: CanvasRenderingContext2D) {
-    if (!this.style?.fontBackgroundColor || !this.position) {
+    if (!this.properties.fontBackgroundColor || !this.position) {
       return;
     }
 
-    context.fillStyle = this.style.fontBackgroundColor;
+    context.fillStyle = this.properties.fontBackgroundColor.toString();
     const margin = this.fontSize * FONT_BACKGROUND_MARGIN;
     const height = this.fontSize + 2 * margin;
     const lineHeight = this.fontSize * FONT_LINE_SPACING;
-    const baselineHeight = this.data.textBaseline === LabelShapeTextBaseline.MIDDLE ? this.fontSize / 2 : 0;
+    const baselineHeight = this.settings.textBaseline === LabelTextBaseline.MIDDLE ? this.fontSize / 2 : 0;
 
     for (let i = 0; i < this.textLines.length; i++) {
       const line = this.textLines[i];
@@ -117,9 +92,9 @@ export class LabelShape {
       return;
     }
 
-    context.fillStyle = this.style?.fontColor ?? DEFAULT_FONT_COLOR;
+    context.fillStyle = (this.properties.fontColor ?? DEFAULT_FONT_COLOR).toString();
     context.font = this.fontFamily;
-    context.textBaseline = this.data.textBaseline;
+    context.textBaseline = this.settings.textBaseline;
     context.textAlign = 'center';
     const lineHeight = this.fontSize * FONT_LINE_SPACING;
 
@@ -134,7 +109,7 @@ export class LabelShape {
       return;
     }
 
-    if (this.data.textBaseline === LabelShapeTextBaseline.MIDDLE && this.textLines.length) {
+    if (this.settings.textBaseline === LabelTextBaseline.MIDDLE && this.textLines.length) {
       const halfLineSpacingCount = Math.floor(this.textLines.length / 2);
       const halfLineCount = (this.textLines.length - 1) / 2;
       this.position.y -= halfLineCount * this.fontSize - halfLineSpacingCount * (FONT_LINE_SPACING - 1);

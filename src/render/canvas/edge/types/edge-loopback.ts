@@ -1,22 +1,13 @@
-import { EdgeShape } from '../base';
-import { IBorderPosition, IEdgeArrowShape } from '../interface';
-import { IPosition } from '../../../common/position';
-import { ICircle } from '../../../common/circle';
-import { INodeShape } from '../../node/interface';
+import { Node, INodeBase } from '../../../../models/node';
+import { IEdgeBase } from '../../../../models/edge';
+import { EdgeCanvas, IBorderPosition, IEdgeArrow } from '../base';
+import { ICircle } from '../../../../common/circle';
+import { IPosition } from '../../../../common/position';
 
-export class EdgeShapeLoopback extends EdgeShape {
-  override getCenterPosition(): IPosition {
-    const offset = Math.abs(this.style?.roundness ?? 1);
-    const circle = this.getCircleData();
-    return {
-      x: circle.x + circle.radius,
-      y: circle.y - offset * 5,
-    };
-  }
-
+export class EdgeLoopbackCanvas<N extends INodeBase, E extends IEdgeBase> extends EdgeCanvas<N, E> {
   protected override drawLine(context: CanvasRenderingContext2D) {
     // Draw line from a node to the same node!
-    const { x, y, radius } = this.getCircleData();
+    const { x, y, radius } = this.edge.getCircularData();
 
     context.beginPath();
     context.arc(x, y, radius, 0, 2 * Math.PI, false);
@@ -24,10 +15,10 @@ export class EdgeShapeLoopback extends EdgeShape {
     context.stroke();
   }
 
-  protected override getArrowShape(_context: CanvasRenderingContext2D): IEdgeArrowShape {
-    const scaleFactor = this.style?.arrowSize ?? 1;
-    const lineWidth = this.getWidth() ?? 1;
-    const source = this.sourceNodeShape;
+  protected override getArrowShape(_context: CanvasRenderingContext2D): IEdgeArrow {
+    const scaleFactor = this.edge.properties.arrowSize ?? 1;
+    const lineWidth = this.edge.getWidth() ?? 1;
+    const source = this.edge.startNode!;
     // const target = this.data.target;
 
     const arrowPoint = this.findBorderPoint(source);
@@ -40,26 +31,6 @@ export class EdgeShapeLoopback extends EdgeShape {
     const arrowCore = { x: xi, y: yi };
 
     return { point: arrowPoint, core: arrowCore, angle, length };
-  }
-
-  override getDistance(point: IPosition): number {
-    const circle = this.getCircleData();
-    const dx = circle.x - point.x;
-    const dy = circle.y - point.y;
-    return Math.abs(Math.sqrt(dx * dx + dy * dy) - circle.radius);
-  }
-
-  getCircleData(): ICircle {
-    const node = this.sourceNodeShape;
-    const offset = Math.abs(this.style?.roundness ?? 1);
-    const nodePoint = node.getCenterPosition();
-    const radius = node.getBorderedRadius() * 1.5 * offset;
-    const nodeSize = node.getBorderedRadius();
-
-    const x = nodePoint.x + radius;
-    const y = nodePoint.y - nodeSize * 0.5;
-
-    return { x, y, radius };
   }
 
   /**
@@ -77,8 +48,8 @@ export class EdgeShapeLoopback extends EdgeShape {
     };
   }
 
-  protected override findBorderPoint(nearNode: INodeShape): IBorderPosition {
-    const circle = this.getCircleData();
+  protected override findBorderPoint(nearNode: Node<N, E>): IBorderPosition {
+    const circle = this.edge.getCircularData();
     const options = { low: 0.6, high: 1.0, direction: 1 };
 
     let low = options.low;
@@ -95,7 +66,7 @@ export class EdgeShapeLoopback extends EdgeShape {
     const threshold = 0.05;
     let middle = (low + high) * 0.5;
 
-    const nearNodePoint = nearNode.getCenterPosition();
+    const nearNodePoint = nearNode.getCenter();
 
     while (low <= high && iteration < maxIterations) {
       middle = (low + high) * 0.5;
