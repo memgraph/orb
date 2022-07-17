@@ -1,1 +1,0 @@
-export { EdgeShapeFactory } from './factory';

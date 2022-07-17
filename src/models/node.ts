@@ -2,7 +2,7 @@ import { Edge, IEdgeBase } from './edge';
 import { IRectangle, isPointInRectangle } from '../common/rectangle';
 import { Color } from './color';
 import { IPosition } from '../common/position';
-import { ImageHandler } from '../images';
+import { ImageHandler } from '../services/images';
 import { GraphObjectState } from './state';
 
 export interface INodeBase {
@@ -51,6 +51,15 @@ export interface INodeProperties {
   mass: number;
 }
 
+export const DEFAULT_NODE_PROPERTIES: Partial<INodeProperties> = {
+  size: 5,
+  color: new Color('#000000'),
+};
+
+export interface INodeData<N extends INodeBase> {
+  data: N;
+}
+
 export class Node<N extends INodeBase, E extends IEdgeBase> {
   public readonly id: number;
   public data: N;
@@ -59,13 +68,13 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
   private readonly outEdgesById: { [id: number]: Edge<N, E> } = {};
 
   public position: INodePosition;
-  public properties: Partial<INodeProperties> = {};
+  public properties: Partial<INodeProperties> = DEFAULT_NODE_PROPERTIES;
   public state?: GraphObjectState;
 
-  constructor(data: N) {
-    this.id = data.id;
-    this.data = data;
-    this.position = { id: data.id, x: 0, y: 0 };
+  constructor(data: INodeData<N>) {
+    this.id = data.data.id;
+    this.data = data.data;
+    this.position = { id: this.id, x: 0, y: 0 };
   }
 
   getCenter(): IPosition {
@@ -170,7 +179,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
   }
 
   getDistanceToBorder(_angle: number): number {
-    // TODO: Add getDistanceToBorder for each node shape type because this covers only circles
+    // TODO @toni: Add getDistanceToBorder for each node shape type because this covers only circles
     return this.getBorderedRadius();
   }
 
@@ -185,7 +194,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
       return isInBoundingBox;
     }
 
-    // TODO: Add better checks for stars, triangles, hexagons, etc.
+    // TODO @toni: Add better checks for stars, triangles, hexagons, etc.
     const center = this.getCenter();
     const borderedRadius = this.getBorderedRadius();
 

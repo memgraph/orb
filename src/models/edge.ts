@@ -2,6 +2,11 @@ import { INodeBase, Node } from './node';
 import { GraphObjectState } from './state';
 import { Color } from './color';
 import { IPosition } from '../common/position';
+import { getDistanceToLine } from './distance';
+import { ICircle } from '../common/circle';
+
+const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
+const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;
 
 export interface IEdgeBase {
   id: number;
@@ -26,24 +31,49 @@ export interface IEdgeProperties {
   width: number;
   widthHover: number;
   widthSelected: number;
+}
+
+export const DEFAULT_EDGE_PROPERTIES: Partial<IEdgeProperties> = {
+  color: new Color('#999999'),
+  width: 0.3,
+};
+
+// TODO @toni: Add startNode and endNode in the constructor, but then check how to do
+// TODO @toni: disconnects and start/end node changes via join
+export interface IEdgeData<E extends IEdgeBase> {
+  data: E;
   // Offset is used to mark curved or straight lines
   // For straight lines, it is 0, for curved it is +N or -N
-  offset: number;
+  offset?: number;
+}
+
+export enum EdgeType {
+  STRAIGHT = 'straight',
+  LOOPBACK = 'loopback',
+  CURVED = 'curved',
 }
 
 export class Edge<N extends INodeBase, E extends IEdgeBase> {
   public readonly id: number;
   public data: E;
+  public readonly offset: number;
 
   private _startNode?: Node<N, E>;
   private _endNode?: Node<N, E>;
+  private _type: EdgeType = EdgeType.STRAIGHT;
 
-  public properties: Partial<IEdgeProperties> = {};
+  public properties: Partial<IEdgeProperties> = DEFAULT_EDGE_PROPERTIES;
   public state?: GraphObjectState;
 
-  constructor(data: E) {
-    this.id = data.id;
-    this.data = data;
+  constructor(data: IEdgeData<E>) {
+    this.id = data.data.id;
+    this.data = data.data;
+    this.offset = data.offset ?? 0;
+    this._type = this.getEdgeType();
+  }
+
+  get type(): EdgeType {
+    return this._type;
   }
 
   get start(): number {
@@ -68,6 +98,7 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
 
     this._startNode.addEdge(this);
     this._endNode.addEdge(this);
+    this._type = this.getEdgeType();
   }
 
   disconnect() {
@@ -91,29 +122,41 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
   }
 
   isLoopback(): boolean {
-    return this.start === this.end;
+    return this._type === EdgeType.LOOPBACK;
   }
 
   isStraight(): boolean {
-    return !this.isLoopback() && this.properties.offset === 0;
+    return this._type === EdgeType.STRAIGHT;
   }
 
   isCurved(): boolean {
-    const offset = this.properties.offset;
-    return !this.isLoopback() && typeof offset === 'number' && offset !== 0;
+    return this._type === EdgeType.CURVED;
   }
 
   getCenter(): IPosition {
-    if (!this.startNode || !this.endNode) {
-      return { x: 0, y: 0 };
+    if (this.isStraight()) {
+      return this.getStraightCenter();
     }
+    if (this.isCurved()) {
+      return this.getCurvedCenter();
+    }
+    if (this.isLoopback()) {
+      return this.getLoopbackCenter();
+    }
+    return this.getStraightCenter();
+  }
 
-    const startPoint = this.startNode.getCenter();
-    const endPoint = this.endNode.getCenter();
-    return {
-      x: (startPoint.x + endPoint.x) / 2,
-      y: (startPoint.y + endPoint.y) / 2,
-    };
+  getDistance(point: IPosition): number {
+    if (this.isStraight()) {
+      return this.getStraightDistance(point);
+    }
+    if (this.isCurved()) {
+      return this.getCurvedDistance(point);
+    }
+    if (this.isLoopback()) {
+      return this.getLoopbackDistance(point);
+    }
+    return this.getStraightDistance(point);
   }
 
   getLabel(): string | undefined {
@@ -156,5 +199,135 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
     }
 
     return color;
+  }
+
+  protected getEdgeType(): EdgeType {
+    if (this.startNode && this.endNode && this.startNode.id === this.endNode.id) {
+      return EdgeType.LOOPBACK;
+    }
+    return this.offset === 0 ? EdgeType.STRAIGHT : EdgeType.CURVED;
+  }
+
+  // TODO @toni: How to structure these into separate classes (straight) and use in canvas render
+  private getStraightCenter(): IPosition {
+    const startPoint = this.startNode?.getCenter();
+    const endPoint = this.endNode?.getCenter();
+    if (!startPoint || !endPoint) {
+      return { x: 0, y: 0 };
+    }
+
+    return {
+      x: (startPoint.x + endPoint.x) / 2,
+      y: (startPoint.y + endPoint.y) / 2,
+    };
+  }
+
+  private getStraightDistance(point: IPosition): number {
+    const startPoint = this.startNode?.getCenter();
+    const endPoint = this.endNode?.getCenter();
+    if (!startPoint || !endPoint) {
+      return 0;
+    }
+
+    return getDistanceToLine(startPoint, endPoint, point);
+  }
+
+  // TODO @toni: How to structure these into separate classes (curved) and use in canvas render
+  private getCurvedCenter(): IPosition {
+    return this.getCurvedControlPoint(CURVED_CONTROL_POINT_OFFSET_MULTIPLIER / 2);
+  }
+
+  private getCurvedDistance(point: IPosition): number {
+    const sourcePoint = this.startNode?.getCenter();
+    const targetPoint = this.endNode?.getCenter();
+    if (!sourcePoint || !targetPoint) {
+      return 0;
+    }
+
+    const controlPoint = this.getCurvedControlPoint();
+
+    let minDistance = 1e9;
+    let distance;
+    let i;
+    let t;
+    let x;
+    let y;
+    let lastX = sourcePoint.x;
+    let lastY = sourcePoint.y;
+    for (i = 1; i < 10; i++) {
+      t = 0.1 * i;
+      x = Math.pow(1 - t, 2) * sourcePoint.x + 2 * t * (1 - t) * controlPoint.x + Math.pow(t, 2) * targetPoint.x;
+      y = Math.pow(1 - t, 2) * sourcePoint.y + 2 * t * (1 - t) * controlPoint.y + Math.pow(t, 2) * targetPoint.y;
+      if (i > 0) {
+        distance = getDistanceToLine({ x: lastX, y: lastY }, { x, y }, point);
+        minDistance = distance < minDistance ? distance : minDistance;
+      }
+      lastX = x;
+      lastY = y;
+    }
+
+    return minDistance;
+  }
+
+  getCurvedControlPoint(offsetMultiplier = CURVED_CONTROL_POINT_OFFSET_MULTIPLIER): IPosition {
+    if (!this.startNode || !this.endNode) {
+      return { x: 0, y: 0 };
+    }
+    const sourcePoint = this.startNode.getCenter();
+    const targetPoint = this.endNode.getCenter();
+    const sourceSize = this.startNode.getRadius();
+    const targetSize = this.endNode.getRadius();
+
+    const middleX = (sourcePoint.x + targetPoint.x) / 2;
+    const middleY = (sourcePoint.y + targetPoint.y) / 2;
+
+    const dx = targetPoint.x - sourcePoint.x;
+    const dy = targetPoint.y - sourcePoint.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+
+    const offsetSize = Math.max(sourceSize, targetSize, CURVED_CONTROL_POINT_OFFSET_MIN_SIZE);
+    const offset = (this.offset ?? 1) * offsetSize * offsetMultiplier;
+
+    // TODO @toni: Check for smooth quadratic curve (faster)
+    // https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/curves/path-data
+    return {
+      x: middleX + offset * (dy / length),
+      y: middleY - offset * (dx / length),
+    };
+  }
+
+  // TODO @toni: How to structure these into separate classes (loopback) and use in canvas render
+  private getLoopbackCenter(): IPosition {
+    const offset = Math.abs(this.offset ?? 1);
+    const circle = this.getCircularData();
+    return {
+      x: circle.x + circle.radius,
+      y: circle.y - offset * 5,
+    };
+  }
+
+  private getLoopbackDistance(point: IPosition): number {
+    const circle = this.getCircularData();
+    const dx = circle.x - point.x;
+    const dy = circle.y - point.y;
+    return Math.abs(Math.sqrt(dx * dx + dy * dy) - circle.radius);
+  }
+
+  getCircularData(): ICircle {
+    if (!this.startNode) {
+      return { x: 0, y: 0, radius: 0 };
+    }
+
+    const nodeCenter = this.startNode.getCenter();
+    const nodeRadius = this.startNode.getBorderedRadius();
+
+    const offset = Math.abs(this.offset ?? 1);
+    const radius = nodeRadius * 1.5 * offset;
+    const nodeSize = nodeRadius;
+
+    const x = nodeCenter.x + radius;
+    const y = nodeCenter.y - nodeSize * 0.5;
+
+    return { x, y, radius };
   }
 }

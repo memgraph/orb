@@ -1,5 +1,5 @@
 import { IPosition } from '../../../common/position';
-import { INodeBase } from '../../../models/node';
+import { Node, INodeBase } from '../../../models/node';
 import { Edge, IEdgeBase } from '../../../models/edge';
 import { LabelCanvas, LabelTextBaseline } from '../label';
 
@@ -33,6 +33,7 @@ export class EdgeCanvas<N extends INodeBase, E extends IEdgeBase> {
     this.label = new LabelCanvas({
       position: this.edge.getCenter(),
       settings: { textBaseline: LabelTextBaseline.MIDDLE },
+      // TODO @toni: Send only a snippet of it (what is required for a label)
       properties: edge.properties,
     });
   }
@@ -117,11 +118,11 @@ export class EdgeCanvas<N extends INodeBase, E extends IEdgeBase> {
   protected getArrowShape(_context: CanvasRenderingContext2D): IEdgeArrow {
     const scaleFactor = this.edge.properties.arrowSize ?? 1;
     const lineWidth = this.edge.getWidth() ?? 1;
-    const sourcePoint = this.sourceNodeShape.getCenterPosition();
-    const targetPoint = this.targetNodeShape.getCenterPosition();
+    const sourcePoint = this.edge.startNode!.getCenter();
+    const targetPoint = this.edge.endNode!.getCenter();
 
     const angle = Math.atan2(targetPoint.y - sourcePoint.y, targetPoint.x - sourcePoint.x);
-    const arrowPoint = this.findBorderPoint(this.targetNodeShape);
+    const arrowPoint = this.findBorderPoint(this.edge.endNode!);
 
     const length = 1.5 * scaleFactor + 3 * lineWidth; // 3* lineWidth is the width of the edge.
 
@@ -130,6 +131,31 @@ export class EdgeCanvas<N extends INodeBase, E extends IEdgeBase> {
     const arrowCore = { x: xi, y: yi };
 
     return { point: arrowPoint, core: arrowCore, angle, length };
+  }
+
+  protected findBorderPoint(nearNode: Node<N, E>): IBorderPosition {
+    let endNode = this.edge.endNode!;
+    let startNode = this.edge.startNode!;
+    if (nearNode.id === this.edge.startNode!.id) {
+      endNode = this.edge.startNode!;
+      startNode = this.edge.endNode!;
+    }
+
+    const endNodePoints = endNode.getCenter();
+    const startNodePoints = startNode.getCenter();
+
+    const angle = Math.atan2(endNodePoints.y - startNodePoints.y, endNodePoints.x - startNodePoints.x);
+    const dx = endNodePoints.x - startNodePoints.x;
+    const dy = endNodePoints.y - startNodePoints.y;
+    const edgeSegmentLength = Math.sqrt(dx * dx + dy * dy);
+    const toBorderDist = nearNode.getDistanceToBorder(angle);
+    const toBorderPoint = (edgeSegmentLength - toBorderDist) / edgeSegmentLength;
+
+    return {
+      x: (1 - toBorderPoint) * startNodePoints.x + toBorderPoint * endNodePoints.x,
+      y: (1 - toBorderPoint) * startNodePoints.y + toBorderPoint * endNodePoints.y,
+      t: 0,
+    };
   }
 
   protected setupCanvas(context: CanvasRenderingContext2D) {

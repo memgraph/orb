@@ -182,7 +182,7 @@ export class Renderer {
     const widthScale = simulationView.width / (graphView.width * (1 + DEFAULT_RENDERER_FIT_ZOOM_MARGIN));
     const scale = Math.min(heightScale, widthScale);
 
-    // TODO: @Toni add explanation why this works ok
+    // TODO @toni: Add explanation why this works ok
     const previousZoomLevel = this.transform.k;
     const newZoomLevel = Math.max(Math.min(scale * previousZoomLevel, options.maxZoom), options.minZoom);
     const newX = (simulationView.width / 2) * previousZoomLevel * (1 - newZoomLevel);

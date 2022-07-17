@@ -25,7 +25,7 @@ export class NodeCanvas<N extends INodeBase, E extends IEdgeBase> {
     this.label = new LabelCanvas({
       position: { x: center.x, y: center.y + distance },
       settings: { textBaseline: LabelTextBaseline.TOP },
-      // TODO: Send only a snippet of it!
+      // TODO @toni: Send only a snippet of it (what is required for a label)
       properties: node.properties,
     });
   }
