@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "es6",
     "module": "esnext",
+    "lib": ["DOM", "ES6"],
     "declaration": true,
     "sourceMap": true,
     "outDir": "./dist",

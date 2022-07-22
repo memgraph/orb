@@ -32,6 +32,7 @@ export class EdgeShape implements IEdgeShape {
   protected hasShadow = false;
 
   protected state?: EdgeShapeState;
+  position: IPosition | undefined;
 
   constructor(definition: IEdgeShapeDefinition) {
     this.data = definition.data;

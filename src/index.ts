@@ -1,1 +1,3 @@
-export { Orb } from './orb';
+import { DefaultView } from './views/default-view';
+
+export default DefaultView;

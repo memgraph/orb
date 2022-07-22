@@ -1,1 +1,0 @@
-export { WebWorkerSimulator } from './simulator';

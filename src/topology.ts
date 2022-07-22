@@ -99,6 +99,10 @@ export class GraphTopology {
     return positions;
   }
 
+  getEdgePositions() {
+    return [];
+  }
+
   getEdgeShapeById(id: number): IEdgeShape | undefined {
     return this.edgeShapeById[id];
   }
