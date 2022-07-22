@@ -1,1 +1,0 @@
-export { NodeShapeFactory } from './factory';

@@ -1,4 +1,4 @@
-import { Orb } from '../src';
+import { Orb } from '../src/index';
 
 describe('Orb', () => {
   test('should be initialized', () => {

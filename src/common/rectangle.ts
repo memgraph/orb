@@ -7,6 +7,13 @@ export interface IRectangle {
   height: number;
 }
 
+/**
+ * Checks if the point (x, y) is in the rectangle.
+ *
+ * @param {IRectangle} rectangle Rectangle
+ * @param {IPosition} point Point (x, y)
+ * @return {boolean} True if the point (x, y) is in the rectangle, otherwise false
+ */
 export const isPointInRectangle = (rectangle: IRectangle, point: IPosition): boolean => {
   const endX = rectangle.x + rectangle.width;
   const endY = rectangle.y + rectangle.height;
