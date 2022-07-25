@@ -26,6 +26,7 @@
   "scripts": {
     "build": "rm -rf dist && tsc",
     "wp": "rm -rf dist && webpack",
+    "wpp": "rm -rf dist && webpack --mode=production",
     "wpw": "webpack --watch",
     "ru": "rm -rf dist && tsc && rollup -c",
     "serve": "http-server dist",

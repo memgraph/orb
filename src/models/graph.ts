@@ -5,6 +5,7 @@ import { IRectangle } from '../common/rectangle';
 import { IPosition } from '../common/position';
 import { IGraphStyle } from './style';
 import { ImageHandler } from '../services/images';
+import { ISimulationEdge } from '../simulator/interface';
 
 export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
   nodes: N[];
@@ -22,6 +23,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
   private style?: Partial<IGraphStyle<N, E>>;
 
   constructor(data?: Partial<IGraphData<N, E>>) {
+    console.log('creating graph', data);
     const nodes = data?.nodes ?? [];
     const edges = data?.edges ?? [];
     this.setup({ nodes, edges });
@@ -130,6 +132,27 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     }
   }
 
+  setEdgePositions(positions: ISimulationEdge[]) {
+    for (let i = 0; i < positions.length; i++) {
+      const edge = this.edgeById[positions[i].id];
+      if (edge) {
+        edge.position = positions[i];
+      }
+    }
+  }
+
+  getEdgePositions(): ISimulationEdge[] {
+    const edges = this.getEdges();
+    const positions: ISimulationEdge[] = new Array<ISimulationEdge>(edges.length);
+    for (let i = 0; i < edges.length; i++) {
+      const position = edges[i].position;
+      if (position) {
+        positions[i] = position;
+      }
+    }
+    return positions;
+  }
+
   setStyle(style: Partial<IGraphStyle<N, E>>) {
     this.style = style;
     const styleImageUrls: Set<string> = new Set<string>();
@@ -200,6 +223,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
 
       if (startNode && endNode) {
         edge.connect(startNode, endNode);
+
+        console.log('edge', edge, edge.position);
         this.edgeById[edge.id] = edge;
       }
     }

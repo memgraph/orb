@@ -15,7 +15,10 @@
   <div id='graph' style="height: 100%"></div>
   <script type="text/javascript">
     const container = document.getElementById('graph');
-    const view = new DefaultView(container);
+    const view = new Orb.DefaultView(container);
+    setTimeout(() => {
+      document.getElementsByTagName('canvas')[0].getContext('2d').fillRect(0, 0, 400, 400);
+    }, 30)
 
     const nodes = [
       { id: 1, properties: { name: 'Orb' } },

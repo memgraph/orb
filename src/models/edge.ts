@@ -4,6 +4,7 @@ import { Color } from './color';
 import { IPosition } from '../common/position';
 import { getDistanceToLine } from './distance';
 import { ICircle } from '../common/circle';
+import { ISimulationEdge } from '../simulator/interface';
 
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
 const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;
@@ -65,6 +66,9 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
   public properties: Partial<IEdgeProperties> = DEFAULT_EDGE_PROPERTIES;
   public state?: GraphObjectState;
 
+  // @dlozic: I added this since it was missing when using the graph
+  public position: ISimulationEdge | undefined;
+
   constructor(data: IEdgeData<E>) {
     this.id = data.data.id;
     this.data = data.data;
@@ -95,6 +99,14 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
   connect(startNode: Node<N, E>, endNode: Node<N, E>) {
     this._startNode = startNode;
     this._endNode = endNode;
+
+    if (this.startNode && this.endNode) {
+      this.position = {
+        id: this.id,
+        source: this.startNode.id,
+        target: this.endNode.id,
+      };
+    }
 
     this._startNode.addEdge(this);
     this._endNode.addEdge(this);

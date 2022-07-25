@@ -1,3 +1,1 @@
-import { DefaultView } from './views/default-view';
-
-export default DefaultView;
+export { DefaultView } from './views/default-view';

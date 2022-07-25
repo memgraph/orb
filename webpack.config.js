@@ -4,7 +4,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 module.exports = {
   mode: 'development',
   devtool: 'inline-source-map',
-  entry: './src',
+  entry: './src/index.ts',
   module: {
     rules: [
       {
@@ -20,7 +20,10 @@ module.exports = {
   output: {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'dist'),
-    libraryExport: 'default',
+    library: {
+      name: 'Orb',
+      type: 'umd'
+    }
   },
   devServer: {
     static: {

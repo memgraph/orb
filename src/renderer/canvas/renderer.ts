@@ -58,6 +58,7 @@ export class Renderer {
     this.width = DEFAULT_RENDERER_WIDTH;
     this.height = DEFAULT_RENDERER_HEIGHT;
     this.transform = zoomIdentity;
+    console.log('context', this.context);
   }
 
   render<N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>, drawOptions?: Partial<IGraphDrawOptions>) {
@@ -116,6 +117,7 @@ export class Renderer {
 
     this.drawObjects<N, E>(edgeObjects, drawOptions);
     this.drawObjects<N, E>(nodeObjects, drawOptions);
+    console.log('rendered');
 
     this.context.restore();
   }

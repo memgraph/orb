@@ -11,8 +11,8 @@ export interface INodeBase {
 
 export interface INodePosition {
   id: number;
-  x: 0;
-  y: 0;
+  x: number;
+  y: number;
 }
 
 export enum NodeShapeType {
