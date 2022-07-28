@@ -223,8 +223,6 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
 
       if (startNode && endNode) {
         edge.connect(startNode, endNode);
-
-        console.log('edge', edge, edge.position);
         this.edgeById[edge.id] = edge;
       }
     }

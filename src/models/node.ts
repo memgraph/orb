@@ -95,7 +95,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
 
   getBoundingBox(): IRectangle {
     const center = this.getCenter();
-    const radius = this.getBorderWidth();
+    const radius = this.getBorderedRadius();
     return {
       x: center.x - radius,
       y: center.y - radius,
@@ -245,6 +245,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
   }
 
   getBorderColor(): Color | string | undefined {
+    console.log('border color', this);
     if (!this.hasBorder()) {
       return undefined;
     }
@@ -253,6 +254,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
 
     if (this.properties.borderColor) {
       borderColor = this.properties.borderColor;
+      console.log('border color', borderColor);
     }
     if (this.isHovered() && this.properties.borderColorHover) {
       borderColor = this.properties.borderColorHover;

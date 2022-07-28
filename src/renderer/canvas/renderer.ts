@@ -58,7 +58,6 @@ export class Renderer {
     this.width = DEFAULT_RENDERER_WIDTH;
     this.height = DEFAULT_RENDERER_HEIGHT;
     this.transform = zoomIdentity;
-    console.log('context', this.context);
   }
 
   render<N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>, drawOptions?: Partial<IGraphDrawOptions>) {
@@ -113,11 +112,11 @@ export class Renderer {
     const nodeObjects: NodeCanvas<N, E>[] = new Array<NodeCanvas<N, E>>(nodes.length);
     for (let i = 0; i < nodes.length; i++) {
       nodeObjects[i] = NodeCanvasFactory.createNodeCanvas<N, E>(nodes[i]);
+      console.log('nodeObjects[i]', nodeObjects[i].node.properties, nodes[i]);
     }
 
     this.drawObjects<N, E>(edgeObjects, drawOptions);
     this.drawObjects<N, E>(nodeObjects, drawOptions);
-    console.log('rendered');
 
     this.context.restore();
   }

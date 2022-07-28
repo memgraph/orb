@@ -276,7 +276,6 @@ export class D3SimulatorEngine extends Emitter<{
 
     // Update simulation with new data.
     this.simulation.nodes(this.nodes);
-    console.log('links', this.edges, data);
     this.linkForce.links(this.edges);
 
     // Run stabilization "physics".

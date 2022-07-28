@@ -6,6 +6,10 @@ import { IPosition, isEqualPosition } from '../common/position';
 import { Renderer } from '../renderer/canvas/renderer';
 import { ISimulator, SimulatorFactory } from '../simulator/index';
 import { Graph, IGraphData } from '../models/graph';
+import { IGraphStyle, IEdgeStyle, INodeStyle } from '../models/style';
+
+import { Node } from '../models/node';
+import { Edge } from '../models/edge';
 
 const DISABLE_OUT_OF_BOUNDS_DRAG = true;
 const ROUND_COORDINATES = true;
@@ -42,15 +46,44 @@ export class DefaultView {
     ],
     edges: [
       { id: 3, start: 0, end: 0, label: 'Edge Q', properties: { test: 3 } },
-      { id: 3, start: 0, end: 1, label: 'Edge W', properties: { test: 3 } },
-      { id: 4, start: 0, end: 2, label: 'Edge E', properties: { test: 3 } },
-      { id: 5, start: 1, end: 1, label: 'Edge R', properties: { test: 3 } },
-      { id: 5, start: 1, end: 2, label: 'Edge T', properties: { test: 3 } },
+      { id: 4, start: 0, end: 1, label: 'Edge W', properties: { test: 3 } },
+      { id: 5, start: 0, end: 2, label: 'Edge E', properties: { test: 3 } },
+      { id: 6, start: 1, end: 1, label: 'Edge R', properties: { test: 3 } },
+      { id: 7, start: 1, end: 2, label: 'Edge T', properties: { test: 3 } },
       { id: 6, start: 2, end: 2, label: 'Edge Y', properties: { test: 3 } },
     ],
   };
 
-  private graph = new Graph(this.graphData);
+  private style: Partial<IGraphStyle<DefaultViewNode, DefaultViewEdge>> = {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    getNodeStyle(node: Node<DefaultViewNode, DefaultViewEdge>): INodeStyle | undefined {
+      return {
+        borderColor: '#1d1d1d',
+        borderWidth: 0.6,
+        color: '#DD2222',
+        colorHover: '#e7644e',
+        colorSelected: '#e7644e',
+        fontSize: 3,
+        label: node.getLabel(),
+        size: 6,
+      };
+    },
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    getEdgeStyle(edge: Edge<DefaultViewNode, DefaultViewEdge>): IEdgeStyle | undefined {
+      return {
+        color: '#999999',
+        colorHover: '#1d1d1d',
+        colorSelected: '#1d1d1d',
+        fontSize: 3,
+        width: 0.3,
+        widthHover: 0.9,
+        widthSelected: 0.9,
+        label: edge.getLabel(),
+      };
+    },
+  };
+
+  private graph: Graph<DefaultViewNode, DefaultViewEdge>;
 
   private _canvas: HTMLCanvasElement;
   private _context: CanvasRenderingContext2D | null;
@@ -68,6 +101,9 @@ export class DefaultView {
   private graphResult: IGraphResult | undefined;
 
   constructor(private container: HTMLElement) {
+    this.graph = new Graph(this.graphData);
+    this.graph.setStyle(this.style);
+
     this._canvas = document.createElement('canvas');
     this._canvas.style.position = 'absolute';
     this.container.appendChild(this._canvas);
@@ -84,6 +120,8 @@ export class DefaultView {
 
     this.d3Zoom = zoom<HTMLCanvasElement, any>().scaleExtent([ZOOM_SCALE_MIN, ZOOM_SCALE_MAX]).on('zoom', this.zoomed);
 
+    console.log('constructor', this.graph.getNodeById(0)?.properties.color, '\n graph', this.graph, '\n this', this);
+
     select<HTMLCanvasElement, any>(this._canvas)
       .call(
         drag<HTMLCanvasElement, any>()
@@ -99,12 +137,13 @@ export class DefaultView {
 
     this.simulator = SimulatorFactory.getSimulator({
       onStabilizationStart: () => {
+        console.log('start simulation', this._canvas, this.container);
+        console.log('constructorx', this.graph.getNodeById(0)?.properties.color, this);
         // this.isUpdatingGraph_.next(true);
         // this.isLabelRendered_.next(false);
         // this.stabilizationProgress_.next(0);
       },
       onStabilizationProgress: (data) => {
-        console.log('stabilization progress', data);
         const nodes = data.nodes
           .filter((node) => node.x && node.y)
           .map((node) => ({
@@ -114,11 +153,7 @@ export class DefaultView {
           }));
         this.graph.setNodePositions(nodes);
 
-        console.log('renderer', this._renderer);
-        setTimeout(() => {
-          // this._canvas.getContext('2d')?.fillRect(0, 0, 400, 400);
-          this._renderer.render(this.graph);
-        }, 0);
+        this._renderer.render(this.graph);
 
         // Only for physics stabilization events which block the user interaction.
         // (temporarily disabling drag)
@@ -175,7 +210,6 @@ export class DefaultView {
       },
       onNodeDrag: (data) => {
         // Node dragging does not trigger a user blocking percentage loader.
-        console.log('node drag', data);
         const nodes = data.nodes
           .filter((node) => node.x && node.y)
           .map((node) => ({
@@ -184,6 +218,7 @@ export class DefaultView {
             y: node.y || 0,
           }));
         this.graph.setNodePositions(nodes);
+        this._renderer.render(this.graph);
 
         // (old)
         // this.graph?.setNodePositions(data.nodes);
@@ -201,7 +236,6 @@ export class DefaultView {
   dragSubject = (event: D3DragEvent<any, any, DefaultViewNode>) => {
     const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
     const simulationPoint = this._renderer?.getSimulationPosition(mousePoint);
-    console.log('dragSubject', this.graph?.getNearestNode(simulationPoint));
 
     return this.graph?.getNearestNode(simulationPoint);
   };
@@ -269,16 +303,36 @@ export class DefaultView {
   }
 
   // mouseMoved = (event: MouseEvent) => {
-  mouseMoved = () => {
-    // const mousePoint = this.getCanvasMousePosition(event);
+  mouseMoved = (event: MouseEvent) => {
+    console.log('mouse moved');
+    const mousePoint = this.getCanvasMousePosition(event);
+    const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
+
+    // This was a subject before, now I've handled it right here.
     // this.hoverMousePosition_.next(mousePoint);
+
+    if (!this.graph) {
+      return;
+    }
+
+    const node = this.graph.getNearestNode(simulationPoint);
+    if (!node) {
+      const { changedCount } = this.graph.unhoverAll();
+      if (changedCount) {
+        this._renderer.render(this.graph);
+      }
+    }
+
+    if (node && !node.isSelected()) {
+      this.graph.hoverNode(node);
+      this._renderer.render(this.graph);
+    }
   };
 
   mouseClicked = (event: PointerEvent) => {
     const mousePoint = this.getCanvasMousePosition(event);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
-    console.log('mouse click', this.graph);
     if (!this.graph) {
       return;
     }
@@ -314,7 +368,10 @@ export class DefaultView {
     const containerSize = this.container.getBoundingClientRect();
     this._canvas.width = containerSize.width;
     this._canvas.height = containerSize.height;
-    console.log('setting width height', this._canvas.width, this._canvas.height);
+    this._renderer.width = containerSize.width;
+    this._renderer.height = containerSize.height;
+    this._renderer.render(this.graph);
+    console.log('container resize', this.graph.getNodeById(0));
   };
 
   setGraphResult(graphResult: IGraphResult) {
