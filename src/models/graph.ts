@@ -23,7 +23,6 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
   private style?: Partial<IGraphStyle<N, E>>;
 
   constructor(data?: Partial<IGraphData<N, E>>) {
-    console.log('creating graph', data);
     const nodes = data?.nodes ?? [];
     const edges = data?.edges ?? [];
     this.setup({ nodes, edges });

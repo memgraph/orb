@@ -120,8 +120,6 @@ export class DefaultView {
 
     this.d3Zoom = zoom<HTMLCanvasElement, any>().scaleExtent([ZOOM_SCALE_MIN, ZOOM_SCALE_MAX]).on('zoom', this.zoomed);
 
-    console.log('constructor', this.graph.getNodeById(0)?.properties.color, '\n graph', this.graph, '\n this', this);
-
     select<HTMLCanvasElement, any>(this._canvas)
       .call(
         drag<HTMLCanvasElement, any>()
@@ -137,8 +135,6 @@ export class DefaultView {
 
     this.simulator = SimulatorFactory.getSimulator({
       onStabilizationStart: () => {
-        console.log('start simulation', this._canvas, this.container);
-        console.log('constructorx', this.graph.getNodeById(0)?.properties.color, this);
         // this.isUpdatingGraph_.next(true);
         // this.isLabelRendered_.next(false);
         // this.stabilizationProgress_.next(0);
@@ -170,7 +166,6 @@ export class DefaultView {
         */
       },
       onStabilizationEnd: (data) => {
-        console.log('stabilization end', data);
         const nodes = data.nodes
           .filter((node) => node.x && node.y)
           .map((node) => ({
@@ -187,7 +182,6 @@ export class DefaultView {
             minZoom: ZOOM_SCALE_MIN,
             maxZoom: ZOOM_SCALE_MAX,
           });
-          console.log('fitZoomTransform', fitZoomTransform);
           this.isInitiallyZoomed = true;
 
           /*
@@ -304,7 +298,6 @@ export class DefaultView {
 
   // mouseMoved = (event: MouseEvent) => {
   mouseMoved = (event: MouseEvent) => {
-    console.log('mouse moved');
     const mousePoint = this.getCanvasMousePosition(event);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
@@ -371,7 +364,6 @@ export class DefaultView {
     this._renderer.width = containerSize.width;
     this._renderer.height = containerSize.height;
     this._renderer.render(this.graph);
-    console.log('container resize', this.graph.getNodeById(0));
   };
 
   setGraphResult(graphResult: IGraphResult) {
@@ -379,7 +371,7 @@ export class DefaultView {
   }
 
   startSimulation(graph: IGraphData<DefaultViewNode, DefaultViewEdge>) {
-    this.graph = new Graph(graph);
+    // this.graph = new Graph(graph);
     this.isInitiallyZoomed = false;
     this._renderer.reset();
     this.simulator.startSimulation(this.graph.getNodePositions(), this.graph.getEdgePositions());
