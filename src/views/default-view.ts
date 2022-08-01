@@ -5,11 +5,10 @@ import { IPosition, isEqualPosition } from '../common/position';
 
 import { Renderer } from '../renderer/canvas/renderer';
 import { ISimulator, SimulatorFactory } from '../simulator/index';
-import { Graph, IGraphData } from '../models/graph';
-import { IGraphStyle, IEdgeStyle, INodeStyle } from '../models/style';
-
-import { Node } from '../models/node';
-import { Edge } from '../models/edge';
+import { Graph } from '../models/graph';
+import { INodeBase } from '../models/node';
+import { IEdgeBase } from '../models/edge';
+import { OrbEmitter, OrbEventType, IOrbView, IViewContext } from '../orb';
 
 const DISABLE_OUT_OF_BOUNDS_DRAG = true;
 const ROUND_COORDINATES = true;
@@ -18,72 +17,10 @@ const ZOOM_SCALE_MIN = 0.25;
 // const ZOOM_FIT_TRANSITION_MS = 200;
 // const THROTTLE_TIME = 10;
 
-interface DefaultViewNode {
-  id: number;
-  labels: string[];
-  properties: Record<string, any>;
-}
-
-interface DefaultViewEdge {
-  id: number;
-  start: number;
-  end: number;
-  label: string;
-  properties: Record<string, any>;
-}
-
-export interface IGraphResult {
-  graph: Graph<DefaultViewNode, DefaultViewEdge>;
-  isUpdated?: boolean;
-}
-
-export class DefaultView {
-  private graphData: IGraphData<DefaultViewNode, DefaultViewEdge> = {
-    nodes: [
-      { id: 0, labels: ['Node A'], properties: { test: 1 } },
-      { id: 1, labels: ['Node B'], properties: { test: 2 } },
-      { id: 2, labels: ['Node C'], properties: { test: 3 } },
-    ],
-    edges: [
-      { id: 3, start: 0, end: 0, label: 'Edge Q', properties: { test: 3 } },
-      { id: 4, start: 0, end: 1, label: 'Edge W', properties: { test: 3 } },
-      { id: 5, start: 0, end: 2, label: 'Edge E', properties: { test: 3 } },
-      { id: 6, start: 1, end: 1, label: 'Edge R', properties: { test: 3 } },
-      { id: 7, start: 1, end: 2, label: 'Edge T', properties: { test: 3 } },
-      { id: 6, start: 2, end: 2, label: 'Edge Y', properties: { test: 3 } },
-    ],
-  };
-
-  private style: Partial<IGraphStyle<DefaultViewNode, DefaultViewEdge>> = {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    getNodeStyle(node: Node<DefaultViewNode, DefaultViewEdge>): INodeStyle | undefined {
-      return {
-        borderColor: '#1d1d1d',
-        borderWidth: 0.6,
-        color: '#DD2222',
-        colorHover: '#e7644e',
-        colorSelected: '#e7644e',
-        fontSize: 3,
-        label: node.getLabel(),
-        size: 6,
-      };
-    },
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    getEdgeStyle(edge: Edge<DefaultViewNode, DefaultViewEdge>): IEdgeStyle | undefined {
-      return {
-        color: '#999999',
-        colorHover: '#1d1d1d',
-        colorSelected: '#1d1d1d',
-        fontSize: 3,
-        width: 0.3,
-        widthHover: 0.9,
-        widthSelected: 0.9,
-        label: edge.getLabel(),
-      };
-    },
-  };
-
-  private graph: Graph<DefaultViewNode, DefaultViewEdge>;
+export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E> {
+  private _container: HTMLElement;
+  private _graph: Graph<N, E>;
+  private _events: OrbEmitter<N, E>;
 
   private _canvas: HTMLCanvasElement;
   private _context: CanvasRenderingContext2D | null;
@@ -91,29 +28,27 @@ export class DefaultView {
   private _renderer: Renderer;
   private simulator: ISimulator;
 
-  private isInitiallyZoomed = false;
   private isPhysicsEnabled = false;
 
   private d3Zoom: ZoomBehavior<HTMLCanvasElement, any>;
 
   private dragStartPosition: IPosition | undefined;
 
-  private graphResult: IGraphResult | undefined;
-
-  constructor(private container: HTMLElement) {
-    this.graph = new Graph(this.graphData);
-    this.graph.setStyle(this.style);
+  constructor(context: IViewContext<N, E>) {
+    this._container = context.container;
+    this._graph = context.graph;
+    this._events = context.events;
 
     this._canvas = document.createElement('canvas');
     this._canvas.style.position = 'absolute';
-    this.container.appendChild(this._canvas);
+    this._container.appendChild(this._canvas);
 
     // Get the 2d rendering context which is used by D3 in the Renderer.
     this._context = this._canvas.getContext('2d') || new CanvasRenderingContext2D(); // TODO: how to handle functions that return null?
 
     // Resize the canvas based on the dimensions of it's parent container <div>.
     const resizeObs = new ResizeObserver(this.onContainerResize);
-    resizeObs.observe(this.container);
+    resizeObs.observe(this._container);
 
     this._renderer = new Renderer(this._context);
     this._renderer.translateOriginToCenter();
@@ -135,6 +70,7 @@ export class DefaultView {
 
     this.simulator = SimulatorFactory.getSimulator({
       onStabilizationStart: () => {
+        this._events.emit(OrbEventType.SIMULATION_START, undefined);
         // this.isUpdatingGraph_.next(true);
         // this.isLabelRendered_.next(false);
         // this.stabilizationProgress_.next(0);
@@ -147,9 +83,12 @@ export class DefaultView {
             x: node.x || 0,
             y: node.y || 0,
           }));
-        this.graph.setNodePositions(nodes);
+        this._graph.setNodePositions(nodes);
+        this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
 
-        this._renderer.render(this.graph);
+        this._renderer.render(this._graph);
+        // TODO: Move to proper position
+        this._events.emit(OrbEventType.RENDER_END, undefined);
 
         // Only for physics stabilization events which block the user interaction.
         // (temporarily disabling drag)
@@ -173,31 +112,9 @@ export class DefaultView {
             x: node.x || 0,
             y: node.y || 0,
           }));
-        this.graph.setNodePositions(nodes);
+        this._graph.setNodePositions(nodes);
 
         // this.isLabelRendered_.next(true);
-
-        if (!this.isInitiallyZoomed && this.graph && !!this.graphResult && !this.graphResult.isUpdated) {
-          const fitZoomTransform = this._renderer.getFitZoomTransform(this.graph, {
-            minZoom: ZOOM_SCALE_MIN,
-            maxZoom: ZOOM_SCALE_MAX,
-          });
-          this.isInitiallyZoomed = true;
-
-          /*
-          select(this._canvas)
-            .transition()
-            .duration(ZOOM_FIT_TRANSITION_MS)
-            .ease(d3.easeLinear)
-            .call(this.d3Zoom.transform, fitZoomTransform)
-            .call(() => {
-              // this.renderImmediate_.next()
-            });
-            */
-        } else {
-          // this.renderImmediate_.next();
-        }
-
         // Reset progress.
         // this.isUpdatingGraph_.next(false);
         // this.stabilizationProgress_.next(null);
@@ -211,36 +128,56 @@ export class DefaultView {
             x: node.x || 0,
             y: node.y || 0,
           }));
-        this.graph.setNodePositions(nodes);
-        this._renderer.render(this.graph);
+        this._graph.setNodePositions(nodes);
+        this._renderer.render(this._graph);
 
         // (old)
         // this.graph?.setNodePositions(data.nodes);
         // this.renderThrottle_.next();
       },
       onSettingsUpdate: (_) => {
-        if (this.graph && !this.isPhysicsEnabled) {
-          this.simulator.startSimulation(this.graph.getNodePositions(), this.graph.getEdgePositions());
+        if (this._graph && !this.isPhysicsEnabled) {
+          this.simulator.startSimulation(this._graph.getNodePositions(), this._graph.getEdgePositions());
         }
       },
     });
-    this.startSimulation(this.graphData);
   }
 
-  dragSubject = (event: D3DragEvent<any, any, DefaultViewNode>) => {
+  render() {
+    // TODO: Render here and have callback!
+    this.startSimulation();
+  }
+
+  recenter() {
+    // const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph, {
+    //   minZoom: ZOOM_SCALE_MIN,
+    //   maxZoom: ZOOM_SCALE_MAX,
+    // });
+    //
+    // select(this._canvas)
+    //   .transition()
+    //   .duration(ZOOM_FIT_TRANSITION_MS)
+    //   .ease(d3.easeLinear)
+    //   .call(this.d3Zoom.transform, fitZoomTransform)
+    //   .call(() => {
+    //     // this.renderImmediate_.next()
+    //   });
+  }
+
+  dragSubject = (event: D3DragEvent<any, any, N>) => {
     const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
     const simulationPoint = this._renderer?.getSimulationPosition(mousePoint);
 
-    return this.graph?.getNearestNode(simulationPoint);
+    return this._graph.getNearestNode(simulationPoint);
   };
 
-  dragStarted = (event: D3DragEvent<any, any, DefaultViewNode>) => {
+  dragStarted = (event: D3DragEvent<any, any, N>) => {
     // Used to detect a click event in favor of a drag event.
     // A click is when the drag start and end coordinates are identical.
     this.dragStartPosition = this.getCanvasMousePosition(event.sourceEvent);
   };
 
-  dragged = (event: D3DragEvent<any, any, DefaultViewNode>) => {
+  dragged = (event: D3DragEvent<any, any, N>) => {
     const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
     const simulationPoint = this._renderer?.getSimulationPosition(mousePoint);
 
@@ -254,7 +191,7 @@ export class DefaultView {
     this.simulator.dragNode(event.subject.id, simulationPoint);
   };
 
-  dragEnded = (event: D3DragEvent<any, any, DefaultViewNode>) => {
+  dragEnded = (event: D3DragEvent<any, any, N>) => {
     const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
 
     if (!isEqualPosition(this.dragStartPosition, mousePoint)) {
@@ -266,7 +203,7 @@ export class DefaultView {
     // this.transform_.next(event.transform);
     this._renderer.transform = event.transform;
     setTimeout(() => {
-      this._renderer.render(this.graph);
+      this._renderer.render(this._graph);
     }, 1);
     // this.renderThrottle_.next();
     // this.selectedShape_.next(null);
@@ -304,21 +241,22 @@ export class DefaultView {
     // This was a subject before, now I've handled it right here.
     // this.hoverMousePosition_.next(mousePoint);
 
-    if (!this.graph) {
+    if (!this._graph) {
       return;
     }
 
-    const node = this.graph.getNearestNode(simulationPoint);
+    const node = this._graph.getNearestNode(simulationPoint);
     if (!node) {
-      const { changedCount } = this.graph.unhoverAll();
+      const { changedCount } = this._graph.unhoverAll();
       if (changedCount) {
-        this._renderer.render(this.graph);
+        this._renderer.render(this._graph);
       }
     }
 
     if (node && !node.isSelected()) {
-      this.graph.hoverNode(node);
-      this._renderer.render(this.graph);
+      this._graph.hoverNode(node);
+      this._events.emit(OrbEventType.NODE_HOVER, { node });
+      this._renderer.render(this._graph);
     }
   };
 
@@ -326,13 +264,14 @@ export class DefaultView {
     const mousePoint = this.getCanvasMousePosition(event);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
-    if (!this.graph) {
+    if (!this._graph) {
       return;
     }
 
-    const node = this.graph.getNearestNode(simulationPoint);
+    const node = this._graph.getNearestNode(simulationPoint);
     if (node) {
-      this.graph?.selectNode(node);
+      this._graph.selectNode(node);
+      this._events.emit(OrbEventType.NODE_CLICK, { node });
       // this.renderImmediate_.next();
       // this.selectedShape_.next(node);
       // this.selectedShapePosition_.next(mousePoint);
@@ -340,16 +279,17 @@ export class DefaultView {
     }
 
     // If node is not selected, check the edge! (just for render)
-    const edge = this.graph.getNearestEdge(simulationPoint);
+    const edge = this._graph.getNearestEdge(simulationPoint);
     if (edge) {
-      this.graph?.selectEdge(edge);
+      this._graph.selectEdge(edge);
+      this._events.emit(OrbEventType.EDGE_CLICK, { edge });
       // this.renderImmediate_.next();
       // this.selectedShape_.next(edge);
       // this.selectedShapePosition_.next(mousePoint);
       return;
     }
 
-    const { changedCount } = this.graph.unselectAll();
+    const { changedCount } = this._graph.unselectAll();
     if (changedCount > 0) {
       // this.renderThrottle_.next();
       // this.selectedShape_.next(null);
@@ -358,22 +298,17 @@ export class DefaultView {
   };
 
   onContainerResize = () => {
-    const containerSize = this.container.getBoundingClientRect();
+    const containerSize = this._container.getBoundingClientRect();
     this._canvas.width = containerSize.width;
     this._canvas.height = containerSize.height;
     this._renderer.width = containerSize.width;
     this._renderer.height = containerSize.height;
-    this._renderer.render(this.graph);
+    this._renderer.render(this._graph);
   };
 
-  setGraphResult(graphResult: IGraphResult) {
-    this.graphResult = graphResult;
-  }
-
-  startSimulation(graph: IGraphData<DefaultViewNode, DefaultViewEdge>) {
+  startSimulation() {
     // this.graph = new Graph(graph);
-    this.isInitiallyZoomed = false;
     this._renderer.reset();
-    this.simulator.startSimulation(this.graph.getNodePositions(), this.graph.getEdgePositions());
+    this.simulator.startSimulation(this._graph.getNodePositions(), this._graph.getEdgePositions());
   }
 }

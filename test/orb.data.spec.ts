@@ -198,7 +198,7 @@ describe('Orb.data', () => {
 
   describe('setup', () => {
     test('should create simple graph', () => {
-      const orb = new Orb();
+      const orb = new Orb(new HTMLElement());
       orb.data.setup({ nodes, edges });
 
       expect(orb.data.getNodeCount()).toEqual(nodes.length);
@@ -273,7 +273,7 @@ describe('Orb.data', () => {
     ];
 
     test('should join new nodes', () => {
-      const orb = new Orb();
+      const orb = new Orb(new HTMLElement());
       orb.data.setup({ nodes, edges });
       orb.data.join({ nodes: newNodes });
 
@@ -295,7 +295,7 @@ describe('Orb.data', () => {
     });
 
     test('should join new edges', () => {
-      const orb = new Orb();
+      const orb = new Orb(new HTMLElement());
       orb.data.setup({ nodes, edges });
       orb.data.join({ edges: newEdges });
 
@@ -324,7 +324,7 @@ describe('Orb.data', () => {
     });
 
     test('should join new nodes and edges', () => {
-      const orb = new Orb();
+      const orb = new Orb(new HTMLElement());
       orb.data.setup({ nodes, edges });
       orb.data.join({ nodes: newNodes, edges: newEdges });
 
@@ -358,7 +358,7 @@ describe('Orb.data', () => {
 
   describe('hide', () => {
     test('should hide nodes', () => {
-      const orb = new Orb();
+      const orb = new Orb(new HTMLElement());
       orb.data.setup({ nodes, edges });
       orb.data.hide({ nodeIds: [0, 2] });
 
@@ -385,7 +385,7 @@ describe('Orb.data', () => {
     });
 
     test('should hide edges', () => {
-      const orb = new Orb();
+      const orb = new Orb(new HTMLElement());
       orb.data.setup({ nodes, edges });
 
       const hiddenEdgeIds = [0, 1, 4];
@@ -414,7 +414,7 @@ describe('Orb.data', () => {
     });
 
     test('should hide nodes and edges', () => {
-      const orb = new Orb();
+      const orb = new Orb(new HTMLElement());
       orb.data.setup({ nodes, edges });
       orb.data.hide({ nodeIds: [0, 2], edgeIds: [1, 2, 4] });
 
@@ -475,7 +475,7 @@ describe('Orb.data', () => {
     ];
 
     test('should apply style after setup', () => {
-      const orb = new Orb();
+      const orb = new Orb(new HTMLElement());
       orb.data.setup({ nodes, edges });
       orb.data.setStyle(style);
 
@@ -491,7 +491,7 @@ describe('Orb.data', () => {
     });
 
     test('should apply style before setup', () => {
-      const orb = new Orb();
+      const orb = new Orb(new HTMLElement());
       orb.data.setStyle(style);
       orb.data.setup({ nodes, edges });
       expect(orb.data.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
@@ -506,7 +506,7 @@ describe('Orb.data', () => {
     });
 
     test('should apply style after join', () => {
-      const orb = new Orb();
+      const orb = new Orb(new HTMLElement());
       orb.data.setup({ nodes, edges });
       orb.data.join({ nodes: newNodes, edges: newEdges });
       orb.data.setStyle(style);
@@ -526,7 +526,7 @@ describe('Orb.data', () => {
     });
 
     test('should apply style before join', () => {
-      const orb = new Orb();
+      const orb = new Orb(new HTMLElement());
       orb.data.setup({ nodes, edges });
       orb.data.setStyle(style);
       orb.data.join({ nodes: newNodes, edges: newEdges });
@@ -546,7 +546,7 @@ describe('Orb.data', () => {
     });
 
     test('should apply default style after join', () => {
-      const orb = new Orb();
+      const orb = new Orb(new HTMLElement());
       orb.data.setStyle(style);
       orb.data.setup({ nodes, edges });
       orb.data.join({ nodes: newNodes, edges: newEdges });
@@ -567,7 +567,7 @@ describe('Orb.data', () => {
     });
 
     test('should apply default style before join', () => {
-      const orb = new Orb();
+      const orb = new Orb(new HTMLElement());
       orb.data.setStyle(style);
       orb.data.setup({ nodes, edges });
       orb.data.setDefaultStyle();

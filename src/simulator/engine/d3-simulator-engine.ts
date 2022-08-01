@@ -12,7 +12,7 @@ import {
 } from 'd3-force';
 import { IPosition } from '../../common/position';
 import { ISimulationNode, ISimulationEdge } from '../interface';
-import { Emitter } from '../utils/emitter';
+import { Emitter } from '../../utils/emitter.utils';
 import { isObjectEqual, copyObject } from '../../utils/object.utils';
 
 const MANY_BODY_MAX_DISTANCE_TO_LINK_DISTANCE_RATIO = 100;

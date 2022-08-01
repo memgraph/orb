@@ -1,1 +1,2 @@
-export { DefaultView } from './views/default-view';
+export { Orb } from './orb';
+export { DefaultView, MapView } from './views/index';
