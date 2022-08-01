@@ -5,21 +5,19 @@
   <meta charset='UTF-8'>
   <title>Orb | Simple graph</title>
   <script type="text/javascript" src="./bundle.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ==" crossorigin="" />
 </head>
 <style>
   html, body {
     height: 100%;
+    margin: 0;
   }
 </style>
 <body>
-  <div id='graph' style="height: 100%"></div>
+<!--  <div id='graph' style="height: 800px; width: 1000px; border: 1px solid black;"></div>-->
+  <div id='graph' style="height: 100%;"></div>
   <script type="text/javascript">
     const container = document.getElementById('graph');
-    // const view = new Orb.DefaultView(container);
-    // setTimeout(() => {
-    //   document.getElementsByTagName('canvas')[0].getContext('2d').fillRect(0, 0, 400, 400);
-    // }, 30)
-
     const nodes = [
       { id: 0, labels: ['Node A'], properties: { test: 1 }, lat: 10, lng: 10, x: 1, y: 1 },
       { id: 1, labels: ['Node B'], properties: { test: 2 }, lat: 20, lng: 20, x: 2, y: 2 },
@@ -35,9 +33,9 @@
     ]
 
     const orb = new Orb.Orb(container);
-    orb.setView((context) => new Orb.DefaultView(context, {
-      getNodePosition: (node) => ({ x: node.data.x, y: node.data.y, }),
-    }))
+    orb.setView((context) => new Orb.MapView(context, {
+      getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng, }),
+    }));
 
     // Initialize nodes and edges
     orb.data.setup({ nodes, edges });
@@ -82,12 +80,6 @@
     orb.events.on('edge-click', (edge) => {
       console.log('Event: edge-click', edge);
     });
-
-    setTimeout(() => {
-      console.log("Now rendering as map!")
-      orb.setView((context) => new Orb.MapView(context));
-      orb.view.render();
-    }, 5000);
   </script>
 </body>
 </html>

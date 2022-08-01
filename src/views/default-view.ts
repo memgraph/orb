@@ -39,6 +39,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     this._graph = context.graph;
     this._events = context.events;
 
+    this._container.textContent = '';
     this._canvas = document.createElement('canvas');
     this._canvas.style.position = 'absolute';
     this._container.appendChild(this._canvas);
@@ -164,6 +165,10 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     //   });
   }
 
+  destroy() {
+    this._container.textContent = '';
+  }
+
   dragSubject = (event: D3DragEvent<any, any, N>) => {
     const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
     const simulationPoint = this._renderer?.getSimulationPosition(mousePoint);
@@ -255,7 +260,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
 
     if (node && !node.isSelected()) {
       this._graph.hoverNode(node);
-      this._events.emit(OrbEventType.NODE_HOVER, { node });
+      this._events.emit(OrbEventType.NODE_HOVER, { node, localPoint: simulationPoint, globalPoint: mousePoint });
       this._renderer.render(this._graph);
     }
   };
@@ -271,7 +276,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     const node = this._graph.getNearestNode(simulationPoint);
     if (node) {
       this._graph.selectNode(node);
-      this._events.emit(OrbEventType.NODE_CLICK, { node });
+      this._events.emit(OrbEventType.NODE_CLICK, { node, localPoint: simulationPoint, globalPoint: mousePoint });
       // this.renderImmediate_.next();
       // this.selectedShape_.next(node);
       // this.selectedShapePosition_.next(mousePoint);
@@ -282,7 +287,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     const edge = this._graph.getNearestEdge(simulationPoint);
     if (edge) {
       this._graph.selectEdge(edge);
-      this._events.emit(OrbEventType.EDGE_CLICK, { edge });
+      this._events.emit(OrbEventType.EDGE_CLICK, { edge, localPoint: simulationPoint, globalPoint: mousePoint });
       // this.renderImmediate_.next();
       // this.selectedShape_.next(edge);
       // this.selectedShapePosition_.next(mousePoint);
@@ -307,7 +312,6 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   };
 
   startSimulation() {
-    // this.graph = new Graph(graph);
     this._renderer.reset();
     this.simulator.startSimulation(this._graph.getNodePositions(), this._graph.getEdgePositions());
   }
