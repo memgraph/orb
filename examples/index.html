@@ -19,9 +19,9 @@
   <script type="text/javascript">
     const container = document.getElementById('graph');
     const nodes = [
-      { id: 0, labels: ['Node A'], properties: { test: 1 }, lat: 10, lng: 10, x: 1, y: 1 },
-      { id: 1, labels: ['Node B'], properties: { test: 2 }, lat: 20, lng: 20, x: 2, y: 2 },
-      { id: 2, labels: ['Node C'], properties: { test: 3 }, lat: 30, lng: 30, x: 3, y: 3 },
+      { id: 0, labels: ['Node A'], properties: { test: 1 }, lat: 45.795548, lng: 15.977526, x: 1, y: 1 },
+      { id: 1, labels: ['Node B'], properties: { test: 2 }, lat: 43.513429, lng: 16.463262, x: 2, y: 2 },
+      { id: 2, labels: ['Node C'], properties: { test: 3 }, lat: 45.537078, lng: 18.692907, x: 3, y: 3 },
     ]
     const edges = [
       { id: 3, start: 0, end: 0, label: 'Edge Q', properties: { test: 3 } },
@@ -33,9 +33,9 @@
     ]
 
     const orb = new Orb.Orb(container);
-    orb.setView((context) => new Orb.MapView(context, {
-      getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng, }),
-    }));
+    // orb.setView((context) => new Orb.MapView(context, {
+    //   getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng, }),
+    // }));
 
     // Initialize nodes and edges
     orb.data.setup({ nodes, edges });
@@ -48,7 +48,7 @@
           colorHover: '#e7644e',
           colorSelected: '#e7644e',
           fontSize: 3,
-          label: node.getLabel(),
+          label: node.data.labels[0],
           size: 6,
         };
       },
@@ -61,7 +61,7 @@
           width: 0.3,
           widthHover: 0.9,
           widthSelected: 0.9,
-          label: edge.getLabel(),
+          label: edge.data.label,
         };
       },
     });
@@ -80,6 +80,19 @@
     orb.events.on('edge-click', (edge) => {
       console.log('Event: edge-click', edge);
     });
+
+    setTimeout(() => {
+      orb.setView((context) => new Orb.MapView(context, {
+        getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng, }),
+      }));
+      orb.view.render();
+      orb.view.recenter();
+
+      setTimeout(() => {
+        orb.setView((context) => new Orb.DefaultView(context));
+        orb.view.render();
+      }, 5000);
+    }, 5000);
   </script>
 </body>
 </html>
