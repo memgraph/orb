@@ -5,6 +5,7 @@ import { IPosition } from '../common/position';
 import { IGraphStyle } from './style';
 import { ImageHandler } from '../services/images';
 import { ISimulationEdge } from '../simulator/interface';
+import { getEdgeOffsets } from './topology';
 
 export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
   nodes: N[];
@@ -186,6 +187,9 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     }
   }
 
+  /**
+   * Sets default style to nodes and edges.
+   */
   setDefaultStyle() {
     this.style = undefined;
 
@@ -435,19 +439,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     for (let i = 0; i < edgeOffsets.length; i++) {
       const edge = graphEdges[i];
       const edgeOffset = edgeOffsets[i];
-
-      // TODO @toni: This is super unoptimized and there should be a better way \
-      // TODO @toni: to create edge types depending on the node-node connections (maybe new intermediate object)
-      // TODO @toni: Also check ImageHandler private constructor to forbid usage of new Edge and or new Node
-      const newEdge = new Edge<N, E>({
-        data: edge.data,
-        offset: edgeOffset,
-      });
-      newEdge.connect(edge.startNode!, edge.endNode!);
-      newEdge.state = edge.state;
-      newEdge.properties = edge.properties;
-
-      this.edgeById[edge.id] = newEdge;
+      this.edgeById[edge.id] = edge.copy({ offset: edgeOffset });
     }
   }
 
@@ -473,88 +465,3 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     }
   }
 }
-
-// TODO @toni: Move this to a separate utility class
-const getEdgeOffsets = <N extends INodeBase, E extends IEdgeBase>(edges: Edge<N, E>[]): number[] => {
-  const edgeOffsets = new Array<number>(edges.length);
-  const edgeOffsetsByUniqueKey = getEdgeOffsetsByUniqueKey(edges);
-
-  for (let i = 0; i < edges.length; i++) {
-    const edge = edges[i];
-    let offset = 0;
-
-    const uniqueKey = getUniqueEdgeKey(edge);
-    const edgeOffsetsByKey = edgeOffsetsByUniqueKey[uniqueKey];
-    if (edgeOffsetsByKey && edgeOffsetsByKey.length) {
-      // Pull the first offset
-      offset = edgeOffsetsByKey.shift() ?? 0;
-
-      const isEdgeReverseDirection = edge.end < edge.start;
-      if (isEdgeReverseDirection) {
-        offset = -1 * offset;
-      }
-    }
-
-    edgeOffsets[i] = offset;
-  }
-
-  return edgeOffsets;
-};
-
-const getUniqueEdgeKey = <E extends IEdgeBase>(edge: E): string => {
-  const sid = edge.start;
-  const tid = edge.end;
-  return sid < tid ? `${sid}-${tid}` : `${tid}-${sid}`;
-};
-
-const getEdgeOffsetsByUniqueKey = <N extends INodeBase, E extends IEdgeBase>(
-  edges: Edge<N, E>[],
-): Record<string, number[]> => {
-  const edgeCountByUniqueKey: Record<string, number> = {};
-  const loopbackUniqueKeys: Set<string> = new Set<string>();
-
-  // Count the number of edges that are between the same nodes
-  for (let i = 0; i < edges.length; i++) {
-    // TODO @toni: This is expensive, so maybe we should have unique key in the edge
-    const uniqueKey = getUniqueEdgeKey(edges[i]);
-    if (edges[i].start === edges[i].end) {
-      loopbackUniqueKeys.add(uniqueKey);
-    }
-    edgeCountByUniqueKey[uniqueKey] = (edgeCountByUniqueKey[uniqueKey] ?? 0) + 1;
-  }
-
-  const edgeOffsetsByUniqueKey: Record<string, number[]> = {};
-  const uniqueKeys = Object.keys(edgeCountByUniqueKey);
-
-  for (let i = 0; i < uniqueKeys.length; i++) {
-    const uniqueKey = uniqueKeys[i];
-    const edgeCount = edgeCountByUniqueKey[uniqueKey];
-
-    // Loopback offsets should be 1, 2, 3, ...
-    if (loopbackUniqueKeys.has(uniqueKey)) {
-      edgeOffsetsByUniqueKey[uniqueKey] = Array.from({ length: edgeCount }, (_, i) => i + 1);
-      continue;
-    }
-
-    if (edgeCount <= 1) {
-      continue;
-    }
-
-    const edgeOffsets: number[] = [];
-
-    // 0 means straight line. There will be a straight line between two nodes
-    // when there are 1 edge, 3 edges, 5 edges, ...
-    if (edgeCount % 2 !== 0) {
-      edgeOffsets.push(0);
-    }
-
-    for (let i = 2; i <= edgeCount; i += 2) {
-      edgeOffsets.push(i / 2);
-      edgeOffsets.push((i / 2) * -1);
-    }
-
-    edgeOffsetsByUniqueKey[uniqueKey] = edgeOffsets;
-  }
-
-  return edgeOffsetsByUniqueKey;
-};

@@ -25,8 +25,13 @@ export class NodeCanvas<N extends INodeBase, E extends IEdgeBase> {
     this.label = new LabelCanvas({
       position: { x: center.x, y: center.y + distance },
       settings: { textBaseline: LabelTextBaseline.TOP },
-      // TODO @toni: Send only a snippet of it (what is required for a label)
-      properties: node.properties,
+      properties: {
+        fontBackgroundColor: node.properties.fontBackgroundColor,
+        fontColor: node.properties.fontColor,
+        fontFamily: node.properties.fontFamily,
+        fontSize: node.properties.fontSize,
+        label: node.properties.label,
+      },
     });
   }
 

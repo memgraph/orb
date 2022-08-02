@@ -96,6 +96,18 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
     return this._endNode;
   }
 
+  copy(data?: Omit<IEdgeData<E>, 'data'>): Edge<N, E> {
+    const newEdge = new Edge<N, E>({
+      data: this.data,
+      offset: data?.offset,
+    });
+    newEdge.connect(this.startNode!, this.endNode!);
+    newEdge.state = this.state;
+    newEdge.properties = this.properties;
+
+    return newEdge;
+  }
+
   connect(startNode: Node<N, E>, endNode: Node<N, E>) {
     this._startNode = startNode;
     this._endNode = endNode;

@@ -33,8 +33,13 @@ export class EdgeCanvas<N extends INodeBase, E extends IEdgeBase> {
     this.label = new LabelCanvas({
       position: this.edge.getCenter(),
       settings: { textBaseline: LabelTextBaseline.MIDDLE },
-      // TODO @toni: Send only a snippet of it (what is required for a label)
-      properties: edge.properties,
+      properties: {
+        fontBackgroundColor: edge.properties.fontBackgroundColor,
+        fontColor: edge.properties.fontColor,
+        fontFamily: edge.properties.fontFamily,
+        fontSize: edge.properties.fontSize,
+        label: edge.properties.label,
+      },
     });
   }
 

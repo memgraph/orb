@@ -1,6 +1,5 @@
 import { IPosition } from '../../common/position';
-import { INodeProperties } from '../../models/node';
-import { IEdgeProperties } from '../../models/edge';
+import { Color } from '../../models/color';
 
 const DEFAULT_FONT_FAMILY = 'Roboto, sans-serif';
 const DEFAULT_FONT_SIZE = 4;
@@ -18,10 +17,18 @@ export interface ILabelData {
   textBaseline: LabelTextBaseline;
 }
 
+export interface ILabelProperties {
+  fontBackgroundColor: Color | string;
+  fontColor: Color | string;
+  fontFamily: string;
+  fontSize: number;
+  label: string;
+}
+
 export interface ILabelDefinition {
   settings: ILabelData;
   position: IPosition;
-  properties: Partial<INodeProperties> | Partial<IEdgeProperties>;
+  properties: Partial<ILabelProperties>;
 }
 
 export class LabelCanvas {
@@ -33,7 +40,7 @@ export class LabelCanvas {
   protected fontSize = DEFAULT_FONT_SIZE;
   protected fontFamily = getFontFamily(DEFAULT_FONT_SIZE, DEFAULT_FONT_FAMILY);
 
-  protected properties: Partial<INodeProperties> | Partial<IEdgeProperties>;
+  protected properties: Partial<ILabelProperties>;
 
   constructor(definition: ILabelDefinition) {
     this.settings = definition.settings;

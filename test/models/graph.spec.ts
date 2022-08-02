@@ -1,6 +1,5 @@
 import { DEFAULT_NODE_PROPERTIES, Node, INodeBase, INodePosition, INodeProperties } from '../../src/models/node';
 import { DEFAULT_EDGE_PROPERTIES, Edge, IEdgeBase, EdgeType, IEdgeProperties } from '../../src/models/edge';
-import { GraphObjectState } from '../../src/models/state';
 import { IGraphStyle, IEdgeStyle, INodeStyle } from '../../src/models/style';
 import { Graph } from '../../src/models/graph';
 
@@ -18,7 +17,7 @@ interface IExpectedNode<N extends INodeBase> {
   properties: Partial<INodeProperties>;
   inEdges: number[];
   outEdges: number[];
-  state?: GraphObjectState;
+  state?: number;
   position: INodePosition;
 }
 
@@ -32,7 +31,7 @@ interface IExpectedEdge<E extends IEdgeBase> {
   type: EdgeType;
   offset: number;
   properties: Partial<IEdgeProperties>;
-  state?: GraphObjectState;
+  state?: number;
 }
 
 const expectEqualNode = <N extends INodeBase, E extends IEdgeBase>(
