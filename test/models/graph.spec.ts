@@ -1,8 +1,8 @@
-import { Orb } from '../src/index';
-import { DEFAULT_NODE_PROPERTIES, Node, INodeBase, INodePosition, INodeProperties } from '../src/models/node';
-import { DEFAULT_EDGE_PROPERTIES, Edge, IEdgeBase, EdgeType, IEdgeProperties } from '../src/models/edge';
-import { GraphObjectState } from '../src/models/state';
-import { IGraphStyle, IEdgeStyle, INodeStyle } from '../src/models/style';
+import { DEFAULT_NODE_PROPERTIES, Node, INodeBase, INodePosition, INodeProperties } from '../../src/models/node';
+import { DEFAULT_EDGE_PROPERTIES, Edge, IEdgeBase, EdgeType, IEdgeProperties } from '../../src/models/edge';
+import { GraphObjectState } from '../../src/models/state';
+import { IGraphStyle, IEdgeStyle, INodeStyle } from '../../src/models/style';
+import { Graph } from '../../src/models/graph';
 
 interface ITestNode extends INodeBase {
   name: string;
@@ -36,13 +36,13 @@ interface IExpectedEdge<E extends IEdgeBase> {
 }
 
 const expectEqualNode = <N extends INodeBase, E extends IEdgeBase>(
-  orb: Orb<N, E>,
+  graph: Graph<N, E>,
   data: N,
   expectedNode: IExpectedNode<N>,
 ) => {
-  const node = orb.data.getNodeById(data.id);
+  const node = graph.getNodeById(data.id);
   if (!node) {
-    throw new Error(`Node with id ${data.id} doesn't exist in orb.data`);
+    throw new Error(`Node with id ${data.id} doesn't exist in graph`);
   }
 
   const actualNode: IExpectedNode<N> = {
@@ -64,13 +64,13 @@ const expectEqualNode = <N extends INodeBase, E extends IEdgeBase>(
 };
 
 const expectEqualEdge = <N extends INodeBase, E extends IEdgeBase>(
-  orb: Orb<N, E>,
+  graph: Graph<N, E>,
   data: E,
   expectedEdge: IExpectedEdge<E>,
 ) => {
-  const edge = orb.data.getEdgeById(data.id);
+  const edge = graph.getEdgeById(data.id);
   if (!edge) {
-    throw new Error(`Edge with id ${data.id} doesn't exist in orb.data`);
+    throw new Error(`Edge with id ${data.id} doesn't exist in graph`);
   }
 
   const actualEdge: IExpectedEdge<E> = {
@@ -88,7 +88,7 @@ const expectEqualEdge = <N extends INodeBase, E extends IEdgeBase>(
   expect(actualEdge).toEqual(expectedEdge);
 };
 
-describe('Orb.data', () => {
+describe('Graph', () => {
   const nodes: ITestNode[] = [
     { id: 0, name: 'John' },
     { id: 1, name: 'Alice' },
@@ -196,19 +196,18 @@ describe('Orb.data', () => {
     },
   ];
 
-  describe('setup', () => {
+  describe('constructor', () => {
     test('should create simple graph', () => {
-      const orb = new Orb(new HTMLElement());
-      orb.data.setup({ nodes, edges });
+      const graph = new Graph({ nodes, edges });
 
-      expect(orb.data.getNodeCount()).toEqual(nodes.length);
-      expect(orb.data.getEdgeCount()).toEqual(edges.length);
+      expect(graph.getNodeCount()).toEqual(nodes.length);
+      expect(graph.getEdgeCount()).toEqual(edges.length);
 
       nodes.forEach((node, i) => {
-        expectEqualNode(orb, node, expectedNodes[i]);
+        expectEqualNode(graph, node, expectedNodes[i]);
       });
       edges.forEach((edge, i) => {
-        expectEqualEdge(orb, edge, expectedEdges[i]);
+        expectEqualEdge(graph, edge, expectedEdges[i]);
       });
     });
   });
@@ -273,9 +272,8 @@ describe('Orb.data', () => {
     ];
 
     test('should join new nodes', () => {
-      const orb = new Orb(new HTMLElement());
-      orb.data.setup({ nodes, edges });
-      orb.data.join({ nodes: newNodes });
+      const graph = new Graph({ nodes, edges });
+      graph.join({ nodes: newNodes });
 
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
       const currentExpectedNodes: IExpectedNode<ITestNode>[] = [
@@ -283,21 +281,20 @@ describe('Orb.data', () => {
         ...newExpectedNodes.map((expectedNode) => ({ ...expectedNode, inEdges: [], outEdges: [] })),
       ];
 
-      expect(orb.data.getNodeCount()).toEqual(currentNodes.length);
-      expect(orb.data.getEdgeCount()).toEqual(edges.length);
+      expect(graph.getNodeCount()).toEqual(currentNodes.length);
+      expect(graph.getEdgeCount()).toEqual(edges.length);
 
       currentNodes.forEach((node, i) => {
-        expectEqualNode(orb, node, currentExpectedNodes[i]);
+        expectEqualNode(graph, node, currentExpectedNodes[i]);
       });
       edges.forEach((edge, i) => {
-        expectEqualEdge(orb, edge, expectedEdges[i]);
+        expectEqualEdge(graph, edge, expectedEdges[i]);
       });
     });
 
     test('should join new edges', () => {
-      const orb = new Orb(new HTMLElement());
-      orb.data.setup({ nodes, edges });
-      orb.data.join({ edges: newEdges });
+      const graph = new Graph({ nodes, edges });
+      graph.join({ edges: newEdges });
 
       const currentNodes: ITestNode[] = [...nodes];
       const currentExpectedNodes: IExpectedNode<ITestNode>[] = [
@@ -312,21 +309,20 @@ describe('Orb.data', () => {
       // Second edge won't be used because nodes 3 and 4 don't exist
       const currentExpectedEdges: IExpectedEdge<ITestEdge>[] = [...expectedEdges, newExpectedEdges[0]];
 
-      expect(orb.data.getNodeCount()).toEqual(currentNodes.length);
-      expect(orb.data.getEdgeCount()).toEqual(currentEdges.length);
+      expect(graph.getNodeCount()).toEqual(currentNodes.length);
+      expect(graph.getEdgeCount()).toEqual(currentEdges.length);
 
       currentNodes.forEach((node, i) => {
-        expectEqualNode(orb, node, currentExpectedNodes[i]);
+        expectEqualNode(graph, node, currentExpectedNodes[i]);
       });
       currentEdges.forEach((edge, i) => {
-        expectEqualEdge(orb, edge, currentExpectedEdges[i]);
+        expectEqualEdge(graph, edge, currentExpectedEdges[i]);
       });
     });
 
     test('should join new nodes and edges', () => {
-      const orb = new Orb(new HTMLElement());
-      orb.data.setup({ nodes, edges });
-      orb.data.join({ nodes: newNodes, edges: newEdges });
+      const graph = new Graph({ nodes, edges });
+      graph.join({ nodes: newNodes, edges: newEdges });
 
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
       const currentExpectedNodes: IExpectedNode<ITestNode>[] = [
@@ -341,14 +337,14 @@ describe('Orb.data', () => {
       const currentEdges: ITestEdge[] = [...edges, ...newEdges];
       const currentExpectedEdges: IExpectedEdge<ITestEdge>[] = [...expectedEdges, ...newExpectedEdges];
 
-      expect(orb.data.getNodeCount()).toEqual(currentNodes.length);
-      expect(orb.data.getEdgeCount()).toEqual(currentEdges.length);
+      expect(graph.getNodeCount()).toEqual(currentNodes.length);
+      expect(graph.getEdgeCount()).toEqual(currentEdges.length);
 
       currentNodes.forEach((node, i) => {
-        expectEqualNode(orb, node, currentExpectedNodes[i]);
+        expectEqualNode(graph, node, currentExpectedNodes[i]);
       });
       currentEdges.forEach((edge, i) => {
-        expectEqualEdge(orb, edge, currentExpectedEdges[i]);
+        expectEqualEdge(graph, edge, currentExpectedEdges[i]);
       });
     });
 
@@ -358,9 +354,8 @@ describe('Orb.data', () => {
 
   describe('hide', () => {
     test('should hide nodes', () => {
-      const orb = new Orb(new HTMLElement());
-      orb.data.setup({ nodes, edges });
-      orb.data.hide({ nodeIds: [0, 2] });
+      const graph = new Graph({ nodes, edges });
+      graph.hide({ nodeIds: [0, 2] });
 
       const currentNodes: ITestNode[] = [nodes[1]];
       const currentExpectedNodes: IExpectedNode<ITestNode>[] = [
@@ -373,23 +368,22 @@ describe('Orb.data', () => {
       const currentEdges: ITestEdge[] = [edges[4]];
       const currentExpectedEdges: IExpectedEdge<ITestEdge>[] = [expectedEdges[4]];
 
-      expect(orb.data.getNodeCount()).toEqual(currentNodes.length);
-      expect(orb.data.getEdgeCount()).toEqual(currentEdges.length);
+      expect(graph.getNodeCount()).toEqual(currentNodes.length);
+      expect(graph.getEdgeCount()).toEqual(currentEdges.length);
 
       currentNodes.forEach((node, i) => {
-        expectEqualNode(orb, node, currentExpectedNodes[i]);
+        expectEqualNode(graph, node, currentExpectedNodes[i]);
       });
       currentEdges.forEach((edge, i) => {
-        expectEqualEdge(orb, edge, currentExpectedEdges[i]);
+        expectEqualEdge(graph, edge, currentExpectedEdges[i]);
       });
     });
 
     test('should hide edges', () => {
-      const orb = new Orb(new HTMLElement());
-      orb.data.setup({ nodes, edges });
+      const graph = new Graph({ nodes, edges });
 
       const hiddenEdgeIds = [0, 1, 4];
-      orb.data.hide({ edgeIds: hiddenEdgeIds });
+      graph.hide({ edgeIds: hiddenEdgeIds });
 
       const currentNodes: ITestNode[] = [...nodes];
       const currentExpectedNodes: IExpectedNode<ITestNode>[] = expectedNodes.map((expectedNode) => {
@@ -402,21 +396,20 @@ describe('Orb.data', () => {
       const currentEdges: ITestEdge[] = [edges[2], edges[3]];
       const currentExpectedEdges: IExpectedEdge<ITestEdge>[] = [expectedEdges[2], expectedEdges[3]];
 
-      expect(orb.data.getNodeCount()).toEqual(currentNodes.length);
-      expect(orb.data.getEdgeCount()).toEqual(currentEdges.length);
+      expect(graph.getNodeCount()).toEqual(currentNodes.length);
+      expect(graph.getEdgeCount()).toEqual(currentEdges.length);
 
       currentNodes.forEach((node, i) => {
-        expectEqualNode(orb, node, currentExpectedNodes[i]);
+        expectEqualNode(graph, node, currentExpectedNodes[i]);
       });
       currentEdges.forEach((edge, i) => {
-        expectEqualEdge(orb, edge, currentExpectedEdges[i]);
+        expectEqualEdge(graph, edge, currentExpectedEdges[i]);
       });
     });
 
     test('should hide nodes and edges', () => {
-      const orb = new Orb(new HTMLElement());
-      orb.data.setup({ nodes, edges });
-      orb.data.hide({ nodeIds: [0, 2], edgeIds: [1, 2, 4] });
+      const graph = new Graph({ nodes, edges });
+      graph.hide({ nodeIds: [0, 2], edgeIds: [1, 2, 4] });
 
       const currentNodes: ITestNode[] = [nodes[1]];
       const currentExpectedNodes: IExpectedNode<ITestNode>[] = [
@@ -427,11 +420,11 @@ describe('Orb.data', () => {
         },
       ];
 
-      expect(orb.data.getNodeCount()).toEqual(currentNodes.length);
-      expect(orb.data.getEdgeCount()).toEqual(0);
+      expect(graph.getNodeCount()).toEqual(currentNodes.length);
+      expect(graph.getEdgeCount()).toEqual(0);
 
       currentNodes.forEach((node, i) => {
-        expectEqualNode(orb, node, currentExpectedNodes[i]);
+        expectEqualNode(graph, node, currentExpectedNodes[i]);
       });
     });
   });
@@ -475,115 +468,113 @@ describe('Orb.data', () => {
     ];
 
     test('should apply style after setup', () => {
-      const orb = new Orb(new HTMLElement());
-      orb.data.setup({ nodes, edges });
-      orb.data.setStyle(style);
+      const graph = new Graph({ nodes, edges });
+      graph.setStyle(style);
 
-      expect(orb.data.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
-      expect(orb.data.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
+      expect(graph.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
+      expect(graph.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
 
       nodes.slice(1).forEach((node) => {
-        expect(orb.data.getNodeById(node.id)?.properties).toEqual(nodeStyle);
+        expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
       });
       edges.slice(1).forEach((edge) => {
-        expect(orb.data.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
+        expect(graph.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
       });
     });
 
     test('should apply style before setup', () => {
-      const orb = new Orb(new HTMLElement());
-      orb.data.setStyle(style);
-      orb.data.setup({ nodes, edges });
-      expect(orb.data.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
-      expect(orb.data.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
+      const graph = new Graph();
+      graph.setStyle(style);
+      graph.setup({ nodes, edges });
+
+      expect(graph.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
+      expect(graph.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
 
       nodes.slice(1).forEach((node) => {
-        expect(orb.data.getNodeById(node.id)?.properties).toEqual(nodeStyle);
+        expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
       });
       edges.slice(1).forEach((edge) => {
-        expect(orb.data.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
+        expect(graph.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
       });
     });
 
     test('should apply style after join', () => {
-      const orb = new Orb(new HTMLElement());
-      orb.data.setup({ nodes, edges });
-      orb.data.join({ nodes: newNodes, edges: newEdges });
-      orb.data.setStyle(style);
+      const graph = new Graph({ nodes, edges });
+      graph.join({ nodes: newNodes, edges: newEdges });
+      graph.setStyle(style);
 
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
       const currentEdges: ITestEdge[] = [...edges, ...newEdges];
 
-      expect(orb.data.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
-      expect(orb.data.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
+      expect(graph.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
+      expect(graph.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
 
       currentNodes.slice(1).forEach((node) => {
-        expect(orb.data.getNodeById(node.id)?.properties).toEqual(nodeStyle);
+        expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
       });
       currentEdges.slice(1).forEach((edge) => {
-        expect(orb.data.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
+        expect(graph.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
       });
     });
 
     test('should apply style before join', () => {
-      const orb = new Orb(new HTMLElement());
-      orb.data.setup({ nodes, edges });
-      orb.data.setStyle(style);
-      orb.data.join({ nodes: newNodes, edges: newEdges });
+      const graph = new Graph({ nodes, edges });
+      graph.setStyle(style);
+      graph.join({ nodes: newNodes, edges: newEdges });
 
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
       const currentEdges: ITestEdge[] = [...edges, ...newEdges];
 
-      expect(orb.data.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
-      expect(orb.data.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
+      expect(graph.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
+      expect(graph.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
 
       currentNodes.slice(1).forEach((node) => {
-        expect(orb.data.getNodeById(node.id)?.properties).toEqual(nodeStyle);
+        expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
       });
       currentEdges.slice(1).forEach((edge) => {
-        expect(orb.data.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
+        expect(graph.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
       });
     });
 
     test('should apply default style after join', () => {
-      const orb = new Orb(new HTMLElement());
-      orb.data.setStyle(style);
-      orb.data.setup({ nodes, edges });
-      orb.data.join({ nodes: newNodes, edges: newEdges });
-      orb.data.setDefaultStyle();
+      const graph = new Graph();
+      graph.setStyle(style);
+      graph.setup({ nodes, edges });
+      graph.join({ nodes: newNodes, edges: newEdges });
+      graph.setDefaultStyle();
 
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
       const currentEdges: ITestEdge[] = [...edges, ...newEdges];
 
-      expect(orb.data.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
-      expect(orb.data.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
+      expect(graph.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
+      expect(graph.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
 
       currentNodes.slice(1).forEach((node) => {
-        expect(orb.data.getNodeById(node.id)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
+        expect(graph.getNodeById(node.id)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
       });
       currentEdges.slice(1).forEach((edge) => {
-        expect(orb.data.getEdgeById(edge.id)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
+        expect(graph.getEdgeById(edge.id)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
       });
     });
 
     test('should apply default style before join', () => {
-      const orb = new Orb(new HTMLElement());
-      orb.data.setStyle(style);
-      orb.data.setup({ nodes, edges });
-      orb.data.setDefaultStyle();
-      orb.data.join({ nodes: newNodes, edges: newEdges });
+      const graph = new Graph();
+      graph.setStyle(style);
+      graph.setup({ nodes, edges });
+      graph.setDefaultStyle();
+      graph.join({ nodes: newNodes, edges: newEdges });
 
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
       const currentEdges: ITestEdge[] = [...edges, ...newEdges];
 
-      expect(orb.data.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
-      expect(orb.data.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
+      expect(graph.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
+      expect(graph.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
 
       currentNodes.slice(1).forEach((node) => {
-        expect(orb.data.getNodeById(node.id)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
+        expect(graph.getNodeById(node.id)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
       });
       currentEdges.slice(1).forEach((edge) => {
-        expect(orb.data.getEdgeById(edge.id)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
+        expect(graph.getEdgeById(edge.id)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
       });
     });
 

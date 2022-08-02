@@ -53,19 +53,31 @@ export interface IViewContext<N extends INodeBase, E extends IEdgeBase> {
 
 export type IOrbViewFactory<N extends INodeBase, E extends IEdgeBase> = (context: IViewContext<N, E>) => IOrbView<N, E>;
 
+export interface IOrbSettings<N extends INodeBase, E extends IEdgeBase> {
+  view: IOrbViewFactory<N, E>;
+}
+
 export class Orb<N extends INodeBase, E extends IEdgeBase> {
   private _view: IOrbView<N, E>;
   private readonly _events: OrbEmitter<N, E>;
   private readonly _graph: Graph<N, E> = new Graph<N, E>();
 
-  constructor(private container: HTMLElement) {
+  private readonly _context: IViewContext<N, E>;
+
+  constructor(private container: HTMLElement, settings?: Partial<IOrbSettings<N, E>>) {
     // TODO @toni: Add top level orb settings as an input here, e.g. select/hover strategy
     this._events = new OrbEmitter<N, E>();
-    this._view = new DefaultView<N, E>({
+    this._context = {
       container: this.container,
       graph: this._graph,
       events: this._events,
-    });
+    };
+
+    if (settings?.view) {
+      this._view = settings.view(this._context);
+    } else {
+      this._view = new DefaultView<N, E>(this._context);
+    }
   }
 
   get data(): Graph<N, E> {
@@ -84,10 +96,6 @@ export class Orb<N extends INodeBase, E extends IEdgeBase> {
     if (this._view) {
       this._view.destroy();
     }
-    this._view = factory({
-      container: this.container,
-      graph: this._graph,
-      events: this._events,
-    });
+    this._view = factory(this._context);
   }
 }
