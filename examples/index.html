@@ -81,15 +81,15 @@
       console.log('Event: edge-click', edge);
     });
 
-    // setTimeout(() => {
-    //   orb.data.join({
-    //     nodes: [
-    //       { id: 3, labels: ['Node D'], properties: { test: 2 }, x: 2, y: 2 },
-    //       { id: 4, labels: ['Node E'], properties: { test: 3 }, x: 3, y: 3 },
-    //     ],
-    //   });
-    //   orb.view.render();
-    // }, 5000);
+    setTimeout(() => {
+      orb.data.join({
+        nodes: [
+          { id: 3, labels: ['Node D'], properties: { test: 2 }, x: 2, y: 2 },
+          { id: 4, labels: ['Node E'], properties: { test: 3 }, x: 3, y: 3 },
+        ],
+      });
+      orb.view.render();
+    }, 5000);
   </script>
 </body>
 </html>

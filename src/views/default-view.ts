@@ -80,14 +80,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
         // this.stabilizationProgress_.next(0);
       },
       onStabilizationProgress: (data) => {
-        const nodes = data.nodes
-          .filter((node) => node.x && node.y)
-          .map((node) => ({
-            id: node.id,
-            x: node.x || 0,
-            y: node.y || 0,
-          }));
-        this._graph.setNodePositions(nodes);
+        this._graph.setNodePositions(data.nodes);
         this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
 
         this._renderer.render(this._graph);
@@ -109,14 +102,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
         */
       },
       onStabilizationEnd: (data) => {
-        const nodes = data.nodes
-          .filter((node) => node.x && node.y)
-          .map((node) => ({
-            id: node.id,
-            x: node.x || 0,
-            y: node.y || 0,
-          }));
-        this._graph.setNodePositions(nodes);
+        this._graph.setNodePositions(data.nodes);
 
         // this.isLabelRendered_.next(true);
         // Reset progress.
@@ -125,14 +111,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       },
       onNodeDrag: (data) => {
         // Node dragging does not trigger a user blocking percentage loader.
-        const nodes = data.nodes
-          .filter((node) => node.x && node.y)
-          .map((node) => ({
-            id: node.id,
-            x: node.x || 0,
-            y: node.y || 0,
-          }));
-        this._graph.setNodePositions(nodes);
+        this._graph.setNodePositions(data.nodes);
         this._renderer.render(this._graph);
 
         // (old)
@@ -322,6 +301,16 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
 
   startSimulation() {
     this._renderer.reset();
-    this.simulator.startSimulation(this._graph.getNodePositions(), this._graph.getEdgePositions());
+    const nodePositions = this._graph.getNodePositions();
+    const edgePositions = this._graph.getEdgePositions();
+
+    const isSimulationUpdate = nodePositions.some((position) => position.x !== undefined || position.y !== undefined);
+
+    // TODO: Maybe move logic to start/update simulation to the simulator?!
+    if (!isSimulationUpdate) {
+      this.simulator.startSimulation(nodePositions, edgePositions);
+    } else {
+      this.simulator.updateSimulation(nodePositions, edgePositions);
+    }
   }
 }

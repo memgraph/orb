@@ -24,7 +24,7 @@ export class EdgeCurvedCanvas<N extends INodeBase, E extends IEdgeBase> extends 
     const lineWidth = this.edge.getWidth() ?? 1;
     const guideOffset = -0.1;
     // const source = this.data.source;
-    const target = this.edge.endNode!;
+    const target = this.edge.endNode;
 
     const controlPoint = this.edge.getCurvedControlPoint();
     const arrowPoint = this.findBorderPoint(target);
@@ -74,10 +74,10 @@ export class EdgeCurvedCanvas<N extends INodeBase, E extends IEdgeBase> extends 
     let difference;
     const threshold = 0.2;
     const viaNode = this.edge.getCurvedControlPoint();
-    let node = this.edge.endNode!;
+    let node = this.edge.endNode;
     let from = false;
-    if (nearNode.id === this.edge.startNode!.id) {
-      node = this.edge.startNode!;
+    if (nearNode.id === this.edge.startNode.id) {
+      node = this.edge.startNode;
       from = true;
     }
 

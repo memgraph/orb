@@ -11,8 +11,8 @@ export interface INodeBase {
 
 export interface INodePosition {
   id: number;
-  x: number;
-  y: number;
+  x?: number;
+  y?: number;
 }
 
 export enum NodeShapeType {
@@ -74,10 +74,15 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
   constructor(data: INodeData<N>) {
     this.id = data.data.id;
     this.data = data.data;
-    this.position = { id: this.id, x: 0, y: 0 };
+    this.position = { id: this.id };
   }
 
   getCenter(): IPosition {
+    // This should not be called in the render because nodes without position will be
+    // filtered out
+    if (this.position.x === undefined || this.position.y === undefined) {
+      return { x: 0, y: 0 };
+    }
     return { x: this.position.x, y: this.position.y };
   }
 

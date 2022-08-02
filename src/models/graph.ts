@@ -1,10 +1,9 @@
 import { Node, INodeBase, INodePosition, DEFAULT_NODE_PROPERTIES } from './node';
-import { DEFAULT_EDGE_PROPERTIES, Edge, IEdgeBase } from './edge';
+import { DEFAULT_EDGE_PROPERTIES, Edge, IEdgeBase, IEdgePosition } from './edge';
 import { IRectangle } from '../common/rectangle';
 import { IPosition } from '../common/position';
 import { IGraphStyle } from './style';
 import { ImageHandler } from '../services/images';
-import { ISimulationEdge } from '../simulator/interface';
 import { getEdgeOffsets } from './topology';
 
 export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
@@ -109,7 +108,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
   }
 
   /**
-   * Returns a list of current node positions.
+   * Returns a list of current node positions (x, y).
    *
    * @return {INodePosition[]} List of node positions
    */
@@ -122,6 +121,11 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     return positions;
   }
 
+  /**
+   * Sets new node positions (x, y).
+   *
+   * @param {INodePosition} positions Node positions
+   */
   setNodePositions(positions: INodePosition[]) {
     for (let i = 0; i < positions.length; i++) {
       const node = this.nodeById[positions[i].id];
@@ -131,27 +135,27 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     }
   }
 
-  setEdgePositions(positions: ISimulationEdge[]) {
-    for (let i = 0; i < positions.length; i++) {
-      const edge = this.edgeById[positions[i].id];
-      if (edge) {
-        edge.position = positions[i];
-      }
-    }
-  }
-
-  getEdgePositions(): ISimulationEdge[] {
+  /**
+   * Returns a list of current edge positions. Edge positions do not have
+   * (x, y) but a link to the source and target node ids.
+   *
+   * @return {IEdgePosition[]} List of edge positions
+   */
+  getEdgePositions(): IEdgePosition[] {
     const edges = this.getEdges();
-    const positions: ISimulationEdge[] = new Array<ISimulationEdge>(edges.length);
+    const positions: IEdgePosition[] = new Array<IEdgePosition>(edges.length);
     for (let i = 0; i < edges.length; i++) {
-      const position = edges[i].position;
-      if (position) {
-        positions[i] = position;
-      }
+      positions[i] = edges[i].position;
     }
     return positions;
   }
 
+  /**
+   * Sets define style to nodes and edges. The applied style will be used
+   * for all future nodes and edges added with `.join` function.
+   *
+   * @param {IGraphStyle} style Style definition
+   */
   setStyle(style: Partial<IGraphStyle<N, E>>) {
     this.style = style;
     const styleImageUrls: Set<string> = new Set<string>();
@@ -344,13 +348,15 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
 
   private _insertEdges(edges: E[]) {
     for (let i = 0; i < edges.length; i++) {
-      const edge = new Edge<N, E>({ data: edges[i] });
-
-      const startNode = this.getNodeById(edge.start);
-      const endNode = this.getNodeById(edge.end);
+      const startNode = this.getNodeById(edges[i].start);
+      const endNode = this.getNodeById(edges[i].end);
 
       if (startNode && endNode) {
-        edge.connect(startNode, endNode);
+        const edge = new Edge<N, E>({
+          data: edges[i],
+          startNode,
+          endNode,
+        });
         this.edgeById[edge.id] = edge;
       }
     }
@@ -371,34 +377,49 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
 
   private _upsertEdges(edges: E[]) {
     for (let i = 0; i < edges.length; i++) {
-      const existingEdge = this.getEdgeById(edges[i].id);
-      if (existingEdge) {
-        const newEdge = edges[i];
+      const newEdgeData = edges[i];
+      const existingEdge = this.getEdgeById(newEdgeData.id);
 
-        if (existingEdge.start !== newEdge.start || existingEdge.end !== newEdge.end) {
-          existingEdge.disconnect();
-          delete this.edgeById[existingEdge.id];
+      // New edge
+      if (!existingEdge) {
+        const startNode = this.getNodeById(newEdgeData.start);
+        const endNode = this.getNodeById(newEdgeData.end);
 
-          const startNode = this.getNodeById(newEdge.start);
-          const endNode = this.getNodeById(newEdge.end);
-
-          if (startNode && endNode) {
-            existingEdge.connect(startNode, endNode);
-            this.edgeById[existingEdge.id] = existingEdge;
-          }
+        if (startNode && endNode) {
+          const edge = new Edge<N, E>({
+            data: newEdgeData,
+            startNode,
+            endNode,
+          });
+          this.edgeById[edge.id] = edge;
         }
-
-        existingEdge.data = newEdge;
         continue;
       }
 
-      const edge = new Edge<N, E>({ data: edges[i] });
-      const startNode = this.getNodeById(edge.start);
-      const endNode = this.getNodeById(edge.end);
+      // The connection of the edge stays the same, but the data has changed
+      if (existingEdge.start === newEdgeData.start && existingEdge.end === newEdgeData.end) {
+        existingEdge.data = newEdgeData;
+        continue;
+      }
+
+      // Edge connection (start or end node) has changed
+      existingEdge.startNode.removeEdge(existingEdge);
+      existingEdge.endNode.removeEdge(existingEdge);
+      delete this.edgeById[existingEdge.id];
+
+      const startNode = this.getNodeById(newEdgeData.start);
+      const endNode = this.getNodeById(newEdgeData.end);
 
       if (startNode && endNode) {
-        edge.connect(startNode, endNode);
-        this.edgeById[edge.id] = edge;
+        const edge = new Edge<N, E>({
+          data: newEdgeData,
+          offset: existingEdge.offset,
+          startNode,
+          endNode,
+        });
+        edge.state = existingEdge.state;
+        edge.properties = existingEdge.properties;
+        this.edgeById[existingEdge.id] = edge;
       }
     }
   }
@@ -413,7 +434,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
       const edges = node.getEdges();
       for (let i = 0; i < edges.length; i++) {
         const edge = edges[i];
-        edge.disconnect();
+        edge.startNode.removeEdge(edge);
+        edge.endNode.removeEdge(edge);
         delete this.edgeById[edge.id];
       }
 
@@ -428,7 +450,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
         continue;
       }
 
-      edge.disconnect();
+      edge.startNode.removeEdge(edge);
+      edge.endNode.removeEdge(edge);
       delete this.edgeById[edge.id];
     }
   }

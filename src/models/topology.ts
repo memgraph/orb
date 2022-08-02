@@ -41,7 +41,6 @@ const getEdgeOffsetsByUniqueKey = <N extends INodeBase, E extends IEdgeBase>(
 
   // Count the number of edges that are between the same nodes
   for (let i = 0; i < edges.length; i++) {
-    // TODO @toni: This is expensive, so maybe we should have unique key in the edge
     const uniqueKey = getUniqueEdgeKey(edges[i]);
     if (edges[i].start === edges[i].end) {
       loopbackUniqueKeys.add(uniqueKey);

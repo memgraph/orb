@@ -123,11 +123,11 @@ export class EdgeCanvas<N extends INodeBase, E extends IEdgeBase> {
   protected getArrowShape(_context: CanvasRenderingContext2D): IEdgeArrow {
     const scaleFactor = this.edge.properties.arrowSize ?? 1;
     const lineWidth = this.edge.getWidth() ?? 1;
-    const sourcePoint = this.edge.startNode!.getCenter();
-    const targetPoint = this.edge.endNode!.getCenter();
+    const sourcePoint = this.edge.startNode.getCenter();
+    const targetPoint = this.edge.endNode.getCenter();
 
     const angle = Math.atan2(targetPoint.y - sourcePoint.y, targetPoint.x - sourcePoint.x);
-    const arrowPoint = this.findBorderPoint(this.edge.endNode!);
+    const arrowPoint = this.findBorderPoint(this.edge.endNode);
 
     const length = 1.5 * scaleFactor + 3 * lineWidth; // 3* lineWidth is the width of the edge.
 
@@ -139,11 +139,11 @@ export class EdgeCanvas<N extends INodeBase, E extends IEdgeBase> {
   }
 
   protected findBorderPoint(nearNode: Node<N, E>): IBorderPosition {
-    let endNode = this.edge.endNode!;
-    let startNode = this.edge.startNode!;
-    if (nearNode.id === this.edge.startNode!.id) {
-      endNode = this.edge.startNode!;
-      startNode = this.edge.endNode!;
+    let endNode = this.edge.endNode;
+    let startNode = this.edge.startNode;
+    if (nearNode.id === this.edge.startNode.id) {
+      endNode = this.edge.startNode;
+      startNode = this.edge.endNode;
     }
 
     const endNodePoints = endNode.getCenter();

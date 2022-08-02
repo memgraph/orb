@@ -18,7 +18,7 @@ export class EdgeLoopbackCanvas<N extends INodeBase, E extends IEdgeBase> extend
   protected override getArrowShape(_context: CanvasRenderingContext2D): IEdgeArrow {
     const scaleFactor = this.edge.properties.arrowSize ?? 1;
     const lineWidth = this.edge.getWidth() ?? 1;
-    const source = this.edge.startNode!;
+    const source = this.edge.startNode;
     // const target = this.data.target;
 
     const arrowPoint = this.findBorderPoint(source);

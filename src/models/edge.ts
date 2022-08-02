@@ -4,7 +4,6 @@ import { Color } from './color';
 import { IPosition } from '../common/position';
 import { getDistanceToLine } from './distance';
 import { ICircle } from '../common/circle';
-import { ISimulationEdge } from '../simulator/interface';
 
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
 const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;
@@ -13,6 +12,12 @@ export interface IEdgeBase {
   id: number;
   start: number;
   end: number;
+}
+
+export interface IEdgePosition {
+  id: number;
+  source: number;
+  target: number;
 }
 
 export interface IEdgeProperties {
@@ -39,13 +44,14 @@ export const DEFAULT_EDGE_PROPERTIES: Partial<IEdgeProperties> = {
   width: 0.3,
 };
 
-// TODO @toni: Add startNode and endNode in the constructor, but then check how to do
-// TODO @toni: disconnects and start/end node changes via join
-export interface IEdgeData<E extends IEdgeBase> {
+export interface IEdgeData<N extends INodeBase, E extends IEdgeBase> {
   data: E;
   // Offset is used to mark curved or straight lines
   // For straight lines, it is 0, for curved it is +N or -N
   offset?: number;
+  // Edge doesn't exist without nodes
+  startNode: Node<N, E>;
+  endNode: Node<N, E>;
 }
 
 export enum EdgeType {
@@ -57,23 +63,28 @@ export enum EdgeType {
 export class Edge<N extends INodeBase, E extends IEdgeBase> {
   public readonly id: number;
   public data: E;
-  public readonly offset: number;
 
-  private _startNode?: Node<N, E>;
-  private _endNode?: Node<N, E>;
+  public readonly offset: number;
+  public readonly startNode: Node<N, E>;
+  public readonly endNode: Node<N, E>;
+
   private _type: EdgeType = EdgeType.STRAIGHT;
 
   public properties: Partial<IEdgeProperties> = DEFAULT_EDGE_PROPERTIES;
   public state?: number;
+  public position: IEdgePosition;
 
-  // @dlozic: I added this since it was missing when using the graph
-  public position: ISimulationEdge | undefined;
-
-  constructor(data: IEdgeData<E>) {
+  constructor(data: IEdgeData<N, E>) {
     this.id = data.data.id;
     this.data = data.data;
     this.offset = data.offset ?? 0;
+    this.startNode = data.startNode;
+    this.endNode = data.endNode;
     this._type = this.getEdgeType();
+
+    this.position = { id: this.id, source: this.startNode.id, target: this.endNode.id };
+    this.startNode.addEdge(this);
+    this.endNode.addEdge(this);
   }
 
   get type(): EdgeType {
@@ -88,49 +99,17 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
     return this.data.end;
   }
 
-  get startNode(): Node<N, E> | undefined {
-    return this._startNode;
-  }
-
-  get endNode(): Node<N, E> | undefined {
-    return this._endNode;
-  }
-
-  copy(data?: Omit<IEdgeData<E>, 'data'>): Edge<N, E> {
+  copy(data?: Omit<IEdgeData<N, E>, 'data' | 'startNode' | 'endNode'>): Edge<N, E> {
     const newEdge = new Edge<N, E>({
       data: this.data,
-      offset: data?.offset,
+      offset: data?.offset !== undefined ? data.offset : this.offset,
+      startNode: this.startNode,
+      endNode: this.endNode,
     });
-    newEdge.connect(this.startNode!, this.endNode!);
     newEdge.state = this.state;
     newEdge.properties = this.properties;
 
     return newEdge;
-  }
-
-  connect(startNode: Node<N, E>, endNode: Node<N, E>) {
-    this._startNode = startNode;
-    this._endNode = endNode;
-
-    if (this.startNode && this.endNode) {
-      this.position = {
-        id: this.id,
-        source: this.startNode.id,
-        target: this.endNode.id,
-      };
-    }
-
-    this._startNode.addEdge(this);
-    this._endNode.addEdge(this);
-    this._type = this.getEdgeType();
-  }
-
-  disconnect() {
-    this._startNode?.removeEdge(this);
-    this._endNode?.removeEdge(this);
-
-    this._startNode = undefined;
-    this._endNode = undefined;
   }
 
   isSelected(): boolean {

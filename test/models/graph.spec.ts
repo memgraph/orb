@@ -110,7 +110,7 @@ describe('Graph', () => {
       inEdges: [2],
       outEdges: [0, 3],
       state: undefined,
-      position: { id: 0, x: 0, y: 0 },
+      position: { id: 0 },
     },
     {
       id: 1,
@@ -119,7 +119,7 @@ describe('Graph', () => {
       inEdges: [0, 4],
       outEdges: [1, 4],
       state: undefined,
-      position: { id: 1, x: 0, y: 0 },
+      position: { id: 1 },
     },
     {
       id: 2,
@@ -128,7 +128,7 @@ describe('Graph', () => {
       inEdges: [1, 3],
       outEdges: [2],
       state: undefined,
-      position: { id: 2, x: 0, y: 0 },
+      position: { id: 2 },
     },
   ];
 
@@ -230,7 +230,7 @@ describe('Graph', () => {
         inEdges: [],
         outEdges: [6],
         state: undefined,
-        position: { id: 3, x: 0, y: 0 },
+        position: { id: 3 },
       },
       {
         id: 4,
@@ -239,7 +239,7 @@ describe('Graph', () => {
         inEdges: [6],
         outEdges: [],
         state: undefined,
-        position: { id: 4, x: 0, y: 0 },
+        position: { id: 4 },
       },
     ];
 
