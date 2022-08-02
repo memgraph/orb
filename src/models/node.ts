@@ -69,7 +69,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
 
   public position: INodePosition;
   public properties: Partial<INodeProperties> = DEFAULT_NODE_PROPERTIES;
-  public state?: GraphObjectState;
+  public state?: number;
 
   constructor(data: INodeData<N>) {
     this.id = data.data.id;
@@ -167,11 +167,11 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
   }
 
   isSelected(): boolean {
-    return this.state === GraphObjectState.SELECT;
+    return this.state === GraphObjectState.SELECTED;
   }
 
   isHovered(): boolean {
-    return this.state === GraphObjectState.HOVER;
+    return this.state === GraphObjectState.HOVERED;
   }
 
   clearState(): void {
@@ -179,7 +179,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
   }
 
   getDistanceToBorder(_angle: number): number {
-    // TODO @toni: Add getDistanceToBorder for each node shape type because this covers only circles
+    // TODO: Add "getDistanceToBorder" for each node shape type because this covers only circles
     return this.getBorderedRadius();
   }
 
@@ -194,7 +194,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
       return isInBoundingBox;
     }
 
-    // TODO @toni: Add better checks for stars, triangles, hexagons, etc.
+    // TODO: Add better "includePoint" checks for stars, triangles, hexagons, etc.
     const center = this.getCenter();
     const borderedRadius = this.getBorderedRadius();
 

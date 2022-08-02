@@ -64,7 +64,7 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
   private _type: EdgeType = EdgeType.STRAIGHT;
 
   public properties: Partial<IEdgeProperties> = DEFAULT_EDGE_PROPERTIES;
-  public state?: GraphObjectState;
+  public state?: number;
 
   // @dlozic: I added this since it was missing when using the graph
   public position: ISimulationEdge | undefined;
@@ -122,11 +122,11 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
   }
 
   isSelected(): boolean {
-    return this.state === GraphObjectState.SELECT;
+    return this.state === GraphObjectState.SELECTED;
   }
 
   isHovered(): boolean {
-    return this.state === GraphObjectState.HOVER;
+    return this.state === GraphObjectState.HOVERED;
   }
 
   clearState(): void {
@@ -300,7 +300,7 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
     const offsetSize = Math.max(sourceSize, targetSize, CURVED_CONTROL_POINT_OFFSET_MIN_SIZE);
     const offset = (this.offset ?? 1) * offsetSize * offsetMultiplier;
 
-    // TODO @toni: Check for smooth quadratic curve (faster)
+    // TODO: Check for faster smooth quadratic curve
     // https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/curves/path-data
     return {
       x: middleX + offset * (dy / length),

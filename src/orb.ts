@@ -4,6 +4,7 @@ import { Edge, IEdgeBase } from './models/edge';
 import { DefaultView } from './views/default-view';
 import { Emitter } from './utils/emitter.utils';
 import { IPosition } from './common/position';
+import { getDefaultEventStrategy, IEventStrategy } from './models/strategy';
 
 export enum OrbEventType {
   // TODO: Add drag events, add settings change events
@@ -49,12 +50,14 @@ export interface IViewContext<N extends INodeBase, E extends IEdgeBase> {
   container: HTMLElement;
   graph: Graph<N, E>;
   events: OrbEmitter<N, E>;
+  strategy: IEventStrategy<N, E>;
 }
 
 export type IOrbViewFactory<N extends INodeBase, E extends IEdgeBase> = (context: IViewContext<N, E>) => IOrbView<N, E>;
 
 export interface IOrbSettings<N extends INodeBase, E extends IEdgeBase> {
   view: IOrbViewFactory<N, E>;
+  strategy: IEventStrategy<N, E>;
 }
 
 export class Orb<N extends INodeBase, E extends IEdgeBase> {
@@ -71,6 +74,7 @@ export class Orb<N extends INodeBase, E extends IEdgeBase> {
       container: this.container,
       graph: this._graph,
       events: this._events,
+      strategy: settings?.strategy ?? getDefaultEventStrategy<N, E>(),
     };
 
     if (settings?.view) {

@@ -6,9 +6,10 @@ import { IPosition, isEqualPosition } from '../common/position';
 import { Renderer } from '../renderer/canvas/renderer';
 import { ISimulator, SimulatorFactory } from '../simulator/index';
 import { Graph } from '../models/graph';
-import { INodeBase } from '../models/node';
-import { IEdgeBase } from '../models/edge';
+import { INodeBase, Node } from '../models/node';
+import { Edge, IEdgeBase } from '../models/edge';
 import { OrbEmitter, OrbEventType, IOrbView, IViewContext } from '../orb';
+import { IEventStrategy } from '../models/strategy';
 
 const DISABLE_OUT_OF_BOUNDS_DRAG = true;
 const ROUND_COORDINATES = true;
@@ -21,6 +22,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   private _container: HTMLElement;
   private _graph: Graph<N, E>;
   private _events: OrbEmitter<N, E>;
+  private _strategy: IEventStrategy<N, E>;
 
   private _canvas: HTMLCanvasElement;
   private _context: CanvasRenderingContext2D | null;
@@ -38,6 +40,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     this._container = context.container;
     this._graph = context.graph;
     this._events = context.events;
+    this._strategy = context.strategy;
 
     this._container.textContent = '';
     this._canvas = document.createElement('canvas');
@@ -242,26 +245,36 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   mouseMoved = (event: MouseEvent) => {
     const mousePoint = this.getCanvasMousePosition(event);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
-
+    // TODO: Add throttle
     // This was a subject before, now I've handled it right here.
     // this.hoverMousePosition_.next(mousePoint);
 
-    if (!this._graph) {
-      return;
-    }
+    if (this._strategy.onMouseMove) {
+      const response = this._strategy.onMouseMove(this._graph, simulationPoint);
+      const subject = response.changedSubject;
 
-    const node = this._graph.getNearestNode(simulationPoint);
-    if (!node) {
-      const { changedCount } = this._graph.unhoverAll();
-      if (changedCount) {
+      if (subject) {
+        if (subject instanceof Node) {
+          this._events.emit(OrbEventType.NODE_HOVER, {
+            node: subject,
+            localPoint: simulationPoint,
+            globalPoint: mousePoint,
+          });
+        }
+        if (subject instanceof Edge) {
+          this._events.emit(OrbEventType.EDGE_HOVER, {
+            edge: subject,
+            localPoint: simulationPoint,
+            globalPoint: mousePoint,
+          });
+        }
+      }
+
+      this._events.emit(OrbEventType.MOUSE_MOVE, { subject, localPoint: simulationPoint, globalPoint: mousePoint });
+
+      if (response.isStateChanged || response.changedSubject) {
         this._renderer.render(this._graph);
       }
-    }
-
-    if (node && !node.isSelected()) {
-      this._graph.hoverNode(node);
-      this._events.emit(OrbEventType.NODE_HOVER, { node, localPoint: simulationPoint, globalPoint: mousePoint });
-      this._renderer.render(this._graph);
     }
   };
 
@@ -269,36 +282,32 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     const mousePoint = this.getCanvasMousePosition(event);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
-    if (!this._graph) {
-      return;
-    }
+    if (this._strategy.onMouseClick) {
+      const response = this._strategy.onMouseClick(this._graph, simulationPoint);
+      const subject = response.changedSubject;
 
-    const node = this._graph.getNearestNode(simulationPoint);
-    if (node) {
-      this._graph.selectNode(node);
-      this._events.emit(OrbEventType.NODE_CLICK, { node, localPoint: simulationPoint, globalPoint: mousePoint });
-      // this.renderImmediate_.next();
-      // this.selectedShape_.next(node);
-      // this.selectedShapePosition_.next(mousePoint);
-      return;
-    }
+      if (subject) {
+        if (subject instanceof Node) {
+          this._events.emit(OrbEventType.NODE_CLICK, {
+            node: subject,
+            localPoint: simulationPoint,
+            globalPoint: mousePoint,
+          });
+        }
+        if (subject instanceof Edge) {
+          this._events.emit(OrbEventType.EDGE_CLICK, {
+            edge: subject,
+            localPoint: simulationPoint,
+            globalPoint: mousePoint,
+          });
+        }
+      }
 
-    // If node is not selected, check the edge! (just for render)
-    const edge = this._graph.getNearestEdge(simulationPoint);
-    if (edge) {
-      this._graph.selectEdge(edge);
-      this._events.emit(OrbEventType.EDGE_CLICK, { edge, localPoint: simulationPoint, globalPoint: mousePoint });
-      // this.renderImmediate_.next();
-      // this.selectedShape_.next(edge);
-      // this.selectedShapePosition_.next(mousePoint);
-      return;
-    }
+      this._events.emit(OrbEventType.MOUSE_CLICK, { subject, localPoint: simulationPoint, globalPoint: mousePoint });
 
-    const { changedCount } = this._graph.unselectAll();
-    if (changedCount > 0) {
-      // this.renderThrottle_.next();
-      // this.selectedShape_.next(null);
-      // this.selectedShapePosition_.next(null);
+      if (response.isStateChanged || response.changedSubject) {
+        this._renderer.render(this._graph);
+      }
     }
   };
 

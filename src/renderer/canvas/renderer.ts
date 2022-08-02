@@ -101,18 +101,8 @@ export class Renderer {
       this.context.fillRect(0, 0, this.width, this.height);
     }
 
-    // TODO: Move to function
-    const edges = graph.getEdges();
-    const edgeObjects: EdgeCanvas<N, E>[] = new Array<EdgeCanvas<N, E>>(edges.length);
-    for (let i = 0; i < edges.length; i++) {
-      edgeObjects[i] = EdgeCanvasFactory.createEdgeCanvas<N, E>(edges[i]);
-    }
-
-    const nodes = graph.getNodes();
-    const nodeObjects: NodeCanvas<N, E>[] = new Array<NodeCanvas<N, E>>(nodes.length);
-    for (let i = 0; i < nodes.length; i++) {
-      nodeObjects[i] = NodeCanvasFactory.createNodeCanvas<N, E>(nodes[i]);
-    }
+    const edgeObjects = getEdgeCanvasObjects<N, E>(graph);
+    const nodeObjects = getNodeCanvasObjects<N, E>(graph);
 
     this.drawObjects<N, E>(edgeObjects, drawOptions);
     this.drawObjects<N, E>(nodeObjects, drawOptions);
@@ -223,3 +213,21 @@ export class Renderer {
     this.isOriginCentered = true;
   }
 }
+
+const getNodeCanvasObjects = <N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>): NodeCanvas<N, E>[] => {
+  const nodes = graph.getNodes();
+  const nodeObjects: NodeCanvas<N, E>[] = new Array<NodeCanvas<N, E>>(nodes.length);
+  for (let i = 0; i < nodes.length; i++) {
+    nodeObjects[i] = NodeCanvasFactory.createNodeCanvas<N, E>(nodes[i]);
+  }
+  return nodeObjects;
+};
+
+const getEdgeCanvasObjects = <N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>): EdgeCanvas<N, E>[] => {
+  const edges = graph.getEdges();
+  const edgeObjects: EdgeCanvas<N, E>[] = new Array<EdgeCanvas<N, E>>(edges.length);
+  for (let i = 0; i < edges.length; i++) {
+    edgeObjects[i] = EdgeCanvasFactory.createEdgeCanvas<N, E>(edges[i]);
+  }
+  return edgeObjects;
+};

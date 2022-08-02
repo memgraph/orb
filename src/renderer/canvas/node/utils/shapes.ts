@@ -1,12 +1,11 @@
-// From: https://github.com/almende/vis
-
 /**
- * Draw a circle shape
+ * Draws a circle shape.
+ * Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
  *
- * @param {CanvasRenderingContext2D} context
- * @param {number} x
- * @param {number} y
- * @param {number} r
+ * @param {CanvasRenderingContext2D} context Canvas rendering context
+ * @param {number} x Horizontal center
+ * @param {number} y Vertical center
+ * @param {number} r Radius
  */
 export const drawCircle = (context: CanvasRenderingContext2D, x: number, y: number, r: number) => {
   context.beginPath();
@@ -15,12 +14,13 @@ export const drawCircle = (context: CanvasRenderingContext2D, x: number, y: numb
 };
 
 /**
- * Draw a square shape
+ * Draws a square shape.
+ * Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
  *
- * @param {CanvasRenderingContext2D} context
- * @param {number} x horizontal center
- * @param {number} y vertical center
- * @param {number} r   size, width and height of the square
+ * @param {CanvasRenderingContext2D} context Canvas rendering context
+ * @param {number} x Horizontal center
+ * @param {number} y Vertical center
+ * @param {number} r Size (width and height) of the square
  */
 export const drawSquare = (context: CanvasRenderingContext2D, x: number, y: number, r: number) => {
   context.beginPath();
@@ -29,12 +29,13 @@ export const drawSquare = (context: CanvasRenderingContext2D, x: number, y: numb
 };
 
 /**
- * Draw a triangle shape
+ * Draws a triangle shape.
+ * Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
  *
- * @param {CanvasRenderingContext2D} context
- * @param {number} x horizontal center
- * @param {number} y vertical center
- * @param {number} r   radius, half the length of the sides of the triangle
+ * @param {CanvasRenderingContext2D} context Canvas rendering context
+ * @param {number} x Horizontal center
+ * @param {number} y Vertical center
+ * @param {number} r Radius, half the length of the sides of the triangle
  */
 export const drawTriangleUp = (context: CanvasRenderingContext2D, x: number, y: number, r: number) => {
   // http://en.wikipedia.org/wiki/Equilateral_triangle
@@ -56,12 +57,13 @@ export const drawTriangleUp = (context: CanvasRenderingContext2D, x: number, y: 
 };
 
 /**
- * Draw a triangle shape in downward orientation
+ * Draws a triangle shape in downward orientation.
+ * Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
  *
- * @param {CanvasRenderingContext2D} context
- * @param {number} x horizontal center
- * @param {number} y vertical center
- * @param {number} r radius
+ * @param {CanvasRenderingContext2D} context Canvas rendering context
+ * @param {number} x Horizontal center
+ * @param {number} y Vertical center
+ * @param {number} r Radius, half the length of the sides of the triangle
  */
 export const drawTriangleDown = (context: CanvasRenderingContext2D, x: number, y: number, r: number) => {
   // http://en.wikipedia.org/wiki/Equilateral_triangle
@@ -83,12 +85,13 @@ export const drawTriangleDown = (context: CanvasRenderingContext2D, x: number, y
 };
 
 /**
- * Draw a star shape, a star with 5 points
+ * Draw a star shape, a star with 5 points.
+ * Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
  *
- * @param {CanvasRenderingContext2D} context
- * @param {number} x horizontal center
- * @param {number} y vertical center
- * @param {number} r radius, half the length of the sides of the triangle
+ * @param {CanvasRenderingContext2D} context Canvas rendering context
+ * @param {number} x Horizontal center
+ * @param {number} y Vertical center
+ * @param {number} r Radius, half the length of the sides of the triangle
  */
 export const drawStar = (context: CanvasRenderingContext2D, x: number, y: number, r: number) => {
   // http://www.html5canvastutorials.com/labs/html5-canvas-star-spinner/
@@ -109,12 +112,13 @@ export const drawStar = (context: CanvasRenderingContext2D, x: number, y: number
 };
 
 /**
- * Draw a Diamond shape
+ * Draws a Diamond shape.
+ * Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
  *
- * @param {CanvasRenderingContext2D} context
- * @param {number} x horizontal center
- * @param {number} y vertical center
- * @param {number} r radius, half the length of the sides of the triangle
+ * @param {CanvasRenderingContext2D} context Canvas rendering context
+ * @param {number} x Horizontal center
+ * @param {number} y Vertical center
+ * @param {number} r Radius, half the length of the sides of the triangle
  */
 export const drawDiamond = (context: CanvasRenderingContext2D, x: number, y: number, r: number) => {
   // http://www.html5canvastutorials.com/labs/html5-canvas-star-spinner/
@@ -129,14 +133,16 @@ export const drawDiamond = (context: CanvasRenderingContext2D, x: number, y: num
 };
 
 /**
- * http://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas
+ * Draws a rounded rectangle.
+ * Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
+ * Ref: http://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas
  *
- * @param {CanvasRenderingContext2D} context
- * @param {number} x
- * @param {number} y
- * @param {number} w
- * @param {number} h
- * @param {number} r
+ * @param {CanvasRenderingContext2D} context Canvas rendering context
+ * @param {number} x Horizontal center
+ * @param {number} y Vertical center
+ * @param {number} w Width
+ * @param {number} h Height
+ * @param {number} r Border radius
  */
 export const drawRoundRect = (
   context: CanvasRenderingContext2D,
@@ -172,13 +178,15 @@ export const drawRoundRect = (
 };
 
 /**
- * http://stackoverflow.com/questions/2172798/how-to-draw-an-oval-in-html5-canvas
+ * Draws an ellipse.
+ * Ref:  Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
+ * Ref: http://stackoverflow.com/questions/2172798/how-to-draw-an-oval-in-html5-canvas
  *
- * @param {CanvasRenderingContext2D} context
- * @param {number} x
- * @param {number} y
- * @param {number} w
- * @param {number} h
+ * @param {CanvasRenderingContext2D} context Canvas rendering context
+ * @param {number} x Horizontal center
+ * @param {number} y Vertical center
+ * @param {number} w Width
+ * @param {number} h Height
  */
 export const drawEllipse = (context: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
   const kappa = 0.5522848;
@@ -199,25 +207,25 @@ export const drawEllipse = (context: CanvasRenderingContext2D, x: number, y: num
 };
 
 /**
- * Draw a Hexagon shape with 6 sides
+ * Draws a Hexagon shape with 6 sides.
  *
- * @param {CanvasRenderingContext2D} context
- * @param {Number} x horizontal center
- * @param {Number} y vertical center
- * @param {Number} r radius
+ * @param {CanvasRenderingContext2D} context Canvas rendering context
+ * @param {Number} x Horizontal center
+ * @param {Number} y Vertical center
+ * @param {Number} r Radius
  */
 export const drawHexagon = (context: CanvasRenderingContext2D, x: number, y: number, r: number) => {
   drawNgon(context, x, y, r, 6);
 };
 
 /**
- * Draw a N-gon shape with N sides
+ * Draws a N-gon shape with N sides.
  *
- * @param {CanvasRenderingContext2D} context
- * @param {Number} x horizontal center
- * @param {Number} y vertical center
- * @param {Number} r radius
- * @param {Number} sides sides
+ * @param {CanvasRenderingContext2D} context Canvas rendering context
+ * @param {Number} x Horizontal center
+ * @param {Number} y Vertical center
+ * @param {Number} r Radius
+ * @param {Number} sides Number of sides
  */
 export const drawNgon = (context: CanvasRenderingContext2D, x: number, y: number, r: number, sides: number) => {
   context.beginPath();

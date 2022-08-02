@@ -1,10 +1,11 @@
 import * as L from 'leaflet';
-import { IEdgeBase } from '../models/edge';
+import { Edge, IEdgeBase } from '../models/edge';
 import { Node, INodeBase, INodePosition } from '../models/node';
 import { Graph } from '../models/graph';
 import { IOrbView, IViewContext, OrbEmitter, OrbEventType } from '../orb';
 import { Renderer } from '../renderer/canvas/renderer';
 import { IPosition } from '../common/position';
+import { IEventStrategy } from '../models/strategy';
 
 export interface ILeafletMapTile {
   instance: L.TileLayer;
@@ -32,6 +33,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   private _container: HTMLElement;
   private _graph: Graph<N, E>;
   private _events: OrbEmitter<N, E>;
+  private _strategy: IEventStrategy<N, E>;
 
   private _settings: Required<IMapViewSettings<N, E>>;
 
@@ -46,6 +48,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._container = context.container;
     this._graph = context.graph;
     this._events = context.events;
+    this._strategy = context.strategy;
 
     this._settings = {
       zoomLevel: DEFAULT_ZOOM_LEVEL,
@@ -144,53 +147,67 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     leaflet.on('mousemove', (event: any) => {
       const point: IPosition = { x: event.layerPoint.x, y: event.layerPoint.y };
       const containerPoint: IPosition = { x: event.containerPoint.x, y: event.containerPoint.y };
-
       // TODO: Add throttle
-      const node = this._graph.getNearestNode(point);
-      if (!node) {
-        const { changedCount } = this._graph.unhoverAll();
-        if (changedCount) {
+      if (this._strategy.onMouseMove) {
+        const response = this._strategy.onMouseMove(this._graph, point);
+        const subject = response.changedSubject;
+
+        if (subject) {
+          if (subject instanceof Node) {
+            this._events.emit(OrbEventType.NODE_HOVER, {
+              node: subject,
+              localPoint: point,
+              globalPoint: containerPoint,
+            });
+          }
+          if (subject instanceof Edge) {
+            this._events.emit(OrbEventType.EDGE_HOVER, {
+              edge: subject,
+              localPoint: point,
+              globalPoint: containerPoint,
+            });
+          }
+        }
+
+        this._events.emit(OrbEventType.MOUSE_MOVE, { subject, localPoint: point, globalPoint: containerPoint });
+
+        if (response.isStateChanged || response.changedSubject) {
           this._renderer.render(this._graph);
         }
       }
-
-      if (node && !node.isSelected()) {
-        this._graph.hoverNode(node);
-        this._events.emit(OrbEventType.MOUSE_MOVE, { subject: node, localPoint: point, globalPoint: containerPoint });
-        this._events.emit(OrbEventType.NODE_HOVER, { node, localPoint: point, globalPoint: containerPoint });
-        this._renderer.render(this._graph);
-        return;
-      }
-
-      this._events.emit(OrbEventType.MOUSE_MOVE, { localPoint: point, globalPoint: containerPoint });
     });
 
     leaflet.on('click', (event: any) => {
       const point: IPosition = { x: event.layerPoint.x, y: event.layerPoint.y };
       const containerPoint: IPosition = { x: event.containerPoint.x, y: event.containerPoint.y };
 
-      const node = this._graph.getNearestNode(point);
-      if (node) {
-        this._graph.selectNode(node);
-        this._events.emit(OrbEventType.MOUSE_CLICK, { subject: node, localPoint: point, globalPoint: containerPoint });
-        this._events.emit(OrbEventType.NODE_CLICK, { node, localPoint: point, globalPoint: containerPoint });
-        this._renderer.render(this._graph);
-        return;
-      }
+      if (this._strategy.onMouseClick) {
+        const response = this._strategy.onMouseClick(this._graph, point);
+        const subject = response.changedSubject;
 
-      const edge = this._graph.getNearestEdge(point);
-      if (edge) {
-        this._graph.selectEdge(edge);
-        this._events.emit(OrbEventType.MOUSE_CLICK, { subject: edge, localPoint: point, globalPoint: containerPoint });
-        this._events.emit(OrbEventType.EDGE_CLICK, { edge, localPoint: point, globalPoint: containerPoint });
-        this._renderer.render(this._graph);
-        return;
-      }
+        if (subject) {
+          if (subject instanceof Node) {
+            this._events.emit(OrbEventType.NODE_CLICK, {
+              node: subject,
+              localPoint: point,
+              globalPoint: containerPoint,
+            });
+          }
+          if (subject instanceof Edge) {
+            this._events.emit(OrbEventType.EDGE_CLICK, {
+              edge: subject,
+              localPoint: point,
+              globalPoint: containerPoint,
+            });
+          }
+        }
 
-      // No node has been selected
-      this._graph.unselectAll();
-      this._renderer.render(this._graph);
-      this._events.emit(OrbEventType.MOUSE_CLICK, { localPoint: point, globalPoint: containerPoint });
+        this._events.emit(OrbEventType.MOUSE_CLICK, { subject, localPoint: point, globalPoint: containerPoint });
+
+        if (response.isStateChanged || response.changedSubject) {
+          this._renderer.render(this._graph);
+        }
+      }
     });
 
     leaflet.on('moveend', () => {
