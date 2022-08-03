@@ -29,7 +29,7 @@ export interface IMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
   tile?: ILeafletMapTile;
 }
 
-export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E> {
+export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbView {
   private _container: HTMLElement;
   private _graph: Graph<N, E>;
   private _events: OrbEmitter<N, E>;

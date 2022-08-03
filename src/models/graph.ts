@@ -1,5 +1,5 @@
 import { Node, INodeBase, INodePosition, DEFAULT_NODE_PROPERTIES } from './node';
-import { DEFAULT_EDGE_PROPERTIES, Edge, IEdgeBase, IEdgePosition } from './edge';
+import { DEFAULT_EDGE_PROPERTIES, Edge, EdgeFactory, IEdgeBase, IEdgePosition } from './edge';
 import { IRectangle } from '../common/rectangle';
 import { IPosition } from '../common/position';
 import { IGraphStyle } from './style';
@@ -352,7 +352,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
       const endNode = this.getNodeById(edges[i].end);
 
       if (startNode && endNode) {
-        const edge = new Edge<N, E>({
+        const edge = EdgeFactory.create<N, E>({
           data: edges[i],
           startNode,
           endNode,
@@ -386,7 +386,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
         const endNode = this.getNodeById(newEdgeData.end);
 
         if (startNode && endNode) {
-          const edge = new Edge<N, E>({
+          const edge = EdgeFactory.create<N, E>({
             data: newEdgeData,
             startNode,
             endNode,
@@ -411,7 +411,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
       const endNode = this.getNodeById(newEdgeData.end);
 
       if (startNode && endNode) {
-        const edge = new Edge<N, E>({
+        const edge = EdgeFactory.create<N, E>({
           data: newEdgeData,
           offset: existingEdge.offset,
           startNode,

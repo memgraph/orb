@@ -18,7 +18,7 @@ const ZOOM_SCALE_MIN = 0.25;
 // const ZOOM_FIT_TRANSITION_MS = 200;
 // const THROTTLE_TIME = 10;
 
-export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E> {
+export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IOrbView {
   private _container: HTMLElement;
   private _graph: Graph<N, E>;
   private _events: OrbEmitter<N, E>;

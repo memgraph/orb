@@ -1,13 +1,11 @@
 import { ZoomTransform, zoomIdentity } from 'd3-zoom';
 import { IPosition } from '../../common/position';
 import { IRectangle } from '../../common/rectangle';
-import { INodeBase } from '../../models/node';
-import { IEdgeBase } from '../../models/edge';
+import { Node, INodeBase } from '../../models/node';
+import { Edge, IEdgeBase } from '../../models/edge';
 import { Graph } from '../../models/graph';
-import { NodeCanvas } from './node/base';
-import { EdgeCanvas } from './edge/base';
-import { EdgeCanvasFactory } from './edge/factory';
-import { NodeCanvasFactory } from './node/factory';
+import { drawEdge, IEdgeDrawOptions } from './edge/index';
+import { drawNode, INodeDrawOptions } from './node';
 
 const DEBUG = false;
 const DEBUG_RED = '#FF5733';
@@ -101,30 +99,30 @@ export class Renderer {
       this.context.fillRect(0, 0, this.width, this.height);
     }
 
-    const edgeObjects = getEdgeCanvasObjects<N, E>(graph);
-    const nodeObjects = getNodeCanvasObjects<N, E>(graph);
-
-    this.drawObjects<N, E>(edgeObjects, drawOptions);
-    this.drawObjects<N, E>(nodeObjects, drawOptions);
+    this.drawObjects<N, E>(graph.getEdges(), drawOptions);
+    this.drawObjects<N, E>(graph.getNodes(), drawOptions);
 
     this.context.restore();
   }
 
   private drawObjects<N extends INodeBase, E extends IEdgeBase>(
-    objects: (NodeCanvas<N, E> | EdgeCanvas<N, E>)[],
+    objects: (Node<N, E> | Edge<N, E>)[],
     options?: Partial<IGraphDrawOptions>,
   ) {
-    const drawOptions = Object.assign(DEFAULT_DRAW_OPTIONS, options);
+    if (objects.length === 0) {
+      return;
+    }
 
-    const selectedObjects: (NodeCanvas<N, E> | EdgeCanvas<N, E>)[] = [];
-    const hoveredObjects: (NodeCanvas<N, E> | EdgeCanvas<N, E>)[] = [];
+    const drawOptions = Object.assign(DEFAULT_DRAW_OPTIONS, options);
+    const selectedObjects: (Node<N, E> | Edge<N, E>)[] = [];
+    const hoveredObjects: (Node<N, E> | Edge<N, E>)[] = [];
 
     for (let i = 0; i < objects.length; i++) {
       const obj = objects[i];
-      if (obj.item.isSelected()) {
+      if (obj.isSelected()) {
         selectedObjects.push(obj);
       }
-      if (obj.item.isHovered()) {
+      if (obj.isHovered()) {
         hoveredObjects.push(obj);
       }
     }
@@ -136,8 +134,8 @@ export class Renderer {
 
     for (let i = 0; i < objects.length; i++) {
       const obj = objects[i];
-      if (!obj.item.isSelected() && !obj.item.isHovered()) {
-        obj.draw(this.context, { isLabelEnabled: drawOptions.labelsIsEnabled });
+      if (!obj.isSelected() && !obj.isHovered()) {
+        this.drawObject(obj, { isLabelEnabled: drawOptions.labelsIsEnabled });
       }
     }
 
@@ -146,10 +144,21 @@ export class Renderer {
     }
 
     for (let i = 0; i < selectedObjects.length; i++) {
-      selectedObjects[i].draw(this.context, { isLabelEnabled: drawOptions.labelsOnEventIsEnabled });
+      this.drawObject(selectedObjects[i], { isLabelEnabled: drawOptions.labelsOnEventIsEnabled });
     }
     for (let i = 0; i < hoveredObjects.length; i++) {
-      hoveredObjects[i].draw(this.context, { isLabelEnabled: drawOptions.labelsOnEventIsEnabled });
+      this.drawObject(hoveredObjects[i], { isLabelEnabled: drawOptions.labelsOnEventIsEnabled });
+    }
+  }
+
+  private drawObject<N extends INodeBase, E extends IEdgeBase>(
+    obj: Node<N, E> | Edge<N, E>,
+    options?: Partial<INodeDrawOptions> | Partial<IEdgeDrawOptions>,
+  ) {
+    if (obj instanceof Node) {
+      drawNode(this.context, obj, options);
+    } else {
+      drawEdge(this.context, obj, options);
     }
   }
 
@@ -213,21 +222,3 @@ export class Renderer {
     this.isOriginCentered = true;
   }
 }
-
-const getNodeCanvasObjects = <N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>): NodeCanvas<N, E>[] => {
-  const nodes = graph.getNodes();
-  const nodeObjects: NodeCanvas<N, E>[] = new Array<NodeCanvas<N, E>>(nodes.length);
-  for (let i = 0; i < nodes.length; i++) {
-    nodeObjects[i] = NodeCanvasFactory.createNodeCanvas<N, E>(nodes[i]);
-  }
-  return nodeObjects;
-};
-
-const getEdgeCanvasObjects = <N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>): EdgeCanvas<N, E>[] => {
-  const edges = graph.getEdges();
-  const edgeObjects: EdgeCanvas<N, E>[] = new Array<EdgeCanvas<N, E>>(edges.length);
-  for (let i = 0; i < edges.length; i++) {
-    edgeObjects[i] = EdgeCanvasFactory.createEdgeCanvas<N, E>(edges[i]);
-  }
-  return edgeObjects;
-};

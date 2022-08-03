@@ -38,8 +38,7 @@ export class OrbEmitter<N extends INodeBase, E extends IEdgeBase> extends Emitte
   [OrbEventType.TRANSFORM]: undefined;
 }> {}
 
-// @ts-ignore
-export interface IOrbView<N extends INodeBase, E extends IEdgeBase> {
+export interface IOrbView {
   // init(): void;
   render(): void;
   recenter(): void;
@@ -53,7 +52,7 @@ export interface IViewContext<N extends INodeBase, E extends IEdgeBase> {
   strategy: IEventStrategy<N, E>;
 }
 
-export type IOrbViewFactory<N extends INodeBase, E extends IEdgeBase> = (context: IViewContext<N, E>) => IOrbView<N, E>;
+export type IOrbViewFactory<N extends INodeBase, E extends IEdgeBase> = (context: IViewContext<N, E>) => IOrbView;
 
 export interface IOrbSettings<N extends INodeBase, E extends IEdgeBase> {
   view: IOrbViewFactory<N, E>;
@@ -61,14 +60,13 @@ export interface IOrbSettings<N extends INodeBase, E extends IEdgeBase> {
 }
 
 export class Orb<N extends INodeBase, E extends IEdgeBase> {
-  private _view: IOrbView<N, E>;
+  private _view: IOrbView;
   private readonly _events: OrbEmitter<N, E>;
   private readonly _graph: Graph<N, E> = new Graph<N, E>();
 
   private readonly _context: IViewContext<N, E>;
 
   constructor(private container: HTMLElement, settings?: Partial<IOrbSettings<N, E>>) {
-    // TODO @toni: Add top level orb settings as an input here, e.g. select/hover strategy
     this._events = new OrbEmitter<N, E>();
     this._context = {
       container: this.container,
@@ -88,7 +86,7 @@ export class Orb<N extends INodeBase, E extends IEdgeBase> {
     return this._graph;
   }
 
-  get view(): IOrbView<N, E> {
+  get view(): IOrbView {
     return this._view;
   }
 
