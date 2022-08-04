@@ -41,7 +41,7 @@ export class OrbEmitter<N extends INodeBase, E extends IEdgeBase> extends Emitte
 // @ts-ignore
 export interface IOrbView<N extends INodeBase, E extends IEdgeBase> {
   // init(): void;
-  render(): void;
+  render(callback?: () => void): void;
   recenter(): void;
   destroy(): void;
 }

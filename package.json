@@ -39,7 +39,9 @@
   "dependencies": {
     "d3-drag": "3.0.0",
     "d3-force": "3.0.0",
+    "d3-ease": "3.0.1",
     "d3-selection": "3.0.0",
+    "d3-transition": "3.0.1",
     "d3-zoom": "3.0.0",
     "leaflet": "1.8.0"
   },
@@ -53,7 +55,9 @@
     "@semantic-release/git": "10.0.1",
     "@types/d3-drag": "3.0.1",
     "@types/d3-force": "3.0.3",
+    "@types/d3-ease": "3.0.0",
     "@types/d3-selection": "3.0.1",
+    "@types/d3-transition": "3.0.1",
     "@types/d3-zoom": "3.0.1",
     "@types/jest": "27.4.1",
     "@types/leaflet": "1.7.9",

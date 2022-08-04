@@ -1,4 +1,6 @@
 import { D3DragEvent, drag } from 'd3-drag';
+import { easeLinear } from 'd3-ease';
+import transition from 'd3-transition';
 import { D3ZoomEvent, zoom, ZoomBehavior } from 'd3-zoom';
 import { select } from 'd3-selection';
 import { IPosition, isEqualPosition } from '../common/position';
@@ -15,7 +17,7 @@ const DISABLE_OUT_OF_BOUNDS_DRAG = true;
 const ROUND_COORDINATES = true;
 const ZOOM_SCALE_MAX = 8;
 const ZOOM_SCALE_MIN = 0.25;
-// const ZOOM_FIT_TRANSITION_MS = 200;
+const ZOOM_FIT_TRANSITION_MS = 200;
 // const THROTTLE_TIME = 10;
 
 export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E> {
@@ -126,25 +128,31 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     });
   }
 
-  render() {
+  render(onRendered: () => void) {
     // TODO: Render here and have callback!
     this.startSimulation();
+    this._renderer.render(this._graph);
+    if (onRendered) {
+      onRendered();
+    }
   }
 
   recenter() {
-    // const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph, {
-    //   minZoom: ZOOM_SCALE_MIN,
-    //   maxZoom: ZOOM_SCALE_MAX,
-    // });
-    //
-    // select(this._canvas)
-    //   .transition()
-    //   .duration(ZOOM_FIT_TRANSITION_MS)
-    //   .ease(d3.easeLinear)
-    //   .call(this.d3Zoom.transform, fitZoomTransform)
-    //   .call(() => {
-    //     // this.renderImmediate_.next()
-    //   });
+    const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph, {
+      minZoom: ZOOM_SCALE_MIN,
+      maxZoom: ZOOM_SCALE_MAX,
+    });
+    console.log('fitZoomTransform', fitZoomTransform);
+
+    select(this._canvas)
+      .transition()
+      .duration(ZOOM_FIT_TRANSITION_MS)
+      .ease(easeLinear)
+      .call(this.d3Zoom.transform, fitZoomTransform)
+      .call(() => {
+        this._renderer.render(this._graph);
+        // this.renderImmediate_.next()
+      });
   }
 
   destroy() {

@@ -69,6 +69,7 @@
     // Render and recenter the view
     orb.view.render(() => {
       // orb.view.recenter();
+      console.log('rendered');
     });
 
     orb.events.on('node-click', (node) => {
@@ -87,6 +88,11 @@
           { id: 3, labels: ['Node D'], properties: { test: 2 }, x: 2, y: 2 },
           { id: 4, labels: ['Node E'], properties: { test: 3 }, x: 3, y: 3 },
         ],
+      });
+      orb.view.render(() => {
+        setTimeout(() => {
+          orb.view.recenter();
+        }, 2000);
       });
       orb.view.render();
     }, 5000);
