@@ -60,6 +60,24 @@ export enum EdgeType {
   CURVED = 'curved',
 }
 
+export class EdgeFactory {
+  static create<N extends INodeBase, E extends IEdgeBase>(
+    data: IEdgeData<N, E>,
+  ): Edge<N, E> | EdgeStraight<N, E> | EdgeCurved<N, E> | EdgeLoopback<N, E> {
+    const type = getEdgeType(data);
+    switch (type) {
+      case EdgeType.STRAIGHT:
+        return new EdgeStraight(data);
+      case EdgeType.LOOPBACK:
+        return new EdgeLoopback(data);
+      case EdgeType.CURVED:
+        return new EdgeCurved(data);
+      default:
+        return new EdgeStraight(data);
+    }
+  }
+}
+
 export class Edge<N extends INodeBase, E extends IEdgeBase> {
   public readonly id: number;
   public data: E;
@@ -80,7 +98,7 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
     this.offset = data.offset ?? 0;
     this.startNode = data.startNode;
     this.endNode = data.endNode;
-    this._type = this.getEdgeType();
+    this._type = getEdgeType(data);
 
     this.position = { id: this.id, source: this.startNode.id, target: this.endNode.id };
     this.startNode.addEdge(this);
@@ -100,7 +118,7 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
   }
 
   copy(data?: Omit<IEdgeData<N, E>, 'data' | 'startNode' | 'endNode'>): Edge<N, E> {
-    const newEdge = new Edge<N, E>({
+    const newEdge = EdgeFactory.create<N, E>({
       data: this.data,
       offset: data?.offset !== undefined ? data.offset : this.offset,
       startNode: this.startNode,
@@ -137,29 +155,26 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
   }
 
   getCenter(): IPosition {
-    if (this.isStraight()) {
-      return this.getStraightCenter();
+    const startPoint = this.startNode?.getCenter();
+    const endPoint = this.endNode?.getCenter();
+    if (!startPoint || !endPoint) {
+      return { x: 0, y: 0 };
     }
-    if (this.isCurved()) {
-      return this.getCurvedCenter();
-    }
-    if (this.isLoopback()) {
-      return this.getLoopbackCenter();
-    }
-    return this.getStraightCenter();
+
+    return {
+      x: (startPoint.x + endPoint.x) / 2,
+      y: (startPoint.y + endPoint.y) / 2,
+    };
   }
 
   getDistance(point: IPosition): number {
-    if (this.isStraight()) {
-      return this.getStraightDistance(point);
+    const startPoint = this.startNode?.getCenter();
+    const endPoint = this.endNode?.getCenter();
+    if (!startPoint || !endPoint) {
+      return 0;
     }
-    if (this.isCurved()) {
-      return this.getCurvedDistance(point);
-    }
-    if (this.isLoopback()) {
-      return this.getLoopbackDistance(point);
-    }
-    return this.getStraightDistance(point);
+
+    return getDistanceToLine(startPoint, endPoint, point);
   }
 
   getLabel(): string | undefined {
@@ -203,16 +218,17 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
 
     return color;
   }
+}
 
-  protected getEdgeType(): EdgeType {
-    if (this.startNode && this.endNode && this.startNode.id === this.endNode.id) {
-      return EdgeType.LOOPBACK;
-    }
-    return this.offset === 0 ? EdgeType.STRAIGHT : EdgeType.CURVED;
+const getEdgeType = <N extends INodeBase, E extends IEdgeBase>(data: IEdgeData<N, E>): EdgeType => {
+  if (data.startNode.id === data.endNode.id) {
+    return EdgeType.LOOPBACK;
   }
+  return (data.offset ?? 0) === 0 ? EdgeType.STRAIGHT : EdgeType.CURVED;
+};
 
-  // TODO @toni: How to structure these into separate classes (straight) and use in canvas render
-  private getStraightCenter(): IPosition {
+export class EdgeStraight<N extends INodeBase, E extends IEdgeBase> extends Edge<N, E> {
+  override getCenter(): IPosition {
     const startPoint = this.startNode?.getCenter();
     const endPoint = this.endNode?.getCenter();
     if (!startPoint || !endPoint) {
@@ -225,7 +241,7 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
     };
   }
 
-  private getStraightDistance(point: IPosition): number {
+  override getDistance(point: IPosition): number {
     const startPoint = this.startNode?.getCenter();
     const endPoint = this.endNode?.getCenter();
     if (!startPoint || !endPoint) {
@@ -234,13 +250,20 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
 
     return getDistanceToLine(startPoint, endPoint, point);
   }
+}
 
-  // TODO @toni: How to structure these into separate classes (curved) and use in canvas render
-  private getCurvedCenter(): IPosition {
+export class EdgeCurved<N extends INodeBase, E extends IEdgeBase> extends Edge<N, E> {
+  override getCenter(): IPosition {
     return this.getCurvedControlPoint(CURVED_CONTROL_POINT_OFFSET_MULTIPLIER / 2);
   }
 
-  private getCurvedDistance(point: IPosition): number {
+  /**
+   * Ref: https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/edges/util/bezier-edge-base.ts
+   *
+   * @param {IPosition} point Point
+   * @return {number} Distance to the point
+   */
+  override getDistance(point: IPosition): number {
     const sourcePoint = this.startNode?.getCenter();
     const targetPoint = this.endNode?.getCenter();
     if (!sourcePoint || !targetPoint) {
@@ -298,9 +321,10 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
       y: middleY - offset * (dx / length),
     };
   }
+}
 
-  // TODO @toni: How to structure these into separate classes (loopback) and use in canvas render
-  private getLoopbackCenter(): IPosition {
+export class EdgeLoopback<N extends INodeBase, E extends IEdgeBase> extends Edge<N, E> {
+  override getCenter(): IPosition {
     const offset = Math.abs(this.offset ?? 1);
     const circle = this.getCircularData();
     return {
@@ -309,7 +333,7 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
     };
   }
 
-  private getLoopbackDistance(point: IPosition): number {
+  override getDistance(point: IPosition): number {
     const circle = this.getCircularData();
     const dx = circle.x - point.x;
     const dy = circle.y - point.y;
