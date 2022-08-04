@@ -40,6 +40,10 @@ export class WebWorkerSimulator implements ISimulator {
     };
   }
 
+  setData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.emitToWorker({ type: WorkerInputType.SetData, data: { nodes, edges } });
+  }
+
   activateSimulation() {
     this.emitToWorker({ type: WorkerInputType.ActivateSimulation });
   }

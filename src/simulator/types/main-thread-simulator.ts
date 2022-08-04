@@ -34,6 +34,10 @@ export class MainThreadSimulator implements ISimulator {
     });
   }
 
+  setData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.simulator.setData({ nodes, edges });
+  }
+
   activateSimulation() {
     this.simulator.activateSimulation();
   }

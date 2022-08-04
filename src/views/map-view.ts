@@ -229,6 +229,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   private _updateGraphPositions() {
     const nodePositions: INodePosition[] = [];
     const nodes = this._graph.getNodes();
+    console.log('nodes', nodes);
 
     for (let i = 0; i < nodes.length; i++) {
       const coordinates = this._settings.getGeoPosition(nodes[i]);

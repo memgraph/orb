@@ -269,10 +269,14 @@ export class D3SimulatorEngine extends Emitter<{
     }
   }
 
-  startSimulation(data: ID3SimulatorGraph) {
+  setData(data: ID3SimulatorGraph) {
     this.nodes = data.nodes;
     this.edges = data.edges;
     this.setNodeIndexByNodeId();
+  }
+
+  startSimulation(data: ID3SimulatorGraph) {
+    this.setData(data);
 
     // Update simulation with new data.
     this.simulation.nodes(this.nodes);
@@ -400,7 +404,7 @@ export class D3SimulatorEngine extends Emitter<{
       Math.log(this.settings.alpha.alphaMin) / Math.log(1 - this.settings.alpha.alphaDecay),
     );
 
-    this.releaseNodes();
+    // this.releaseNodes();
 
     let lastProgress = -1;
     for (let i = 0; i < totalSimulationSteps; i++) {

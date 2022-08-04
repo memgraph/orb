@@ -8,6 +8,9 @@ import { IWorkerPayload } from './worker-payload';
 // (not quite as there is no immediate response to a request)
 
 export enum WorkerInputType {
+  // Set node and edge data without simulating
+  SetData = 'Set Data',
+
   // Simulation message types
   ActivateSimulation = 'Activate Simulation',
   StartSimulation = 'Start Simulation',
@@ -23,6 +26,14 @@ export enum WorkerInputType {
   SetPhysics = 'Set Physics',
   SetSettings = 'Set Settings',
 }
+
+type IWorkerInputSetDataPayload = IWorkerPayload<
+  WorkerInputType.SetData,
+  {
+    nodes: ISimulationNode[];
+    edges: ISimulationEdge[];
+  }
+>;
 
 type IWorkerInputActivateSimulationPayload = IWorkerPayload<WorkerInputType.ActivateSimulation>;
 
@@ -65,6 +76,7 @@ type IWorkerInputSetPhysicsPayload = IWorkerPayload<
 type IWorkerInputSetSettingsPayload = IWorkerPayload<WorkerInputType.SetSettings, ID3SimulatorEngineSettingsUpdate>;
 
 export type IWorkerInputPayload =
+  | IWorkerInputSetDataPayload
   | IWorkerInputActivateSimulationPayload
   | IWorkerInputStartSimulationPayload
   | IWorkerInputUpdateSimulationPayload

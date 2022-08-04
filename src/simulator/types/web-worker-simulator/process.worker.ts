@@ -47,6 +47,11 @@ addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {
       break;
     }
 
+    case WorkerInputType.SetData: {
+      simulator.setData(data.data);
+      break;
+    }
+
     case WorkerInputType.StartSimulation: {
       simulator.startSimulation(data.data);
       break;
