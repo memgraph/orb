@@ -1,4 +1,4 @@
-import { INodeBase, Node } from './node';
+import { INodeBase, INode } from './node';
 import { GraphObjectState } from './state';
 import { Color } from './color';
 import { IPosition } from '../common/position';
@@ -8,18 +8,29 @@ import { ICircle } from '../common/circle';
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
 const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;
 
+/**
+ * Edge baseline object with required fields
+ * that user needs to define for an edge.
+ */
 export interface IEdgeBase {
   id: number;
   start: number;
   end: number;
 }
 
+/**
+ * Edge position for the graph simulations. Edge position
+ * is determined by source (start) and target (end) nodes.
+ */
 export interface IEdgePosition {
   id: number;
   source: number;
   target: number;
 }
 
+/**
+ * Edge properties used to style the edge (color, width, label, etc.).
+ */
 export interface IEdgeProperties {
   arrowSize: number;
   color: Color | string;
@@ -40,7 +51,7 @@ export interface IEdgeProperties {
 }
 
 export const DEFAULT_EDGE_PROPERTIES: Partial<IEdgeProperties> = {
-  color: new Color('#999999'),
+  color: new Color('#ababab'),
   width: 0.3,
 };
 
@@ -50,8 +61,8 @@ export interface IEdgeData<N extends INodeBase, E extends IEdgeBase> {
   // For straight lines, it is 0, for curved it is +N or -N
   offset?: number;
   // Edge doesn't exist without nodes
-  startNode: Node<N, E>;
-  endNode: Node<N, E>;
+  startNode: INode<N, E>;
+  endNode: INode<N, E>;
 }
 
 export enum EdgeType {
@@ -60,10 +71,34 @@ export enum EdgeType {
   CURVED = 'curved',
 }
 
+export interface IEdge<N extends INodeBase, E extends IEdgeBase> {
+  data: E;
+  position: IEdgePosition;
+  properties: Partial<IEdgeProperties>;
+  state: number;
+  get id(): number;
+  get offset(): number;
+  get start(): number;
+  get startNode(): INode<N, E>;
+  get end(): number;
+  get endNode(): INode<N, E>;
+  get type(): EdgeType;
+  isSelected(): boolean;
+  isHovered(): boolean;
+  clearState(): void;
+  isLoopback(): boolean;
+  isStraight(): boolean;
+  isCurved(): boolean;
+  getCenter(): IPosition;
+  getDistance(point: IPosition): number;
+  getLabel(): string | undefined;
+  hasShadow(): boolean;
+  getWidth(): number;
+  getColor(): Color | string | undefined;
+}
+
 export class EdgeFactory {
-  static create<N extends INodeBase, E extends IEdgeBase>(
-    data: IEdgeData<N, E>,
-  ): Edge<N, E> | EdgeStraight<N, E> | EdgeCurved<N, E> | EdgeLoopback<N, E> {
+  static create<N extends INodeBase, E extends IEdgeBase>(data: IEdgeData<N, E>): IEdge<N, E> {
     const type = getEdgeType(data);
     switch (type) {
       case EdgeType.STRAIGHT:
@@ -76,21 +111,41 @@ export class EdgeFactory {
         return new EdgeStraight(data);
     }
   }
+
+  static copy<N extends INodeBase, E extends IEdgeBase>(
+    edge: IEdge<N, E>,
+    data?: Omit<IEdgeData<N, E>, 'data' | 'startNode' | 'endNode'>,
+  ): IEdge<N, E> {
+    const newEdge = EdgeFactory.create<N, E>({
+      data: edge.data,
+      offset: data?.offset !== undefined ? data.offset : edge.offset,
+      startNode: edge.startNode,
+      endNode: edge.endNode,
+    });
+    newEdge.state = edge.state;
+    newEdge.properties = edge.properties;
+
+    return newEdge;
+  }
 }
 
-export class Edge<N extends INodeBase, E extends IEdgeBase> {
-  public readonly id: number;
+export const isEdge = <N extends INodeBase, E extends IEdgeBase>(obj: any): obj is IEdge<N, E> => {
+  return obj instanceof EdgeStraight || obj instanceof EdgeCurved || obj instanceof EdgeLoopback;
+};
+
+abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N, E> {
   public data: E;
 
+  public readonly id: number;
   public readonly offset: number;
-  public readonly startNode: Node<N, E>;
-  public readonly endNode: Node<N, E>;
-
-  private _type: EdgeType = EdgeType.STRAIGHT;
+  public readonly startNode: INode<N, E>;
+  public readonly endNode: INode<N, E>;
 
   public properties: Partial<IEdgeProperties> = DEFAULT_EDGE_PROPERTIES;
-  public state?: number;
+  public state = GraphObjectState.NONE;
   public position: IEdgePosition;
+
+  private _type: EdgeType = EdgeType.STRAIGHT;
 
   constructor(data: IEdgeData<N, E>) {
     this.id = data.data.id;
@@ -117,19 +172,6 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
     return this.data.end;
   }
 
-  copy(data?: Omit<IEdgeData<N, E>, 'data' | 'startNode' | 'endNode'>): Edge<N, E> {
-    const newEdge = EdgeFactory.create<N, E>({
-      data: this.data,
-      offset: data?.offset !== undefined ? data.offset : this.offset,
-      startNode: this.startNode,
-      endNode: this.endNode,
-    });
-    newEdge.state = this.state;
-    newEdge.properties = this.properties;
-
-    return newEdge;
-  }
-
   isSelected(): boolean {
     return this.state === GraphObjectState.SELECTED;
   }
@@ -139,7 +181,7 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
   }
 
   clearState(): void {
-    this.state = undefined;
+    this.state = GraphObjectState.NONE;
   }
 
   isLoopback(): boolean {
@@ -168,8 +210,8 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
   }
 
   getDistance(point: IPosition): number {
-    const startPoint = this.startNode?.getCenter();
-    const endPoint = this.endNode?.getCenter();
+    const startPoint = this.startNode.getCenter();
+    const endPoint = this.endNode.getCenter();
     if (!startPoint || !endPoint) {
       return 0;
     }
@@ -258,7 +300,7 @@ export class EdgeCurved<N extends INodeBase, E extends IEdgeBase> extends Edge<N
   }
 
   /**
-   * Ref: https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/edges/util/bezier-edge-base.ts
+   * @see {@link https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/edges/util/bezier-edge-base.ts}
    *
    * @param {IPosition} point Point
    * @return {number} Distance to the point

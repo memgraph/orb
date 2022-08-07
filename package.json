@@ -73,6 +73,7 @@
     "eslint-plugin-prettier": "4.0.0",
     "http-server": "^0.12.1",
     "jest": "27.5.1",
+    "prettier": "^2.1.2",
     "rollup": "^2.77.0",
     "rollup-plugin-dts": "^4.2.2",
     "rollup-plugin-esbuild": "^4.9.1",

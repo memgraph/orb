@@ -1,9 +1,9 @@
 import { ZoomTransform, zoomIdentity } from 'd3-zoom';
 import { IPosition } from '../../common/position';
 import { IRectangle } from '../../common/rectangle';
-import { Node, INodeBase } from '../../models/node';
-import { Edge, IEdgeBase } from '../../models/edge';
-import { Graph } from '../../models/graph';
+import { INode, INodeBase, isNode } from '../../models/node';
+import { IEdge, IEdgeBase } from '../../models/edge';
+import { IGraph } from '../../models/graph';
 import { drawEdge, IEdgeDrawOptions } from './edge/index';
 import { drawNode, INodeDrawOptions } from './node';
 
@@ -58,7 +58,7 @@ export class Renderer {
     this.transform = zoomIdentity;
   }
 
-  render<N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>, drawOptions?: Partial<IGraphDrawOptions>) {
+  render<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>, drawOptions?: Partial<IGraphDrawOptions>) {
     if (!graph.getNodeCount()) {
       return;
     }
@@ -106,7 +106,7 @@ export class Renderer {
   }
 
   private drawObjects<N extends INodeBase, E extends IEdgeBase>(
-    objects: (Node<N, E> | Edge<N, E>)[],
+    objects: (INode<N, E> | IEdge<N, E>)[],
     options?: Partial<IGraphDrawOptions>,
   ) {
     if (objects.length === 0) {
@@ -114,8 +114,8 @@ export class Renderer {
     }
 
     const drawOptions = Object.assign(DEFAULT_DRAW_OPTIONS, options);
-    const selectedObjects: (Node<N, E> | Edge<N, E>)[] = [];
-    const hoveredObjects: (Node<N, E> | Edge<N, E>)[] = [];
+    const selectedObjects: (INode<N, E> | IEdge<N, E>)[] = [];
+    const hoveredObjects: (INode<N, E> | IEdge<N, E>)[] = [];
 
     for (let i = 0; i < objects.length; i++) {
       const obj = objects[i];
@@ -152,10 +152,10 @@ export class Renderer {
   }
 
   private drawObject<N extends INodeBase, E extends IEdgeBase>(
-    obj: Node<N, E> | Edge<N, E>,
+    obj: INode<N, E> | IEdge<N, E>,
     options?: Partial<INodeDrawOptions> | Partial<IEdgeDrawOptions>,
   ) {
-    if (obj instanceof Node) {
+    if (isNode(obj)) {
       drawNode(this.context, obj, options);
     } else {
       drawEdge(this.context, obj, options);
@@ -171,7 +171,7 @@ export class Renderer {
   }
 
   getFitZoomTransform<N extends INodeBase, E extends IEdgeBase>(
-    graph: Graph<N, E>,
+    graph: IGraph<N, E>,
     options: RendererFitZoomOptions,
   ): ZoomTransform {
     const graphView = graph.getBoundingBox();

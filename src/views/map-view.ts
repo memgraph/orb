@@ -1,7 +1,7 @@
 import * as L from 'leaflet';
-import { Edge, IEdgeBase } from '../models/edge';
-import { Node, INodeBase, INodePosition } from '../models/node';
-import { Graph } from '../models/graph';
+import { IEdgeBase, isEdge } from '../models/edge';
+import { INode, INodeBase, INodePosition, isNode } from '../models/node';
+import { IGraph } from '../models/graph';
 import { IOrbView, IViewContext, OrbEmitter, OrbEventType } from '../orb';
 import { Renderer } from '../renderer/canvas/renderer';
 import { IPosition } from '../common/position';
@@ -24,14 +24,14 @@ const DEFAULT_MAP_TILE: ILeafletMapTile = {
 const DEFAULT_ZOOM_LEVEL = 2;
 
 export interface IMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
-  getGeoPosition(node: Node<N, E>): { lat: number; lng: number };
+  getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
   zoomLevel?: number;
   tile?: ILeafletMapTile;
 }
 
 export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbView {
   private _container: HTMLElement;
-  private _graph: Graph<N, E>;
+  private _graph: IGraph<N, E>;
   private _events: OrbEmitter<N, E>;
   private _strategy: IEventStrategy<N, E>;
 
@@ -153,14 +153,14 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         const subject = response.changedSubject;
 
         if (subject) {
-          if (subject instanceof Node) {
+          if (isNode(subject)) {
             this._events.emit(OrbEventType.NODE_HOVER, {
               node: subject,
               localPoint: point,
               globalPoint: containerPoint,
             });
           }
-          if (subject instanceof Edge) {
+          if (isEdge(subject)) {
             this._events.emit(OrbEventType.EDGE_HOVER, {
               edge: subject,
               localPoint: point,
@@ -186,14 +186,14 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         const subject = response.changedSubject;
 
         if (subject) {
-          if (subject instanceof Node) {
+          if (isNode(subject)) {
             this._events.emit(OrbEventType.NODE_CLICK, {
               node: subject,
               localPoint: point,
               globalPoint: containerPoint,
             });
           }
-          if (subject instanceof Edge) {
+          if (isEdge(subject)) {
             this._events.emit(OrbEventType.EDGE_CLICK, {
               edge: subject,
               localPoint: point,

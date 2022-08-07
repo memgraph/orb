@@ -1,5 +1,5 @@
-import { Node, INodeBase, INodePosition, DEFAULT_NODE_PROPERTIES } from './node';
-import { DEFAULT_EDGE_PROPERTIES, Edge, EdgeFactory, IEdgeBase, IEdgePosition } from './edge';
+import { INode, INodeBase, INodePosition, DEFAULT_NODE_PROPERTIES, NodeFactory } from './node';
+import { DEFAULT_EDGE_PROPERTIES, IEdge, EdgeFactory, IEdgeBase, IEdgePosition } from './edge';
 import { IRectangle } from '../common/rectangle';
 import { IPosition } from '../common/position';
 import { IGraphStyle } from './style';
@@ -11,15 +11,35 @@ export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
   edges: E[];
 }
 
-type IEdgeFilter<N extends INodeBase, E extends IEdgeBase> = (edge: Edge<N, E>) => boolean;
+type IEdgeFilter<N extends INodeBase, E extends IEdgeBase> = (edge: IEdge<N, E>) => boolean;
 
-type INodeFilter<N extends INodeBase, E extends IEdgeBase> = (node: Node<N, E>) => boolean;
+type INodeFilter<N extends INodeBase, E extends IEdgeBase> = (node: INode<N, E>) => boolean;
 
-export class Graph<N extends INodeBase, E extends IEdgeBase> {
-  protected nodeById: { [id: number]: Node<N, E> } = {};
-  protected edgeById: { [id: number]: Edge<N, E> } = {};
+export interface IGraph<N extends INodeBase, E extends IEdgeBase> {
+  getNodes(filterBy?: INodeFilter<N, E>): INode<N, E>[];
+  getEdges(filterBy?: IEdgeFilter<N, E>): IEdge<N, E>[];
+  getNodeCount(): number;
+  getEdgeCount(): number;
+  getNodeById(id: number): INode<N, E> | undefined;
+  getEdgeById(id: number): IEdge<N, E> | undefined;
+  getNodePositions(): INodePosition[];
+  setNodePositions(positions: INodePosition[]): void;
+  getEdgePositions(): IEdgePosition[];
+  setStyle(style: Partial<IGraphStyle<N, E>>): void;
+  setDefaultStyle(): void;
+  setup(data: Partial<IGraphData<N, E>>): void;
+  join(data: Partial<IGraphData<N, E>>): void;
+  hide(data: Partial<{ nodeIds: number[]; edgeIds: number[] }>): void;
+  isEqual<T extends INodeBase, K extends IEdgeBase>(graph: Graph<T, K>): boolean;
+  getBoundingBox(): IRectangle;
+  getNearestNode(point: IPosition): INode<N, E> | undefined;
+  getNearestEdge(point: IPosition, minDistance?: number): IEdge<N, E> | undefined;
+}
 
-  private style?: Partial<IGraphStyle<N, E>>;
+export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N, E> {
+  private _nodeById: { [id: number]: INode<N, E> } = {};
+  private _edgeById: { [id: number]: IEdge<N, E> } = {};
+  private _style?: Partial<IGraphStyle<N, E>>;
 
   constructor(data?: Partial<IGraphData<N, E>>) {
     const nodes = data?.nodes ?? [];
@@ -31,15 +51,15 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
    * Returns a list of nodes.
    *
    * @param {INodeFilter} filterBy Filter function for nodes
-   * @return {Node[]} List of nodes
+   * @return {INode[]} List of nodes
    */
-  getNodes(filterBy?: INodeFilter<N, E>): Node<N, E>[] {
-    const nodes = Object.values(this.nodeById);
+  getNodes(filterBy?: INodeFilter<N, E>): INode<N, E>[] {
+    const nodes = Object.values(this._nodeById);
     if (!filterBy) {
       return nodes;
     }
 
-    const filteredNodes: Node<N, E>[] = [];
+    const filteredNodes: INode<N, E>[] = [];
     for (let i = 0; i < nodes.length; i++) {
       if (filterBy(nodes[i])) {
         filteredNodes.push(nodes[i]);
@@ -52,15 +72,15 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
    * Returns a list of edges.
    *
    * @param {IEdgeFilter} filterBy Filter function for edges
-   * @return {Edge[]} List of edges
+   * @return {IEdge[]} List of edges
    */
-  getEdges(filterBy?: IEdgeFilter<N, E>): Edge<N, E>[] {
-    const edges = Object.values(this.edgeById);
+  getEdges(filterBy?: IEdgeFilter<N, E>): IEdge<N, E>[] {
+    const edges = Object.values(this._edgeById);
     if (!filterBy) {
       return edges;
     }
 
-    const filteredEdges: Edge<N, E>[] = [];
+    const filteredEdges: IEdge<N, E>[] = [];
     for (let i = 0; i < edges.length; i++) {
       if (filterBy(edges[i])) {
         filteredEdges.push(edges[i]);
@@ -75,7 +95,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
    * @return {number} Total node count
    */
   getNodeCount(): number {
-    return Object.keys(this.nodeById).length;
+    return Object.keys(this._nodeById).length;
   }
 
   /**
@@ -84,7 +104,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
    * @return {number} Total edge count
    */
   getEdgeCount(): number {
-    return Object.keys(this.edgeById).length;
+    return Object.keys(this._edgeById).length;
   }
 
   /**
@@ -93,18 +113,18 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
    * @param {number} id Node id
    * @return {Node | undefined} Node or undefined
    */
-  getNodeById(id: number): Node<N, E> | undefined {
-    return this.nodeById[id];
+  getNodeById(id: number): INode<N, E> | undefined {
+    return this._nodeById[id];
   }
 
   /**
    * Returns edge by edge id.
    *
    * @param {number} id Edge id
-   * @return {Edge | undefined} Edge or undefined
+   * @return {IEdge | undefined} Edge or undefined
    */
-  getEdgeById(id: number): Edge<N, E> | undefined {
-    return this.edgeById[id];
+  getEdgeById(id: number): IEdge<N, E> | undefined {
+    return this._edgeById[id];
   }
 
   /**
@@ -128,7 +148,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
    */
   setNodePositions(positions: INodePosition[]) {
     for (let i = 0; i < positions.length; i++) {
-      const node = this.nodeById[positions[i].id];
+      const node = this._nodeById[positions[i].id];
       if (node) {
         node.position = positions[i];
       }
@@ -157,7 +177,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
    * @param {IGraphStyle} style Style definition
    */
   setStyle(style: Partial<IGraphStyle<N, E>>) {
-    this.style = style;
+    this._style = style;
     const styleImageUrls: Set<string> = new Set<string>();
 
     const nodes = this.getNodes();
@@ -195,7 +215,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
    * Sets default style to nodes and edges.
    */
   setDefaultStyle() {
-    this.style = undefined;
+    this._style = undefined;
 
     const nodes = this.getNodes();
     for (let i = 0; i < nodes.length; i++) {
@@ -209,8 +229,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
   }
 
   setup(data: Partial<IGraphData<N, E>>) {
-    this.nodeById = {};
-    this.edgeById = {};
+    this._nodeById = {};
+    this._edgeById = {};
 
     const nodes = data?.nodes ?? [];
     const edges = data?.edges ?? [];
@@ -314,7 +334,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     };
   }
 
-  getNearestNode(point: IPosition): Node<N, E> | undefined {
+  getNearestNode(point: IPosition): INode<N, E> | undefined {
     // Reverse is needed to check from the top drawn to the bottom drawn node
     const nodes = this.getNodes();
     for (let i = nodes.length - 1; i >= 0; i--) {
@@ -324,8 +344,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     }
   }
 
-  getNearestEdge(point: IPosition, minDistance = 3): Edge<N, E> | undefined {
-    let nearestEdge: Edge<N, E> | undefined;
+  getNearestEdge(point: IPosition, minDistance = 3): IEdge<N, E> | undefined {
+    let nearestEdge: IEdge<N, E> | undefined;
     let nearestDistance = minDistance;
 
     const edges = this.getEdges();
@@ -341,8 +361,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
 
   private _insertNodes(nodes: N[]) {
     for (let i = 0; i < nodes.length; i++) {
-      const node = new Node<N, E>({ data: nodes[i] });
-      this.nodeById[node.id] = node;
+      const node = NodeFactory.create<N, E>({ data: nodes[i] });
+      this._nodeById[node.id] = node;
     }
   }
 
@@ -357,7 +377,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
           startNode,
           endNode,
         });
-        this.edgeById[edge.id] = edge;
+        this._edgeById[edge.id] = edge;
       }
     }
   }
@@ -370,8 +390,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
         continue;
       }
 
-      const node = new Node<N, E>({ data: nodes[i] });
-      this.nodeById[node.id] = node;
+      const node = NodeFactory.create<N, E>({ data: nodes[i] });
+      this._nodeById[node.id] = node;
     }
   }
 
@@ -391,7 +411,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
             startNode,
             endNode,
           });
-          this.edgeById[edge.id] = edge;
+          this._edgeById[edge.id] = edge;
         }
         continue;
       }
@@ -405,7 +425,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
       // Edge connection (start or end node) has changed
       existingEdge.startNode.removeEdge(existingEdge);
       existingEdge.endNode.removeEdge(existingEdge);
-      delete this.edgeById[existingEdge.id];
+      delete this._edgeById[existingEdge.id];
 
       const startNode = this.getNodeById(newEdgeData.start);
       const endNode = this.getNodeById(newEdgeData.end);
@@ -419,7 +439,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
         });
         edge.state = existingEdge.state;
         edge.properties = existingEdge.properties;
-        this.edgeById[existingEdge.id] = edge;
+        this._edgeById[existingEdge.id] = edge;
       }
     }
   }
@@ -436,10 +456,10 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
         const edge = edges[i];
         edge.startNode.removeEdge(edge);
         edge.endNode.removeEdge(edge);
-        delete this.edgeById[edge.id];
+        delete this._edgeById[edge.id];
       }
 
-      delete this.nodeById[node.id];
+      delete this._nodeById[node.id];
     }
   }
 
@@ -452,7 +472,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
 
       edge.startNode.removeEdge(edge);
       edge.endNode.removeEdge(edge);
-      delete this.edgeById[edge.id];
+      delete this._edgeById[edge.id];
     }
   }
 
@@ -462,25 +482,25 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     for (let i = 0; i < edgeOffsets.length; i++) {
       const edge = graphEdges[i];
       const edgeOffset = edgeOffsets[i];
-      this.edgeById[edge.id] = edge.copy({ offset: edgeOffset });
+      this._edgeById[edge.id] = EdgeFactory.copy(edge, { offset: edgeOffset });
     }
   }
 
   private _applyStyle() {
-    if (this.style?.getNodeStyle) {
+    if (this._style?.getNodeStyle) {
       const newNodes = this.getNodes();
       for (let i = 0; i < newNodes.length; i++) {
-        const properties = this.style.getNodeStyle(newNodes[i]);
+        const properties = this._style.getNodeStyle(newNodes[i]);
         if (properties) {
           newNodes[i].properties = properties;
         }
       }
     }
 
-    if (this.style?.getEdgeStyle) {
+    if (this._style?.getEdgeStyle) {
       const newEdges = this.getEdges();
       for (let i = 0; i < newEdges.length; i++) {
-        const properties = this.style.getEdgeStyle(newEdges[i]);
+        const properties = this._style.getEdgeStyle(newEdges[i]);
         if (properties) {
           newEdges[i].properties = properties;
         }

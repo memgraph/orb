@@ -2,7 +2,7 @@ import { IPosition } from '../common/position';
 
 /**
  * Calculate the distance between a point (x3,y3) and a line segment from (x1,y1) to (x2,y2).
- * Ref: http://stackoverflow.com/questions/849211/shortest-distancae-between-a-point-and-a-line-segment
+ * @see {@link http://stackoverflow.com/questions/849211/shortest-distancae-between-a-point-and-a-line-segment}
  *
  * @param {IPosition} startLinePoint Line start position
  * @param {IPosition} endLinePoint Line end position
@@ -22,7 +22,7 @@ export const getDistanceToLine = (startLinePoint: IPosition, endLinePoint: IPosi
     lineSegment = 0;
   }
 
-  // Point on the line closest to the target point
+  // Point on the line closest to the target point and its distance
   const newLinePointX = startLinePoint.x + lineSegment * dx;
   const newLinePointY = startLinePoint.y + lineSegment * dy;
   const pdx = newLinePointX - point.x;

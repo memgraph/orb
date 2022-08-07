@@ -1,4 +1,4 @@
-import { Node, INodeBase } from '../../../../models/node';
+import { INode, INodeBase } from '../../../../models/node';
 import { EdgeLoopback, IEdgeBase } from '../../../../models/edge';
 import { IBorderPosition, IEdgeArrow } from '../index';
 import { ICircle } from '../../../../common/circle';
@@ -18,9 +18,9 @@ export const drawLoopbackLine = <N extends INodeBase, E extends IEdgeBase>(
 };
 
 /**
- * Ref: https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/Edge.js
+ * @see {@link https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/Edge.js}
  *
- * @param {Edge} edge Edge
+ * @param {EdgeLoopback} edge Edge
  * @return {IEdgeArrow} Arrow shape
  */
 export const getLoopbackArrowShape = <N extends INodeBase, E extends IEdgeBase>(
@@ -60,7 +60,7 @@ const pointOnCircle = (circle: ICircle, percentage: number): IPosition => {
 
 const findBorderPoint = <N extends INodeBase, E extends IEdgeBase>(
   edge: EdgeLoopback<N, E>,
-  nearNode: Node<N, E>,
+  nearNode: INode<N, E>,
 ): IBorderPosition => {
   const circle = edge.getCircularData();
   const options = { low: 0.6, high: 1.0, direction: 1 };
@@ -72,7 +72,7 @@ const findBorderPoint = <N extends INodeBase, E extends IEdgeBase>(
   const maxIterations = 10;
   let iteration = 0;
   let pos: IBorderPosition = { x: 0, y: 0, t: 0 };
-  let angle;
+  // let angle;
   let distanceToBorder;
   let distanceToPoint;
   let difference;
@@ -85,8 +85,9 @@ const findBorderPoint = <N extends INodeBase, E extends IEdgeBase>(
     middle = (low + high) * 0.5;
 
     pos = { ...pointOnCircle(circle, middle), t: 0 };
-    angle = Math.atan2(nearNodePoint.y - pos.y, nearNodePoint.x - pos.x);
-    distanceToBorder = nearNode.getDistanceToBorder(angle);
+    // angle = Math.atan2(nearNodePoint.y - pos.y, nearNodePoint.x - pos.x);
+    // distanceToBorder = nearNode.getDistanceToBorder(angle);
+    distanceToBorder = nearNode.getDistanceToBorder();
     distanceToPoint = Math.sqrt(Math.pow(pos.x - nearNodePoint.x, 2) + Math.pow(pos.y - nearNodePoint.y, 2));
     difference = distanceToBorder - distanceToPoint;
     if (Math.abs(difference) < threshold) {

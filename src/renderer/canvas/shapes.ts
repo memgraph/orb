@@ -1,6 +1,6 @@
 /**
  * Draws a circle shape.
- * Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
+ * @see {@link https://github.com/almende/vis/blob/master/lib/network/shapes.js}
  *
  * @param {CanvasRenderingContext2D} context Canvas rendering context
  * @param {number} x Horizontal center
@@ -15,7 +15,7 @@ export const drawCircle = (context: CanvasRenderingContext2D, x: number, y: numb
 
 /**
  * Draws a square shape.
- * Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
+ * @see {@link https://github.com/almende/vis/blob/master/lib/network/shapes.js}
  *
  * @param {CanvasRenderingContext2D} context Canvas rendering context
  * @param {number} x Horizontal center
@@ -30,7 +30,7 @@ export const drawSquare = (context: CanvasRenderingContext2D, x: number, y: numb
 
 /**
  * Draws a triangle shape.
- * Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
+ * @see {@link https://github.com/almende/vis/blob/master/lib/network/shapes.js}
  *
  * @param {CanvasRenderingContext2D} context Canvas rendering context
  * @param {number} x Horizontal center
@@ -58,7 +58,7 @@ export const drawTriangleUp = (context: CanvasRenderingContext2D, x: number, y: 
 
 /**
  * Draws a triangle shape in downward orientation.
- * Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
+ * @see {@link https://github.com/almende/vis/blob/master/lib/network/shapes.js}
  *
  * @param {CanvasRenderingContext2D} context Canvas rendering context
  * @param {number} x Horizontal center
@@ -86,7 +86,7 @@ export const drawTriangleDown = (context: CanvasRenderingContext2D, x: number, y
 
 /**
  * Draw a star shape, a star with 5 points.
- * Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
+ * @see {@link https://github.com/almende/vis/blob/master/lib/network/shapes.js}
  *
  * @param {CanvasRenderingContext2D} context Canvas rendering context
  * @param {number} x Horizontal center
@@ -113,7 +113,7 @@ export const drawStar = (context: CanvasRenderingContext2D, x: number, y: number
 
 /**
  * Draws a Diamond shape.
- * Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
+ * @see {@link https://github.com/almende/vis/blob/master/lib/network/shapes.js}
  *
  * @param {CanvasRenderingContext2D} context Canvas rendering context
  * @param {number} x Horizontal center
@@ -134,8 +134,8 @@ export const drawDiamond = (context: CanvasRenderingContext2D, x: number, y: num
 
 /**
  * Draws a rounded rectangle.
- * Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
- * Ref: http://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas
+ * @see {@link https://github.com/almende/vis/blob/master/lib/network/shapes.js}
+ * @see {@link http://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas}
  *
  * @param {CanvasRenderingContext2D} context Canvas rendering context
  * @param {number} x Horizontal center
@@ -179,8 +179,8 @@ export const drawRoundRect = (
 
 /**
  * Draws an ellipse.
- * Ref:  Ref: https://github.com/almende/vis/blob/master/lib/network/shapes.js
- * Ref: http://stackoverflow.com/questions/2172798/how-to-draw-an-oval-in-html5-canvas
+ * @see {@link https://github.com/almende/vis/blob/master/lib/network/shapes.js}
+ * @see {@link http://stackoverflow.com/questions/2172798/how-to-draw-an-oval-in-html5-canvas}
  *
  * @param {CanvasRenderingContext2D} context Canvas rendering context
  * @param {number} x Horizontal center

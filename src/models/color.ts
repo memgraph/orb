@@ -1,4 +1,4 @@
-interface IColorRGB {
+export interface IColorRGB {
   r: number;
   g: number;
   b: number;
@@ -7,9 +7,12 @@ interface IColorRGB {
 const IS_VALID_HEX = /^#[a-fA-F0-9]{6}$/;
 const DEFAULT_HEX = '#000000';
 
+/**
+ * Color object (HEX, RGB).
+ */
 export class Color {
-  readonly hex: string;
-  readonly rgb: IColorRGB;
+  public readonly hex: string;
+  public readonly rgb: IColorRGB;
 
   constructor(hex: string) {
     this.hex = IS_VALID_HEX.test(hex ?? '') ? hex : DEFAULT_HEX;

@@ -1,15 +1,15 @@
 import { D3DragEvent, drag } from 'd3-drag';
 import { easeLinear } from 'd3-ease';
-import transition from 'd3-transition';
+// import transition from 'd3-transition';
 import { D3ZoomEvent, zoom, ZoomBehavior } from 'd3-zoom';
 import { select } from 'd3-selection';
 import { IPosition, isEqualPosition } from '../common/position';
 
 import { Renderer } from '../renderer/canvas/renderer';
 import { ISimulator, SimulatorFactory } from '../simulator/index';
-import { Graph } from '../models/graph';
-import { INodeBase, Node } from '../models/node';
-import { Edge, IEdgeBase } from '../models/edge';
+import { IGraph } from '../models/graph';
+import { INodeBase, isNode } from '../models/node';
+import { IEdgeBase, isEdge } from '../models/edge';
 import { OrbEmitter, OrbEventType, IOrbView, IViewContext } from '../orb';
 import { IEventStrategy } from '../models/strategy';
 
@@ -22,7 +22,7 @@ const ZOOM_FIT_TRANSITION_MS = 200;
 
 export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IOrbView {
   private _container: HTMLElement;
-  private _graph: Graph<N, E>;
+  private _graph: IGraph<N, E>;
   private _events: OrbEmitter<N, E>;
   private _strategy: IEventStrategy<N, E>;
 
@@ -241,14 +241,14 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       const subject = response.changedSubject;
 
       if (subject) {
-        if (subject instanceof Node) {
+        if (isNode(subject)) {
           this._events.emit(OrbEventType.NODE_HOVER, {
             node: subject,
             localPoint: simulationPoint,
             globalPoint: mousePoint,
           });
         }
-        if (subject instanceof Edge) {
+        if (isEdge(subject)) {
           this._events.emit(OrbEventType.EDGE_HOVER, {
             edge: subject,
             localPoint: simulationPoint,
@@ -274,14 +274,14 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       const subject = response.changedSubject;
 
       if (subject) {
-        if (subject instanceof Node) {
+        if (isNode(subject)) {
           this._events.emit(OrbEventType.NODE_CLICK, {
             node: subject,
             localPoint: simulationPoint,
             globalPoint: mousePoint,
           });
         }
-        if (subject instanceof Edge) {
+        if (isEdge(subject)) {
           this._events.emit(OrbEventType.EDGE_CLICK, {
             edge: subject,
             localPoint: simulationPoint,

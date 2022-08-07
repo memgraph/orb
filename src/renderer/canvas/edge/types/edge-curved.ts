@@ -1,4 +1,4 @@
-import { Node, INodeBase } from '../../../../models/node';
+import { INode, INodeBase } from '../../../../models/node';
 import { EdgeCurved, IEdgeBase } from '../../../../models/edge';
 import { IBorderPosition, IEdgeArrow } from '../index';
 import { IPosition } from '../../../../common/position';
@@ -22,9 +22,9 @@ export const drawCurvedLine = <N extends INodeBase, E extends IEdgeBase>(
 };
 
 /**
- * Ref: https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/Edge.js
+ * @see {@link https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/Edge.js}
  *
- * @param {Edge} edge Edge
+ * @param {EdgeCurved} edge Edge
  * @return {IEdgeArrow} Arrow shape
  */
 export const getCurvedArrowShape = <N extends INodeBase, E extends IEdgeBase>(edge: EdgeCurved<N, E>): IEdgeArrow => {
@@ -51,7 +51,7 @@ export const getCurvedArrowShape = <N extends INodeBase, E extends IEdgeBase>(ed
 /**
  * Combined function of pointOnLine and pointOnBezier. This gives the coordinates of a
  * point on the line at a certain percentage of the way
- * Ref: https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/edges/util/bezier-edge-base.ts
+ * @see {@link https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/edges/util/bezier-edge-base.ts}
  *
  * @param {EdgeCurved} edge Edge
  * @param {number} percentage Percentage of the line to get position from
@@ -77,22 +77,22 @@ const getPointBrezier = <N extends INodeBase, E extends IEdgeBase>(
 };
 
 /**
- * Ref: https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/edges/util/bezier-edge-base.ts
+ * @see {@link https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/edges/util/bezier-edge-base.ts}
  *
- * @param {Edge} edge Edge
- * @param {Node} nearNode Node close to the edge
+ * @param {EdgeCurved} edge Edge
+ * @param {INode} nearNode Node close to the edge
  * @return {IBorderPosition} Position on the border of the node
  */
 const findBorderPoint = <N extends INodeBase, E extends IEdgeBase>(
   edge: EdgeCurved<N, E>,
-  nearNode: Node<N, E>,
+  nearNode: INode<N, E>,
 ): IBorderPosition => {
   const maxIterations = 10;
   let iteration = 0;
   let low = 0;
   let high = 1;
   let pos: IBorderPosition = { x: 0, y: 0, t: 0 };
-  let angle;
+  // let angle;
   let distanceToBorder;
   let distanceToPoint;
   let difference;
@@ -112,8 +112,9 @@ const findBorderPoint = <N extends INodeBase, E extends IEdgeBase>(
     middle = (low + high) * 0.5;
 
     pos = { ...getPointBrezier(edge, middle, viaNode), t: 0 };
-    angle = Math.atan2(nodePoints.y - pos.y, nodePoints.x - pos.x);
-    distanceToBorder = node.getDistanceToBorder(angle);
+    // angle = Math.atan2(nodePoints.y - pos.y, nodePoints.x - pos.x);
+    // distanceToBorder = node.getDistanceToBorder(angle);
+    distanceToBorder = node.getDistanceToBorder();
     distanceToPoint = Math.sqrt(Math.pow(pos.x - nodePoints.x, 2) + Math.pow(pos.y - nodePoints.y, 2));
     difference = distanceToBorder - distanceToPoint;
     if (Math.abs(difference) < threshold) {

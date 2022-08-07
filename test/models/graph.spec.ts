@@ -1,7 +1,8 @@
-import { DEFAULT_NODE_PROPERTIES, Node, INodeBase, INodePosition, INodeProperties } from '../../src/models/node';
-import { DEFAULT_EDGE_PROPERTIES, Edge, IEdgeBase, EdgeType, IEdgeProperties } from '../../src/models/edge';
+import { DEFAULT_NODE_PROPERTIES, INode, INodeBase, INodePosition, INodeProperties } from '../../src/models/node';
+import { DEFAULT_EDGE_PROPERTIES, IEdge, IEdgeBase, EdgeType, IEdgeProperties } from '../../src/models/edge';
 import { IGraphStyle, IEdgeStyle, INodeStyle } from '../../src/models/style';
 import { Graph } from '../../src/models/graph';
+import { GraphObjectState } from '../../src/models/state';
 
 interface ITestNode extends INodeBase {
   name: string;
@@ -17,7 +18,7 @@ interface IExpectedNode<N extends INodeBase> {
   properties: Partial<INodeProperties>;
   inEdges: number[];
   outEdges: number[];
-  state?: number;
+  state: number;
   position: INodePosition;
 }
 
@@ -31,7 +32,7 @@ interface IExpectedEdge<E extends IEdgeBase> {
   type: EdgeType;
   offset: number;
   properties: Partial<IEdgeProperties>;
-  state?: number;
+  state: number;
 }
 
 const expectEqualNode = <N extends INodeBase, E extends IEdgeBase>(
@@ -109,7 +110,7 @@ describe('Graph', () => {
       properties: DEFAULT_NODE_PROPERTIES,
       inEdges: [2],
       outEdges: [0, 3],
-      state: undefined,
+      state: GraphObjectState.NONE,
       position: { id: 0 },
     },
     {
@@ -118,7 +119,7 @@ describe('Graph', () => {
       properties: DEFAULT_NODE_PROPERTIES,
       inEdges: [0, 4],
       outEdges: [1, 4],
-      state: undefined,
+      state: GraphObjectState.NONE,
       position: { id: 1 },
     },
     {
@@ -127,7 +128,7 @@ describe('Graph', () => {
       properties: DEFAULT_NODE_PROPERTIES,
       inEdges: [1, 3],
       outEdges: [2],
-      state: undefined,
+      state: GraphObjectState.NONE,
       position: { id: 2 },
     },
   ];
@@ -143,7 +144,7 @@ describe('Graph', () => {
       type: EdgeType.STRAIGHT,
       offset: 0,
       properties: DEFAULT_EDGE_PROPERTIES,
-      state: undefined,
+      state: GraphObjectState.NONE,
     },
     {
       id: 1,
@@ -155,7 +156,7 @@ describe('Graph', () => {
       type: EdgeType.STRAIGHT,
       offset: 0,
       properties: DEFAULT_EDGE_PROPERTIES,
-      state: undefined,
+      state: GraphObjectState.NONE,
     },
     {
       id: 2,
@@ -167,7 +168,7 @@ describe('Graph', () => {
       type: EdgeType.CURVED,
       offset: -1,
       properties: DEFAULT_EDGE_PROPERTIES,
-      state: undefined,
+      state: GraphObjectState.NONE,
     },
     {
       id: 3,
@@ -179,7 +180,7 @@ describe('Graph', () => {
       type: EdgeType.CURVED,
       offset: -1,
       properties: DEFAULT_EDGE_PROPERTIES,
-      state: undefined,
+      state: GraphObjectState.NONE,
     },
     {
       id: 4,
@@ -191,7 +192,7 @@ describe('Graph', () => {
       type: EdgeType.LOOPBACK,
       offset: 1,
       properties: DEFAULT_EDGE_PROPERTIES,
-      state: undefined,
+      state: GraphObjectState.NONE,
     },
   ];
 
@@ -229,7 +230,7 @@ describe('Graph', () => {
         properties: DEFAULT_NODE_PROPERTIES,
         inEdges: [],
         outEdges: [6],
-        state: undefined,
+        state: GraphObjectState.NONE,
         position: { id: 3 },
       },
       {
@@ -238,7 +239,7 @@ describe('Graph', () => {
         properties: DEFAULT_NODE_PROPERTIES,
         inEdges: [6],
         outEdges: [],
-        state: undefined,
+        state: GraphObjectState.NONE,
         position: { id: 4 },
       },
     ];
@@ -254,7 +255,7 @@ describe('Graph', () => {
         type: EdgeType.LOOPBACK,
         offset: 1,
         properties: DEFAULT_EDGE_PROPERTIES,
-        state: undefined,
+        state: GraphObjectState.NONE,
       },
       {
         id: 6,
@@ -266,7 +267,7 @@ describe('Graph', () => {
         type: EdgeType.STRAIGHT,
         offset: 0,
         properties: DEFAULT_EDGE_PROPERTIES,
-        state: undefined,
+        state: GraphObjectState.NONE,
       },
     ];
 
@@ -440,14 +441,14 @@ describe('Graph', () => {
     };
 
     const style: IGraphStyle<ITestNode, ITestEdge> = {
-      getNodeStyle(node: Node<ITestNode, ITestEdge>): INodeStyle | undefined {
+      getNodeStyle(node: INode<ITestNode, ITestEdge>): INodeStyle | undefined {
         // Simulate a special case (will be DEFAULT)
         if (node.id === 0) {
           return undefined;
         }
         return nodeStyle;
       },
-      getEdgeStyle(edge: Edge<ITestNode, ITestEdge>): IEdgeStyle | undefined {
+      getEdgeStyle(edge: IEdge<ITestNode, ITestEdge>): IEdgeStyle | undefined {
         // Simulate a special case (will be DEFAULT)
         if (edge.id === 0) {
           return undefined;

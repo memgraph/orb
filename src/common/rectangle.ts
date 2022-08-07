@@ -1,5 +1,8 @@
 import { IPosition } from './position';
 
+/**
+ * 2D rectangle with top left point (x, y), width and height.
+ */
 export interface IRectangle {
   x: number;
   y: number;

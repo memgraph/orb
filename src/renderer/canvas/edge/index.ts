@@ -1,5 +1,5 @@
 import { INodeBase } from '../../../models/node';
-import { Edge, EdgeCurved, EdgeLoopback, EdgeStraight, IEdgeBase } from '../../../models/edge';
+import { IEdge, EdgeCurved, EdgeLoopback, EdgeStraight, IEdgeBase } from '../../../models/edge';
 import { IPosition } from '../../../common/position';
 import { drawLabel, Label, LabelTextBaseline } from '../label';
 import { drawCurvedLine, getCurvedArrowShape } from './types/edge-curved';
@@ -27,7 +27,7 @@ export interface IEdgeArrow {
 
 export const drawEdge = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
-  edge: Edge<N, E>,
+  edge: IEdge<N, E>,
   options?: Partial<IEdgeDrawOptions>,
 ) => {
   if (!edge.getWidth()) {
@@ -55,13 +55,14 @@ export const drawEdge = <N extends INodeBase, E extends IEdgeBase>(
 
 const drawEdgeLabel = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
-  edge: Edge<N, E>,
+  edge: IEdge<N, E>,
 ) => {
-  if (!edge.properties.label) {
+  const edgeLabel = edge.getLabel();
+  if (!edgeLabel) {
     return;
   }
 
-  const label = new Label(edge.properties.label, {
+  const label = new Label(edgeLabel, {
     position: edge.getCenter(),
     textBaseline: LabelTextBaseline.MIDDLE,
     properties: {
@@ -74,7 +75,7 @@ const drawEdgeLabel = <N extends INodeBase, E extends IEdgeBase>(
   drawLabel(context, label);
 };
 
-const drawLine = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, edge: Edge<N, E>) => {
+const drawLine = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, edge: IEdge<N, E>) => {
   if (edge instanceof EdgeStraight) {
     return drawStraightLine(context, edge);
   }
@@ -84,11 +85,11 @@ const drawLine = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRende
   if (edge instanceof EdgeLoopback) {
     return drawLoopbackLine(context, edge);
   }
-  // Default
-  return drawStraightLine(context, edge);
+
+  throw new Error('Failed to draw unsupported edge type');
 };
 
-const drawArrow = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, edge: Edge<N, E>) => {
+const drawArrow = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, edge: IEdge<N, E>) => {
   if (edge.properties.arrowSize === 0) {
     return;
   }
@@ -119,7 +120,7 @@ const drawArrow = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRend
   context.fill();
 };
 
-const getArrowShape = <N extends INodeBase, E extends IEdgeBase>(edge: Edge<N, E>): IEdgeArrow => {
+const getArrowShape = <N extends INodeBase, E extends IEdgeBase>(edge: IEdge<N, E>): IEdgeArrow => {
   if (edge instanceof EdgeStraight) {
     return getStraightArrowShape(edge);
   }
@@ -129,11 +130,14 @@ const getArrowShape = <N extends INodeBase, E extends IEdgeBase>(edge: Edge<N, E
   if (edge instanceof EdgeLoopback) {
     return getLoopbackArrowShape(edge);
   }
-  // Default
-  return getStraightArrowShape(edge);
+
+  throw new Error('Failed to draw unsupported edge type');
 };
 
-const setupCanvas = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, edge: Edge<N, E>) => {
+const setupCanvas = <N extends INodeBase, E extends IEdgeBase>(
+  context: CanvasRenderingContext2D,
+  edge: IEdge<N, E>,
+) => {
   const width = edge.getWidth();
   if (width > 0) {
     context.lineWidth = width;
@@ -147,7 +151,10 @@ const setupCanvas = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRe
   }
 };
 
-const setupShadow = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, edge: Edge<N, E>) => {
+const setupShadow = <N extends INodeBase, E extends IEdgeBase>(
+  context: CanvasRenderingContext2D,
+  edge: IEdge<N, E>,
+) => {
   if (edge.properties.shadowColor) {
     context.shadowColor = edge.properties.shadowColor.toString();
   }
@@ -162,7 +169,10 @@ const setupShadow = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRe
   }
 };
 
-const clearShadow = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, edge: Edge<N, E>) => {
+const clearShadow = <N extends INodeBase, E extends IEdgeBase>(
+  context: CanvasRenderingContext2D,
+  edge: IEdge<N, E>,
+) => {
   if (edge.properties.shadowColor) {
     context.shadowColor = 'rgba(0,0,0,0)';
   }
@@ -180,7 +190,7 @@ const clearShadow = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRe
 /**
  * Apply transformation on points for display.
  *
- * Ref: https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/edges/util/end-points.ts
+ * @see {@link https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/edges/util/end-points.ts}
  *
  * The following is done:
  * - rotate by the specified angle
