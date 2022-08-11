@@ -52,6 +52,26 @@ addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {
       break;
     }
 
+    case WorkerInputType.AddData: {
+      simulator.addData(data.data);
+      break;
+    }
+
+    case WorkerInputType.UpdateData: {
+      simulator.updateData(data.data);
+      break;
+    }
+
+    case WorkerInputType.ClearData: {
+      simulator.clearData();
+      break;
+    }
+
+    case WorkerInputType.Simulate: {
+      simulator.simulate();
+      break;
+    }
+
     case WorkerInputType.StartSimulation: {
       simulator.startSimulation(data.data);
       break;
@@ -74,6 +94,16 @@ addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {
 
     case WorkerInputType.DragNode: {
       simulator.dragNode(data.data);
+      break;
+    }
+
+    case WorkerInputType.FixNodes: {
+      simulator.fixNodes(data.data.nodes);
+      break;
+    }
+
+    case WorkerInputType.ReleaseNodes: {
+      simulator.releaseNodes(data.data.nodes);
       break;
     }
 

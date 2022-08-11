@@ -44,6 +44,22 @@ export class WebWorkerSimulator implements ISimulator {
     this.emitToWorker({ type: WorkerInputType.SetData, data: { nodes, edges } });
   }
 
+  addData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.emitToWorker({ type: WorkerInputType.AddData, data: { nodes, edges } });
+  }
+
+  updateData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.emitToWorker({ type: WorkerInputType.UpdateData, data: { nodes, edges } });
+  }
+
+  clearData() {
+    this.emitToWorker({ type: WorkerInputType.ClearData });
+  }
+
+  simulate() {
+    this.emitToWorker({ type: WorkerInputType.Simulate });
+  }
+
   activateSimulation() {
     this.emitToWorker({ type: WorkerInputType.ActivateSimulation });
   }
@@ -70,6 +86,14 @@ export class WebWorkerSimulator implements ISimulator {
 
   endDragNode(nodeId: number) {
     this.emitToWorker({ type: WorkerInputType.EndDragNode, data: { id: nodeId } });
+  }
+
+  fixNodes(nodes?: ISimulationNode[]) {
+    this.emitToWorker({ type: WorkerInputType.FixNodes, data: { nodes }});
+  }
+
+  releaseNodes(nodes?: ISimulationNode[]): void {
+    this.emitToWorker({ type: WorkerInputType.ReleaseNodes, data: { nodes }});
   }
 
   setSettings(settings: ID3SimulatorEngineSettingsUpdate) {

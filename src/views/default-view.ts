@@ -22,7 +22,7 @@ const ZOOM_FIT_TRANSITION_MS = 200;
 // const THROTTLE_TIME = 10;
 
 export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> {
-  getPosition(node: N): IPosition;
+  getPosition(node: Node<N, E>): IPosition;
   zoomLevel?: number;
 }
 
@@ -38,7 +38,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   private _renderer: Renderer;
   private simulator: ISimulator;
 
-  private isPhysicsEnabled = false;
+  private isPhysicsEnabled = true;
 
   private d3Zoom: ZoomBehavior<HTMLCanvasElement, any>;
 
@@ -144,12 +144,11 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     this.isRendering = true;
 
     if (this.settings?.getPosition) {
-      this.simulator.setPhysics(false);
       const nodePositions: INodePosition[] = [];
       const nodes = this._graph.getNodes();
 
       for (let i = 0; i < nodes.length; i++) {
-        const position = this.settings?.getPosition(nodes[i].data);
+        const position = this.settings?.getPosition(nodes[i]);
         if (!position) {
           continue;
         }
@@ -159,13 +158,11 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
         }
         nodePositions.push({
           id: nodes[i].id,
-          ...this.settings?.getPosition(nodes[i].data),
+          ...this.settings?.getPosition(nodes[i]),
         });
       }
 
       this._graph.setNodePositions(nodePositions);
-    } else {
-      this.simulator.setPhysics(true);
     }
 
     this.startSimulation();
@@ -351,22 +348,15 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     const nodePositions = this._graph.getNodePositions();
     const edgePositions = this._graph.getEdgePositions();
 
-    // TODO merge INodePosition and IPosition
-    const isPositionDefined = (position: INodePosition) => position.x !== undefined && position.y !== undefined;
+    this.simulator.updateData(nodePositions, edgePositions);
+    this.simulator.simulate();
+  }
 
-    const definedNodePositions = nodePositions.filter((node) => isPositionDefined(node));
-    this.simulator.setData(definedNodePositions, edgePositions)
+  fixNodes() {
+    this.simulator.fixNodes();
+  }
 
-    const areAllNodesUndefined = nodePositions.every((position) => !isPositionDefined(position));
-    const areSomeNodesUndefined = nodePositions.some((position) => !isPositionDefined(position));
-
-    // TODO: Maybe move logic to start/update simulation to the simulator?!
-    // yes this makes sense -> will do in next round of refactoring
-    if (areAllNodesUndefined) {
-      this.simulator.startSimulation(nodePositions, edgePositions);
-    }
-    if (areSomeNodesUndefined) {
-      this.simulator.updateSimulation(nodePositions, edgePositions);
-    }
+  releaseNodes() {
+    this.simulator.releaseNodes();
   }
 }

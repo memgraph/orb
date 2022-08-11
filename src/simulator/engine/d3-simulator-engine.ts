@@ -210,6 +210,7 @@ export class D3SimulatorEngine extends Emitter<{
 
   setPhysics(data: ID3SimulatorPhysics) {
     this.isPhysicsEnabled = data.isEnabled;
+    return;
 
     if (this.isPhysicsEnabled && !this.isStabilizing) {
       this.releaseNodes();
@@ -269,10 +270,76 @@ export class D3SimulatorEngine extends Emitter<{
     }
   }
 
-  setData(data: ID3SimulatorGraph) {
-    this.nodes = data.nodes;
-    this.edges = data.edges;
+  private fixDefinedNodes(data: ID3SimulatorGraph) {
+    // Treat nodes that have existing coordinates as "fixed".
+    for (let i = 0; i < data.nodes.length; i++) {
+      if (data.nodes[i].x !== null && data.nodes[i].x !== undefined) {
+        data.nodes[i].fx = data.nodes[i].x;
+      }
+      if (data.nodes[i].y !== null && data.nodes[i].y !== undefined) {
+        data.nodes[i].fy = data.nodes[i].y;
+      }
+    }
+    return data;
+  }
+
+  addData(data: ID3SimulatorGraph) {
+    data = this.fixDefinedNodes(data);
+    this.nodes.concat(data.nodes);
+    this.edges.concat(data.edges);
     this.setNodeIndexByNodeId();
+  }
+
+  clearData() {
+    this.nodes = [];
+    this.edges = [];
+    this.setNodeIndexByNodeId();
+  }
+
+  setData(data: ID3SimulatorGraph) {
+    data = this.fixDefinedNodes(data);
+    this.clearData();
+    this.addData(data);
+  }
+
+  updateData(data: ID3SimulatorGraph) {
+    data = this.fixDefinedNodes(data);
+    // Keep existing nodes along with their (x, y, fx, fy) coordinates to avoid
+    // rearranging the graph layout.
+    // These nodes should not be reloaded into the array because the D3 simulation
+    // will assign to them completely new coordinates, effectively restarting the animation.
+    const newNodeIds = new Set(data.nodes.map((node) => node.id));
+
+    // Remove old nodes that aren't present in the new data.
+    const oldNodes = this.nodes.filter((node) => newNodeIds.has(node.id));
+    const newNodes = data.nodes.filter((node) => this.nodeIndexByNodeId[node.id] === undefined);
+
+    /*
+    if (!this.isPhysicsEnabled) {
+      oldNodes.forEach((node) => fixNode(node));
+    }
+    */
+
+    this.nodes = [...oldNodes, ...newNodes];
+    this.setNodeIndexByNodeId();
+
+    // Only keep new links and discard all old links.
+    // Old links won't work as some discrepancies arise between the D3 index property
+    // and Memgraph's `id` property which affects the source->target mapping.
+    this.edges = data.edges;
+  }
+
+  simulate() {
+    // Update simulation with new data.
+    this.simulation.nodes(this.nodes);
+    this.linkForce.links(this.edges);
+
+    // Run stabilization "physics".
+    this.runStabilization();
+
+    if (!this.isPhysicsEnabled) {
+      this.fixNodes();
+    }
   }
 
   startSimulation(data: ID3SimulatorGraph) {
@@ -404,8 +471,6 @@ export class D3SimulatorEngine extends Emitter<{
       Math.log(this.settings.alpha.alphaMin) / Math.log(1 - this.settings.alpha.alphaDecay),
     );
 
-    // this.releaseNodes();
-
     let lastProgress = -1;
     for (let i = 0; i < totalSimulationSteps; i++) {
       const currentProgress = Math.round((i * 100) / totalSimulationSteps);
@@ -421,10 +486,6 @@ export class D3SimulatorEngine extends Emitter<{
       this.simulation.tick();
     }
 
-    if (!this.isPhysicsEnabled) {
-      this.fixNodes();
-    }
-
     this.isStabilizing = false;
     this.emit(D3SimulatorEngineEventType.STABILIZATION_ENDED, { nodes: this.nodes, edges: this.edges });
   }
@@ -436,14 +497,22 @@ export class D3SimulatorEngine extends Emitter<{
     }
   }
 
-  protected fixNodes() {
-    for (let i = 0; i < this.nodes.length; i++) {
+  fixNodes(nodes?: ISimulationNode[]) {
+    if (!nodes) {
+      nodes = this.nodes;
+    }
+
+    for (let i = 0; i < nodes.length; i++) {
       fixNode(this.nodes[i]);
     }
   }
 
-  protected releaseNodes() {
-    for (let i = 0; i < this.nodes.length; i++) {
+  releaseNodes(nodes?: ISimulationNode[]) {
+    if (!nodes) {
+      nodes = this.nodes;
+    }
+
+    for (let i = 0; i < nodes.length; i++) {
       releaseNode(this.nodes[i]);
     }
   }

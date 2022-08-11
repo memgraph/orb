@@ -8,8 +8,12 @@ export type ISimulationEdge = SimulationLinkDatum<ISimulationNode> & { id: numbe
 export interface ISimulator {
   // Sets nodes and edges without running simulation
   setData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
+  addData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
+  updateData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
+  clearData(): void;
 
   // Simulation handlers
+  simulate(): void;
   activateSimulation(): void;
   startSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
   updateSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
@@ -19,6 +23,8 @@ export interface ISimulator {
   startDragNode(): void;
   dragNode(nodeId: number, position: IPosition): void;
   endDragNode(nodeId: number): void;
+  fixNodes(nodes?: ISimulationNode[]): void;
+  releaseNodes(nodes?: ISimulationNode[]): void;
 
   // Settings handlers
   setSettings(settings: ID3SimulatorEngineSettingsUpdate): void;
