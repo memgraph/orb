@@ -72,6 +72,7 @@ export interface ID3SimulatorEngineSettingsPositioning {
 }
 
 export interface ID3SimulatorEngineSettings {
+  isPhysicsEnabled: boolean;
   alpha: ID3SimulatorEngineSettingsAlpha;
   centering: ID3SimulatorEngineSettingsCentering | null;
   collision: ID3SimulatorEngineSettingsCollision | null;
@@ -88,6 +89,7 @@ export const getManyBodyMaxDistance = (linkDistance: number) => {
 };
 
 export const DEFAULT_SETTINGS: ID3SimulatorEngineSettings = {
+  isPhysicsEnabled: false,
   alpha: {
     alpha: 1,
     alphaMin: 0.001,
@@ -140,10 +142,6 @@ interface ID3SimulatorNodeId {
   id: number;
 }
 
-interface ID3SimulatorPhysics {
-  isEnabled: boolean;
-}
-
 interface ID3SimulatorSettings {
   settings: ID3SimulatorEngineSettings;
 }
@@ -165,7 +163,6 @@ export class D3SimulatorEngine extends Emitter<{
   protected nodes: ISimulationNode[] = [];
   protected nodeIndexByNodeId: Record<number, number> = {};
 
-  protected isPhysicsEnabled = true;
   protected isDragging = false;
   protected isStabilizing = false;
 
@@ -208,19 +205,6 @@ export class D3SimulatorEngine extends Emitter<{
     this.emit(D3SimulatorEngineEventType.SETTINGS_UPDATED, { settings: this.settings });
   }
 
-  setPhysics(data: ID3SimulatorPhysics) {
-    this.isPhysicsEnabled = data.isEnabled;
-    return;
-
-    if (this.isPhysicsEnabled && !this.isStabilizing) {
-      this.releaseNodes();
-      this.simulation.alpha(0.1).restart();
-    } else {
-      this.fixNodes();
-      this.isStabilizing = false;
-    }
-  }
-
   startDragNode() {
     this.isDragging = true;
 
@@ -242,7 +226,7 @@ export class D3SimulatorEngine extends Emitter<{
     node.fx = data.x;
     node.fy = data.y;
 
-    if (!this.isPhysicsEnabled) {
+    if (!this.settings.isPhysicsEnabled) {
       node.x = data.x;
       node.y = data.y;
 
@@ -263,7 +247,7 @@ export class D3SimulatorEngine extends Emitter<{
   }
 
   activateSimulation() {
-    if (this.isPhysicsEnabled) {
+    if (this.settings.isPhysicsEnabled) {
       // Re-heat simulation.
       // This does not count as "stabilization" and won't emit any progress.
       this.simulation.alphaTarget(this.settings.alpha.alphaTarget).restart();
@@ -314,12 +298,6 @@ export class D3SimulatorEngine extends Emitter<{
     const oldNodes = this.nodes.filter((node) => newNodeIds.has(node.id));
     const newNodes = data.nodes.filter((node) => this.nodeIndexByNodeId[node.id] === undefined);
 
-    /*
-    if (!this.isPhysicsEnabled) {
-      oldNodes.forEach((node) => fixNode(node));
-    }
-    */
-
     this.nodes = [...oldNodes, ...newNodes];
     this.setNodeIndexByNodeId();
 
@@ -337,7 +315,7 @@ export class D3SimulatorEngine extends Emitter<{
     // Run stabilization "physics".
     this.runStabilization();
 
-    if (!this.isPhysicsEnabled) {
+    if (!this.settings.isPhysicsEnabled) {
       this.fixNodes();
     }
   }
@@ -364,7 +342,7 @@ export class D3SimulatorEngine extends Emitter<{
     const newNodes = data.nodes.filter((node) => this.nodeIndexByNodeId[node.id] === undefined);
     const oldNodes = this.nodes.filter((node) => newNodeIds.has(node.id));
 
-    if (!this.isPhysicsEnabled) {
+    if (!this.settings.isPhysicsEnabled) {
       oldNodes.forEach((node) => fixNode(node));
     }
 
@@ -382,7 +360,7 @@ export class D3SimulatorEngine extends Emitter<{
     this.linkForce.links(this.edges);
 
     // If there are no new nodes, there is no need for the stabilization
-    if (!this.isPhysicsEnabled && !newNodes.length) {
+    if (!this.settings.isPhysicsEnabled && !newNodes.length) {
       this.emit(D3SimulatorEngineEventType.STABILIZATION_ENDED, { nodes: this.nodes, edges: this.edges });
       return;
     }

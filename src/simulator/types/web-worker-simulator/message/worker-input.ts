@@ -29,7 +29,6 @@ export enum WorkerInputType {
   ReleaseNodes = 'Release Nodes',
 
   // Settings and special params
-  SetPhysics = 'Set Physics',
   SetSettings = 'Set Settings',
 }
 
@@ -106,13 +105,6 @@ type IWorkerInputReleaseNodesPayload = IWorkerPayload<
   }
 >;
 
-type IWorkerInputSetPhysicsPayload = IWorkerPayload<
-  WorkerInputType.SetPhysics,
-  {
-    isEnabled: boolean;
-  }
->;
-
 type IWorkerInputSetSettingsPayload = IWorkerPayload<WorkerInputType.SetSettings, ID3SimulatorEngineSettingsUpdate>;
 
 export type IWorkerInputPayload =
@@ -130,5 +122,4 @@ export type IWorkerInputPayload =
   | IWorkerInputFixNodesPayload
   | IWorkerInputReleaseNodesPayload
   | IWorkerInputEndDragNodePayload
-  | IWorkerInputSetPhysicsPayload
   | IWorkerInputSetSettingsPayload;

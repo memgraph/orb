@@ -89,19 +89,15 @@ export class WebWorkerSimulator implements ISimulator {
   }
 
   fixNodes(nodes?: ISimulationNode[]) {
-    this.emitToWorker({ type: WorkerInputType.FixNodes, data: { nodes }});
+    this.emitToWorker({ type: WorkerInputType.FixNodes, data: { nodes } });
   }
 
   releaseNodes(nodes?: ISimulationNode[]): void {
-    this.emitToWorker({ type: WorkerInputType.ReleaseNodes, data: { nodes }});
+    this.emitToWorker({ type: WorkerInputType.ReleaseNodes, data: { nodes } });
   }
 
   setSettings(settings: ID3SimulatorEngineSettingsUpdate) {
     this.emitToWorker({ type: WorkerInputType.SetSettings, data: settings });
-  }
-
-  setPhysics(isEnabled: boolean) {
-    this.emitToWorker({ type: WorkerInputType.SetPhysics, data: { isEnabled } });
   }
 
   terminate() {
