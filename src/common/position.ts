@@ -1,3 +1,6 @@
+/**
+ * 2D point with x, y coordinates.
+ */
 export interface IPosition {
   x: number;
   y: number;

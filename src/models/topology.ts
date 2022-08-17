@@ -1,7 +1,7 @@
 import { INodeBase } from './node';
-import { Edge, IEdgeBase } from './edge';
+import { IEdge, IEdgeBase } from './edge';
 
-export const getEdgeOffsets = <N extends INodeBase, E extends IEdgeBase>(edges: Edge<N, E>[]): number[] => {
+export const getEdgeOffsets = <N extends INodeBase, E extends IEdgeBase>(edges: IEdge<N, E>[]): number[] => {
   const edgeOffsets = new Array<number>(edges.length);
   const edgeOffsetsByUniqueKey = getEdgeOffsetsByUniqueKey(edges);
 
@@ -34,7 +34,7 @@ const getUniqueEdgeKey = <E extends IEdgeBase>(edge: E): string => {
 };
 
 const getEdgeOffsetsByUniqueKey = <N extends INodeBase, E extends IEdgeBase>(
-  edges: Edge<N, E>[],
+  edges: IEdge<N, E>[],
 ): Record<string, number[]> => {
   const edgeCountByUniqueKey: Record<string, number> = {};
   const loopbackUniqueKeys: Set<string> = new Set<string>();

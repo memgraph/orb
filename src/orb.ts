@@ -1,6 +1,6 @@
-import { Graph } from './models/graph';
-import { Node, INodeBase } from './models/node';
-import { Edge, IEdgeBase } from './models/edge';
+import { Graph, IGraph } from './models/graph';
+import { INode, INodeBase } from './models/node';
+import { IEdge, IEdgeBase } from './models/edge';
 import { DefaultView } from './views/default-view';
 import { Emitter } from './utils/emitter.utils';
 import { IPosition } from './common/position';
@@ -29,12 +29,12 @@ export class OrbEmitter<N extends INodeBase, E extends IEdgeBase> extends Emitte
   [OrbEventType.SIMULATION_START]: undefined;
   [OrbEventType.SIMULATION_STEP]: { progress: number };
   [OrbEventType.SIMULATION_END]: undefined;
-  [OrbEventType.NODE_CLICK]: { node: Node<N, E>; localPoint: IPosition; globalPoint: IPosition };
-  [OrbEventType.NODE_HOVER]: { node: Node<N, E>; localPoint: IPosition; globalPoint: IPosition };
-  [OrbEventType.EDGE_CLICK]: { edge: Edge<N, E>; localPoint: IPosition; globalPoint: IPosition };
-  [OrbEventType.EDGE_HOVER]: { edge: Edge<N, E>; localPoint: IPosition; globalPoint: IPosition };
-  [OrbEventType.MOUSE_CLICK]: { subject?: Node<N, E> | Edge<N, E>; localPoint: IPosition; globalPoint: IPosition };
-  [OrbEventType.MOUSE_MOVE]: { subject?: Node<N, E> | Edge<N, E>; localPoint: IPosition; globalPoint: IPosition };
+  [OrbEventType.NODE_CLICK]: { node: INode<N, E>; localPoint: IPosition; globalPoint: IPosition };
+  [OrbEventType.NODE_HOVER]: { node: INode<N, E>; localPoint: IPosition; globalPoint: IPosition };
+  [OrbEventType.EDGE_CLICK]: { edge: IEdge<N, E>; localPoint: IPosition; globalPoint: IPosition };
+  [OrbEventType.EDGE_HOVER]: { edge: IEdge<N, E>; localPoint: IPosition; globalPoint: IPosition };
+  [OrbEventType.MOUSE_CLICK]: { subject?: INode<N, E> | IEdge<N, E>; localPoint: IPosition; globalPoint: IPosition };
+  [OrbEventType.MOUSE_MOVE]: { subject?: INode<N, E> | IEdge<N, E>; localPoint: IPosition; globalPoint: IPosition };
   [OrbEventType.TRANSFORM]: undefined;
 }> {}
 
@@ -47,7 +47,7 @@ export interface IOrbView {
 
 export interface IViewContext<N extends INodeBase, E extends IEdgeBase> {
   container: HTMLElement;
-  graph: Graph<N, E>;
+  graph: IGraph<N, E>;
   events: OrbEmitter<N, E>;
   strategy: IEventStrategy<N, E>;
 }
@@ -62,7 +62,7 @@ export interface IOrbSettings<N extends INodeBase, E extends IEdgeBase> {
 export class Orb<N extends INodeBase, E extends IEdgeBase> {
   private _view: IOrbView;
   private readonly _events: OrbEmitter<N, E>;
-  private readonly _graph: Graph<N, E> = new Graph<N, E>();
+  private readonly _graph: IGraph<N, E> = new Graph<N, E>();
 
   private readonly _context: IViewContext<N, E>;
 
@@ -82,7 +82,7 @@ export class Orb<N extends INodeBase, E extends IEdgeBase> {
     }
   }
 
-  get data(): Graph<N, E> {
+  get data(): IGraph<N, E> {
     return this._graph;
   }
 

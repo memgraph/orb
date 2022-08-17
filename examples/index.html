@@ -39,6 +39,12 @@
     // orb.setView((context) => new Orb.MapView(context, {
     //   getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng, }),
     // }));
+    orb.setView((context) => new Orb.DefaultView(context, {
+      getPosition: (node) => ({ x: node.data.x, y: node.data.y }),
+      simulation: {
+        isPhysicsEnabled: true,
+      },
+    }));
 
     // Initialize nodes and edges
     orb.data.setup({ nodes, edges });
@@ -53,7 +59,7 @@
           colorHover: '#e7644e',
           colorSelected: '#e7644e',
           fontSize: 3,
-          label: node.data.labels[0],
+          label: `${node.id}`,
           size: 6,
         };
       },
@@ -66,19 +72,36 @@
           width: 0.3,
           widthHover: 0.9,
           widthSelected: 0.9,
-          label: edge.data.label,
+          label: `${edge.id}`,
         };
       },
     });
 
     // Render and recenter the view
     orb.view.render(() => {
-      // orb.view.recenter();
-      console.log('rendered');
+      console.log('Rendered');
+      orb.view.recenter(() => {
+        console.log('Recentered');
+      });
     });
 
-    orb.events.on('node-click', (node) => {
+    let newNodeId = nodes[nodes.length - 1].id + 1;
+    let newEdgeId = edges[edges.length - 1].id + 1;
+
+    orb.events.on('node-click', ({ node }) => {
       console.log('Event: node-click', node);
+      const newNodes = [
+        { id: newNodeId++, labels: node.data.labels, x: Math.random() * 100, y: Math.random * 100 },
+        { id: newNodeId++, labels: node.data.labels, x: Math.random() * 100, y: Math.random * 100 },
+      ];
+      const newEdges = [
+        { id: newEdgeId++, start: node.id, end: newNodes[0].id, label: 'Edge X' },
+        { id: newEdgeId++, start: node.id, end: newNodes[1].id, label: 'Edge Y' },
+      ];
+      orb.data.join({ nodes: newNodes, edges: newEdges });
+      orb.view.render(() => {
+        console.log('Rendered on click');
+      });
     });
     orb.events.on('node-hover', (node) => {
       console.log('Event: node-hover', node);
@@ -87,6 +110,7 @@
       console.log('Event: edge-click', edge);
     });
 
+<<<<<<< HEAD
     setTimeout(() => {
       orb.data.join({
         nodes: [
@@ -118,6 +142,22 @@
       }, 3000);
 
     }, 3000);
+=======
+    // setTimeout(() => {
+    //   orb.data.join({
+    //     nodes: [
+    //       { id: 3, labels: ['Node D'], properties: { test: 2 }, x: 2, y: 2 },
+    //       { id: 4, labels: ['Node E'], properties: { test: 3 }, x: 3, y: 3 },
+    //     ],
+    //   });
+    //   orb.view.render(() => {
+    //     setTimeout(() => {
+    //       orb.view.recenter();
+    //     }, 2000);
+    //   });
+    //   orb.view.render();
+    // }, 5000);
+>>>>>>> default-view-render
   </script>
 </body>
 </html>

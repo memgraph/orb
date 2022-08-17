@@ -1,22 +1,22 @@
-import { Node, INodeBase } from './node';
-import { Edge, IEdgeBase } from './edge';
-import { Graph } from './graph';
+import { INode, INodeBase } from './node';
+import { IEdge, IEdgeBase } from './edge';
+import { IGraph } from './graph';
 import { IPosition } from '../common/position';
 import { GraphObjectState } from './state';
 
 export interface IEventStrategyResponse<N extends INodeBase, E extends IEdgeBase> {
   isStateChanged: boolean;
-  changedSubject?: Node<N, E> | Edge<N, E>;
+  changedSubject?: INode<N, E> | IEdge<N, E>;
 }
 
 export interface IEventStrategy<N extends INodeBase, E extends IEdgeBase> {
-  onMouseClick: ((graph: Graph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>) | null;
-  onMouseMove: ((graph: Graph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>) | null;
+  onMouseClick: ((graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>) | null;
+  onMouseMove: ((graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>) | null;
 }
 
 export const getDefaultEventStrategy = <N extends INodeBase, E extends IEdgeBase>(): IEventStrategy<N, E> => {
   return {
-    onMouseClick: (graph: Graph<N, E>, point: IPosition): IEventStrategyResponse<N, E> => {
+    onMouseClick: (graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> => {
       const node = graph.getNearestNode(point);
       if (node) {
         selectNode(graph, node);
@@ -40,7 +40,7 @@ export const getDefaultEventStrategy = <N extends INodeBase, E extends IEdgeBase
         isStateChanged: changedCount > 0,
       };
     },
-    onMouseMove: (graph: Graph<N, E>, point: IPosition): IEventStrategyResponse<N, E> => {
+    onMouseMove: (graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> => {
       // From map view
       const node = graph.getNearestNode(point);
       if (node && !node.isSelected()) {
@@ -63,17 +63,17 @@ export const getDefaultEventStrategy = <N extends INodeBase, E extends IEdgeBase
   };
 };
 
-const selectNode = <N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>, node: Node<N, E>) => {
+const selectNode = <N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>, node: INode<N, E>) => {
   unselectAll(graph);
   setNodeState(node, GraphObjectState.SELECTED, { isStateOverride: true });
 };
 
-const selectEdge = <N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>, edge: Edge<N, E>) => {
+const selectEdge = <N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>, edge: IEdge<N, E>) => {
   unselectAll(graph);
   setEdgeState(edge, GraphObjectState.SELECTED, { isStateOverride: true });
 };
 
-const unselectAll = <N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>): { changedCount: number } => {
+const unselectAll = <N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>): { changedCount: number } => {
   const selectedNodes = graph.getNodes((node) => node.isSelected());
   for (let i = 0; i < selectedNodes.length; i++) {
     selectedNodes[i].clearState();
@@ -87,7 +87,7 @@ const unselectAll = <N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E
   return { changedCount: selectedNodes.length + selectedEdges.length };
 };
 
-const hoverNode = <N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>, node: Node<N, E>) => {
+const hoverNode = <N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>, node: INode<N, E>) => {
   unhoverAll(graph);
   setNodeState(node, GraphObjectState.HOVERED);
 };
@@ -97,7 +97,7 @@ const hoverNode = <N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>,
 //   setEdgeState(edge, GraphObjectState.HOVERED);
 // };
 
-const unhoverAll = <N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>): { changedCount: number } => {
+const unhoverAll = <N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>): { changedCount: number } => {
   const hoveredNodes = graph.getNodes((node) => node.isHovered());
   for (let i = 0; i < hoveredNodes.length; i++) {
     hoveredNodes[i].clearState();
@@ -116,7 +116,7 @@ interface ISetShapeStateOptions {
 }
 
 const setNodeState = <N extends INodeBase, E extends IEdgeBase>(
-  node: Node<N, E>,
+  node: INode<N, E>,
   state: number,
   options?: ISetShapeStateOptions,
 ): void => {
@@ -144,7 +144,7 @@ const setNodeState = <N extends INodeBase, E extends IEdgeBase>(
 };
 
 const setEdgeState = <N extends INodeBase, E extends IEdgeBase>(
-  edge: Edge<N, E>,
+  edge: IEdge<N, E>,
   state: number,
   options?: ISetShapeStateOptions,
 ): void => {
@@ -162,7 +162,7 @@ const setEdgeState = <N extends INodeBase, E extends IEdgeBase>(
 };
 
 const isStateChangeable = <N extends INodeBase, E extends IEdgeBase>(
-  graphObject: Node<N, E> | Edge<N, E>,
+  graphObject: INode<N, E> | IEdge<N, E>,
   options?: ISetShapeStateOptions,
 ): boolean => {
   const isOverride = options?.isStateOverride;

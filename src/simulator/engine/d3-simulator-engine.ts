@@ -165,6 +165,7 @@ export class D3SimulatorEngine extends Emitter<{
   protected nodes: ISimulationNode[] = [];
   protected nodeIndexByNodeId: Record<number, number> = {};
 
+  // Delete this, move it to the settings
   protected isPhysicsEnabled = true;
   protected isDragging = false;
   protected isStabilizing = false;

@@ -1,4 +1,4 @@
-import { INodeBase, Node, NodeShapeType } from '../../models/node';
+import { INodeBase, INode, NodeShapeType } from '../../models/node';
 import { IEdgeBase } from '../../models/edge';
 import { drawDiamond, drawHexagon, drawSquare, drawStar, drawTriangleDown, drawTriangleUp, drawCircle } from './shapes';
 import { drawLabel, Label, LabelTextBaseline } from './label';
@@ -15,7 +15,7 @@ export interface INodeDrawOptions {
 
 export const drawNode = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
-  node: Node<N, E>,
+  node: INode<N, E>,
   options?: Partial<INodeDrawOptions>,
 ) => {
   const isShadowEnabled = options?.isShadowEnabled ?? DEFAULT_IS_SHADOW_DRAW_ENABLED;
@@ -48,7 +48,7 @@ export const drawNode = <N extends INodeBase, E extends IEdgeBase>(
   }
 };
 
-const drawShape = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, node: Node<N, E>) => {
+const drawShape = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, node: INode<N, E>) => {
   // Default shape is the circle
   const center = node.getCenter();
   const radius = node.getRadius();
@@ -87,16 +87,17 @@ const drawShape = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRend
 
 const drawNodeLabel = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
-  node: Node<N, E>,
+  node: INode<N, E>,
 ) => {
-  if (!node.properties.label) {
+  const nodeLabel = node.getLabel();
+  if (!nodeLabel) {
     return;
   }
 
   const center = node.getCenter();
   const distance = node.getBorderedRadius() * (1 + DEFAULT_LABEL_DISTANCE_SIZE_FROM_NODE);
 
-  const label = new Label(node.properties.label, {
+  const label = new Label(nodeLabel, {
     position: { x: center.x, y: center.y + distance },
     textBaseline: LabelTextBaseline.TOP,
     properties: {
@@ -111,7 +112,7 @@ const drawNodeLabel = <N extends INodeBase, E extends IEdgeBase>(
 
 const drawImage = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
-  node: Node<N, E>,
+  node: INode<N, E>,
   image: HTMLImageElement,
 ) => {
   if (!image.width || !image.height) {
@@ -131,7 +132,10 @@ const drawImage = <N extends INodeBase, E extends IEdgeBase>(
   context.restore();
 };
 
-const setupCanvas = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, node: Node<N, E>) => {
+const setupCanvas = <N extends INodeBase, E extends IEdgeBase>(
+  context: CanvasRenderingContext2D,
+  node: INode<N, E>,
+) => {
   const hasBorder = node.hasBorder();
 
   if (hasBorder) {
@@ -148,7 +152,10 @@ const setupCanvas = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRe
   }
 };
 
-const setupShadow = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, node: Node<N, E>) => {
+const setupShadow = <N extends INodeBase, E extends IEdgeBase>(
+  context: CanvasRenderingContext2D,
+  node: INode<N, E>,
+) => {
   if (node.properties.shadowColor) {
     context.shadowColor = node.properties.shadowColor.toString();
   }
@@ -163,7 +170,10 @@ const setupShadow = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRe
   }
 };
 
-const clearShadow = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, node: Node<N, E>) => {
+const clearShadow = <N extends INodeBase, E extends IEdgeBase>(
+  context: CanvasRenderingContext2D,
+  node: INode<N, E>,
+) => {
   if (node.properties.shadowColor) {
     context.shadowColor = 'rgba(0,0,0,0)';
   }

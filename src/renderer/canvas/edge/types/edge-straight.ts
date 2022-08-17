@@ -1,10 +1,10 @@
-import { INodeBase, Node } from '../../../../models/node';
-import { Edge, IEdgeBase } from '../../../../models/edge';
+import { INodeBase, INode } from '../../../../models/node';
+import { EdgeStraight, IEdgeBase } from '../../../../models/edge';
 import { IBorderPosition, IEdgeArrow } from '../index';
 
 export const drawStraightLine = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
-  edge: Edge<N, E>,
+  edge: EdgeStraight<N, E>,
 ) => {
   // Default line is the straight line
   const sourcePoint = edge.startNode.getCenter();
@@ -21,12 +21,14 @@ export const drawStraightLine = <N extends INodeBase, E extends IEdgeBase>(
 };
 
 /**
- * Ref: https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/Edge.js
+ * @see {@link https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/Edge.js}
  *
- * @param {Edge} edge Edge
+ * @param {EdgeStraight} edge Edge
  * @return {IEdgeArrow} Arrow shape
  */
-export const getStraightArrowShape = <N extends INodeBase, E extends IEdgeBase>(edge: Edge<N, E>): IEdgeArrow => {
+export const getStraightArrowShape = <N extends INodeBase, E extends IEdgeBase>(
+  edge: EdgeStraight<N, E>,
+): IEdgeArrow => {
   const scaleFactor = edge.properties.arrowSize ?? 1;
   const lineWidth = edge.getWidth() ?? 1;
   const sourcePoint = edge.startNode.getCenter();
@@ -45,15 +47,15 @@ export const getStraightArrowShape = <N extends INodeBase, E extends IEdgeBase>(
 };
 
 /**
- * Ref: https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/edges/straight-edge.ts
+ * @see {@link https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/edges/straight-edge.ts}
  *
- * @param {Edge} edge Edge
- * @param {Node} nearNode Node close to the edge
+ * @param {EdgeStraight} edge Edge
+ * @param {INode} nearNode Node close to the edge
  * @return {IBorderPosition} Position on the border of the node
  */
 const findBorderPoint = <N extends INodeBase, E extends IEdgeBase>(
-  edge: Edge<N, E>,
-  nearNode: Node<N, E>,
+  edge: EdgeStraight<N, E>,
+  nearNode: INode<N, E>,
 ): IBorderPosition => {
   let endNode = edge.endNode;
   let startNode = edge.startNode;
@@ -65,11 +67,12 @@ const findBorderPoint = <N extends INodeBase, E extends IEdgeBase>(
   const endNodePoints = endNode.getCenter();
   const startNodePoints = startNode.getCenter();
 
-  const angle = Math.atan2(endNodePoints.y - startNodePoints.y, endNodePoints.x - startNodePoints.x);
+  // const angle = Math.atan2(endNodePoints.y - startNodePoints.y, endNodePoints.x - startNodePoints.x);
   const dx = endNodePoints.x - startNodePoints.x;
   const dy = endNodePoints.y - startNodePoints.y;
   const edgeSegmentLength = Math.sqrt(dx * dx + dy * dy);
-  const toBorderDist = nearNode.getDistanceToBorder(angle);
+  // const toBorderDist = nearNode.getDistanceToBorder(angle);
+  const toBorderDist = nearNode.getDistanceToBorder();
   const toBorderPoint = (edgeSegmentLength - toBorderDist) / edgeSegmentLength;
 
   return {
