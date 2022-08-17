@@ -1,6 +1,7 @@
 import { D3DragEvent, drag } from 'd3-drag';
 import { easeLinear } from 'd3-ease';
-// import transition from 'd3-transition';
+// ts-ignore
+import transition from 'd3-transition';
 import { D3ZoomEvent, zoom, ZoomBehavior } from 'd3-zoom';
 import { select } from 'd3-selection';
 import { IPosition, isEqualPosition } from '../common/position';
@@ -12,21 +13,18 @@ import { INode, INodeBase, isNode } from '../models/node';
 import { IEdgeBase, isEdge } from '../models/edge';
 import { OrbEmitter, OrbEventType, IOrbView, IViewContext } from '../orb';
 import { IEventStrategy } from '../models/strategy';
-import { INodePosition } from '../../dist/models/node';
-import { ID3SimulatorEngineSettings } from '../simulator/engine/d3-simulator-engine';
+import { ID3SimulatorEngineSettingsUpdate } from '../simulator/engine/d3-simulator-engine';
 
+// TODO: Move to settings all these five
 const DISABLE_OUT_OF_BOUNDS_DRAG = true;
 const ROUND_COORDINATES = true;
 const ZOOM_SCALE_MAX = 8;
 const ZOOM_SCALE_MIN = 0.25;
 const ZOOM_FIT_TRANSITION_MS = 200;
-// const THROTTLE_TIME = 10;
-
-type ISimulationSettings = ID3SimulatorEngineSettings & { isPhysicsEnabled: boolean };
 
 export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> {
-  getPosition(node: INode<N, E>): { x: number; y: number } | undefined;
-  simulation: Partial<ISimulationSettings>;
+  getPosition(node: INode<N, E>): IPosition;
+  simulation: ID3SimulatorEngineSettingsUpdate;
 }
 
 export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IOrbView {
@@ -48,8 +46,6 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   private d3Zoom: ZoomBehavior<HTMLCanvasElement, any>;
 
   private dragStartPosition: IPosition | undefined;
-
-  private isRendering = false;
 
   constructor(context: IViewContext<N, E>, settings?: Partial<IDefaultViewSettings<N, E>>) {
     this._container = context.container;
@@ -117,57 +113,36 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
         this._renderer.render(this._graph);
       },
       onSettingsUpdate: (_) => {
-        if (this._graph && !this._settings.simulation?.isPhysicsEnabled) {
-          // this.simulator.startSimulation(this._graph.getNodePositions(), this._graph.getEdgePositions());
-          this.render();
-        }
+        // TODO: Send event to the user so user can handle this if needed
+        // TODO: Do we need to call .render() here or user should take care of it
       },
     });
 
-    // TODO: Join physics with other simulation settings
-    this.simulator.setPhysics(!!this._settings.simulation?.isPhysicsEnabled);
     if (this._settings.simulation) {
-      const settings = { ...this._settings.simulation };
-      delete settings.isPhysicsEnabled;
-      this.simulator.setSettings(settings);
+      this.simulator.setSettings(this._settings.simulation);
     }
   }
 
   render(onRendered?: () => void) {
-    // delete this flag
-    if (this.isRendering) {
+    if (this._isSimulating) {
+      this._renderer.render(this._graph);
+      onRendered?.();
       return;
     }
-    this.isRendering = true;
 
-    if (this._settings?.getPosition) {
-      const nodePositions: INodePosition[] = [];
+    if (this._settings.getPosition) {
       const nodes = this._graph.getNodes();
-
       for (let i = 0; i < nodes.length; i++) {
-        const position = this._settings?.getPosition(nodes[i]);
-        if (!position) {
-          continue;
+        const position = this._settings.getPosition(nodes[i]);
+        if (position) {
+          nodes[i].position = { id: nodes[i].id, ...position };
         }
-        // TODO: Is this neccessary?
-        if (typeof position.x !== 'number' || typeof position.y !== 'number') {
-          continue;
-        }
-        nodePositions.push({
-          id: nodes[i].id,
-          ...this._settings?.getPosition(nodes[i]),
-        });
       }
-
-      this._graph.setNodePositions(nodePositions);
     }
 
+    this._isSimulating = true;
+    this._onSimulationEnd = onRendered;
     this.startSimulation();
-
-    this._renderer.render(this._graph);
-
-    onRendered?.();
-    this.isRendering = false;
   }
 
   recenter(onRendered?: () => void) {
@@ -197,17 +172,11 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     }
 
     if (settings.simulation) {
-      const simulationSettings = { ...this._settings.simulation, ...settings.simulation };
-
-      // todo, yes this
-      // TODO: Join physics with other simulation settings
-      if (settings.simulation.isPhysicsEnabled !== undefined) {
-        simulationSettings.isPhysicsEnabled = settings.simulation.isPhysicsEnabled;
-        this.simulator.setPhysics(simulationSettings.isPhysicsEnabled);
-      }
-
-      this._settings.simulation = simulationSettings;
-      this.simulator.setSettings(simulationSettings);
+      this._settings.simulation = {
+        ...this._settings.simulation,
+        ...settings.simulation,
+      };
+      this.simulator.setSettings(this._settings.simulation);
     }
   }
 

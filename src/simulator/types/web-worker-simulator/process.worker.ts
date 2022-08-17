@@ -112,11 +112,6 @@ addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {
       break;
     }
 
-    case WorkerInputType.SetPhysics: {
-      simulator.setPhysics({ isEnabled: data.data.isEnabled });
-      break;
-    }
-
     case WorkerInputType.SetSettings: {
       simulator.setSettings(data.data);
       break;

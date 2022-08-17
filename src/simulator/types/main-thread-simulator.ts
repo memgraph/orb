@@ -94,10 +94,6 @@ export class MainThreadSimulator implements ISimulator {
     this.simulator.setSettings(settings);
   }
 
-  setPhysics(isEnabled: boolean) {
-    this.simulator.setPhysics({ isEnabled });
-  }
-
   terminate() {
     // Do nothing
   }

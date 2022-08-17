@@ -28,7 +28,6 @@ export interface ISimulator {
 
   // Settings handlers
   setSettings(settings: ID3SimulatorEngineSettingsUpdate): void;
-  setPhysics(isEnabled: boolean): void;
 
   terminate(): void;
 }
