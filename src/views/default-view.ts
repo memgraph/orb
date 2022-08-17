@@ -13,15 +13,14 @@ import { INodeBase, Node } from '../models/node';
 import { Edge, IEdgeBase } from '../models/edge';
 import { OrbEmitter, OrbEventType, IOrbView, IViewContext } from '../orb';
 import { IEventStrategy } from '../models/strategy';
-import { INodePosition } from '../../dist/models/node';
 import { ID3SimulatorEngineSettingsUpdate } from '../simulator/engine/d3-simulator-engine';
 
+// TODO: Move to settings all these five
 const DISABLE_OUT_OF_BOUNDS_DRAG = true;
 const ROUND_COORDINATES = true;
 const ZOOM_SCALE_MAX = 8;
 const ZOOM_SCALE_MIN = 0.25;
 const ZOOM_FIT_TRANSITION_MS = 200;
-// const THROTTLE_TIME = 10;
 
 export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition(node: Node<N, E>): IPosition;
@@ -41,11 +40,12 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   private _renderer: Renderer;
   private simulator: ISimulator;
 
+  private _isSimulating = false;
+  private _onSimulationEnd: (() => void) | undefined;
+
   private d3Zoom: ZoomBehavior<HTMLCanvasElement, any>;
 
   private dragStartPosition: IPosition | undefined;
-
-  private isRendering = false;
 
   constructor(context: IViewContext<N, E>, settings?: Partial<IDefaultViewSettings<N, E>>) {
     this._container = context.container;
@@ -101,11 +101,9 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       },
       onStabilizationEnd: (data) => {
         this._graph.setNodePositions(data.nodes);
-
-        // this.isLabelRendered_.next(true);
-        // Reset progress.
-        // this.isUpdatingGraph_.next(false);
-        // this.stabilizationProgress_.next(null);
+        this._renderer.render(this._graph);
+        this._isSimulating = false;
+        this._onSimulationEnd?.();
       },
       onNodeDrag: (data) => {
         // Node dragging does not trigger a user blocking percentage loader.
@@ -128,41 +126,25 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   }
 
   render(onRendered?: () => void) {
-    if (this.isRendering) {
+    if (this._isSimulating) {
+      this._renderer.render(this._graph);
+      onRendered?.();
       return;
     }
-    this.isRendering = true;
 
     if (this._settings.getPosition) {
-      const nodePositions: INodePosition[] = [];
       const nodes = this._graph.getNodes();
-
       for (let i = 0; i < nodes.length; i++) {
         const position = this._settings.getPosition(nodes[i]);
-        if (!position) {
-          continue;
+        if (position) {
+          nodes[i].position = { id: nodes[i].id, ...position };
         }
-        // TODO: Is this neccessary?
-        if (typeof position.x !== 'number' || typeof position.y !== 'number') {
-          continue;
-        }
-        nodePositions.push({
-          id: nodes[i].id,
-          ...this._settings.getPosition(nodes[i]),
-        });
       }
-
-      this._graph.setNodePositions(nodePositions);
     }
 
+    this._isSimulating = true;
+    this._onSimulationEnd = onRendered;
     this.startSimulation();
-
-    this._renderer.render(this._graph);
-
-    if (onRendered) {
-      onRendered();
-    }
-    this.isRendering = false;
   }
 
   recenter() {
