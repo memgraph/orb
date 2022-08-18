@@ -1,6 +1,6 @@
 import { D3DragEvent, drag } from 'd3-drag';
 import { easeLinear } from 'd3-ease';
-// ts-ignore
+// @ts-ignore
 import transition from 'd3-transition';
 import { D3ZoomEvent, zoom, ZoomBehavior } from 'd3-zoom';
 import { select } from 'd3-selection';
