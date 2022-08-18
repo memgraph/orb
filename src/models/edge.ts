@@ -1,4 +1,4 @@
-import { INodeBase, Node } from './node';
+import { INodeBase, INode } from './node';
 import { GraphObjectState } from './state';
 import { Color } from './color';
 import { IPosition } from '../common/position';
@@ -8,12 +8,29 @@ import { ICircle } from '../common/circle';
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
 const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;
 
+/**
+ * Edge baseline object with required fields
+ * that user needs to define for an edge.
+ */
 export interface IEdgeBase {
   id: number;
   start: number;
   end: number;
 }
 
+/**
+ * Edge position for the graph simulations. Edge position
+ * is determined by source (start) and target (end) nodes.
+ */
+export interface IEdgePosition {
+  id: number;
+  source: number;
+  target: number;
+}
+
+/**
+ * Edge properties used to style the edge (color, width, label, etc.).
+ */
 export interface IEdgeProperties {
   arrowSize: number;
   color: Color | string;
@@ -34,17 +51,18 @@ export interface IEdgeProperties {
 }
 
 export const DEFAULT_EDGE_PROPERTIES: Partial<IEdgeProperties> = {
-  color: new Color('#999999'),
+  color: new Color('#ababab'),
   width: 0.3,
 };
 
-// TODO @toni: Add startNode and endNode in the constructor, but then check how to do
-// TODO @toni: disconnects and start/end node changes via join
-export interface IEdgeData<E extends IEdgeBase> {
+export interface IEdgeData<N extends INodeBase, E extends IEdgeBase> {
   data: E;
   // Offset is used to mark curved or straight lines
   // For straight lines, it is 0, for curved it is +N or -N
   offset?: number;
+  // Edge doesn't exist without nodes
+  startNode: INode<N, E>;
+  endNode: INode<N, E>;
 }
 
 export enum EdgeType {
@@ -53,23 +71,93 @@ export enum EdgeType {
   CURVED = 'curved',
 }
 
-export class Edge<N extends INodeBase, E extends IEdgeBase> {
-  public readonly id: number;
-  public data: E;
-  public readonly offset: number;
+export interface IEdge<N extends INodeBase, E extends IEdgeBase> {
+  data: E;
+  position: IEdgePosition;
+  properties: Partial<IEdgeProperties>;
+  state: number;
+  get id(): number;
+  get offset(): number;
+  get start(): number;
+  get startNode(): INode<N, E>;
+  get end(): number;
+  get endNode(): INode<N, E>;
+  get type(): EdgeType;
+  isSelected(): boolean;
+  isHovered(): boolean;
+  clearState(): void;
+  isLoopback(): boolean;
+  isStraight(): boolean;
+  isCurved(): boolean;
+  getCenter(): IPosition;
+  getDistance(point: IPosition): number;
+  getLabel(): string | undefined;
+  hasShadow(): boolean;
+  getWidth(): number;
+  getColor(): Color | string | undefined;
+}
 
-  private _startNode?: Node<N, E>;
-  private _endNode?: Node<N, E>;
-  private _type: EdgeType = EdgeType.STRAIGHT;
+export class EdgeFactory {
+  static create<N extends INodeBase, E extends IEdgeBase>(data: IEdgeData<N, E>): IEdge<N, E> {
+    const type = getEdgeType(data);
+    switch (type) {
+      case EdgeType.STRAIGHT:
+        return new EdgeStraight(data);
+      case EdgeType.LOOPBACK:
+        return new EdgeLoopback(data);
+      case EdgeType.CURVED:
+        return new EdgeCurved(data);
+      default:
+        return new EdgeStraight(data);
+    }
+  }
+
+  static copy<N extends INodeBase, E extends IEdgeBase>(
+    edge: IEdge<N, E>,
+    data?: Omit<IEdgeData<N, E>, 'data' | 'startNode' | 'endNode'>,
+  ): IEdge<N, E> {
+    const newEdge = EdgeFactory.create<N, E>({
+      data: edge.data,
+      offset: data?.offset !== undefined ? data.offset : edge.offset,
+      startNode: edge.startNode,
+      endNode: edge.endNode,
+    });
+    newEdge.state = edge.state;
+    newEdge.properties = edge.properties;
+
+    return newEdge;
+  }
+}
+
+export const isEdge = <N extends INodeBase, E extends IEdgeBase>(obj: any): obj is IEdge<N, E> => {
+  return obj instanceof EdgeStraight || obj instanceof EdgeCurved || obj instanceof EdgeLoopback;
+};
+
+abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N, E> {
+  public data: E;
+
+  public readonly id: number;
+  public readonly offset: number;
+  public readonly startNode: INode<N, E>;
+  public readonly endNode: INode<N, E>;
 
   public properties: Partial<IEdgeProperties> = DEFAULT_EDGE_PROPERTIES;
-  public state?: GraphObjectState;
+  public state = GraphObjectState.NONE;
+  public position: IEdgePosition;
 
-  constructor(data: IEdgeData<E>) {
+  private _type: EdgeType = EdgeType.STRAIGHT;
+
+  constructor(data: IEdgeData<N, E>) {
     this.id = data.data.id;
     this.data = data.data;
     this.offset = data.offset ?? 0;
-    this._type = this.getEdgeType();
+    this.startNode = data.startNode;
+    this.endNode = data.endNode;
+    this._type = getEdgeType(data);
+
+    this.position = { id: this.id, source: this.startNode.id, target: this.endNode.id };
+    this.startNode.addEdge(this);
+    this.endNode.addEdge(this);
   }
 
   get type(): EdgeType {
@@ -84,41 +172,16 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
     return this.data.end;
   }
 
-  get startNode(): Node<N, E> | undefined {
-    return this._startNode;
-  }
-
-  get endNode(): Node<N, E> | undefined {
-    return this._endNode;
-  }
-
-  connect(startNode: Node<N, E>, endNode: Node<N, E>) {
-    this._startNode = startNode;
-    this._endNode = endNode;
-
-    this._startNode.addEdge(this);
-    this._endNode.addEdge(this);
-    this._type = this.getEdgeType();
-  }
-
-  disconnect() {
-    this._startNode?.removeEdge(this);
-    this._endNode?.removeEdge(this);
-
-    this._startNode = undefined;
-    this._endNode = undefined;
-  }
-
   isSelected(): boolean {
-    return this.state === GraphObjectState.SELECT;
+    return this.state === GraphObjectState.SELECTED;
   }
 
   isHovered(): boolean {
-    return this.state === GraphObjectState.HOVER;
+    return this.state === GraphObjectState.HOVERED;
   }
 
   clearState(): void {
-    this.state = undefined;
+    this.state = GraphObjectState.NONE;
   }
 
   isLoopback(): boolean {
@@ -134,29 +197,26 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
   }
 
   getCenter(): IPosition {
-    if (this.isStraight()) {
-      return this.getStraightCenter();
+    const startPoint = this.startNode?.getCenter();
+    const endPoint = this.endNode?.getCenter();
+    if (!startPoint || !endPoint) {
+      return { x: 0, y: 0 };
     }
-    if (this.isCurved()) {
-      return this.getCurvedCenter();
-    }
-    if (this.isLoopback()) {
-      return this.getLoopbackCenter();
-    }
-    return this.getStraightCenter();
+
+    return {
+      x: (startPoint.x + endPoint.x) / 2,
+      y: (startPoint.y + endPoint.y) / 2,
+    };
   }
 
   getDistance(point: IPosition): number {
-    if (this.isStraight()) {
-      return this.getStraightDistance(point);
+    const startPoint = this.startNode.getCenter();
+    const endPoint = this.endNode.getCenter();
+    if (!startPoint || !endPoint) {
+      return 0;
     }
-    if (this.isCurved()) {
-      return this.getCurvedDistance(point);
-    }
-    if (this.isLoopback()) {
-      return this.getLoopbackDistance(point);
-    }
-    return this.getStraightDistance(point);
+
+    return getDistanceToLine(startPoint, endPoint, point);
   }
 
   getLabel(): string | undefined {
@@ -200,16 +260,17 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
 
     return color;
   }
+}
 
-  protected getEdgeType(): EdgeType {
-    if (this.startNode && this.endNode && this.startNode.id === this.endNode.id) {
-      return EdgeType.LOOPBACK;
-    }
-    return this.offset === 0 ? EdgeType.STRAIGHT : EdgeType.CURVED;
+const getEdgeType = <N extends INodeBase, E extends IEdgeBase>(data: IEdgeData<N, E>): EdgeType => {
+  if (data.startNode.id === data.endNode.id) {
+    return EdgeType.LOOPBACK;
   }
+  return (data.offset ?? 0) === 0 ? EdgeType.STRAIGHT : EdgeType.CURVED;
+};
 
-  // TODO @toni: How to structure these into separate classes (straight) and use in canvas render
-  private getStraightCenter(): IPosition {
+export class EdgeStraight<N extends INodeBase, E extends IEdgeBase> extends Edge<N, E> {
+  override getCenter(): IPosition {
     const startPoint = this.startNode?.getCenter();
     const endPoint = this.endNode?.getCenter();
     if (!startPoint || !endPoint) {
@@ -222,7 +283,7 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
     };
   }
 
-  private getStraightDistance(point: IPosition): number {
+  override getDistance(point: IPosition): number {
     const startPoint = this.startNode?.getCenter();
     const endPoint = this.endNode?.getCenter();
     if (!startPoint || !endPoint) {
@@ -231,13 +292,20 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
 
     return getDistanceToLine(startPoint, endPoint, point);
   }
+}
 
-  // TODO @toni: How to structure these into separate classes (curved) and use in canvas render
-  private getCurvedCenter(): IPosition {
+export class EdgeCurved<N extends INodeBase, E extends IEdgeBase> extends Edge<N, E> {
+  override getCenter(): IPosition {
     return this.getCurvedControlPoint(CURVED_CONTROL_POINT_OFFSET_MULTIPLIER / 2);
   }
 
-  private getCurvedDistance(point: IPosition): number {
+  /**
+   * @see {@link https://github.com/visjs/vis-network/blob/master/lib/network/modules/components/edges/util/bezier-edge-base.ts}
+   *
+   * @param {IPosition} point Point
+   * @return {number} Distance to the point
+   */
+  override getDistance(point: IPosition): number {
     const sourcePoint = this.startNode?.getCenter();
     const targetPoint = this.endNode?.getCenter();
     if (!sourcePoint || !targetPoint) {
@@ -288,16 +356,17 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
     const offsetSize = Math.max(sourceSize, targetSize, CURVED_CONTROL_POINT_OFFSET_MIN_SIZE);
     const offset = (this.offset ?? 1) * offsetSize * offsetMultiplier;
 
-    // TODO @toni: Check for smooth quadratic curve (faster)
+    // TODO: Check for faster smooth quadratic curve
     // https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/curves/path-data
     return {
       x: middleX + offset * (dy / length),
       y: middleY - offset * (dx / length),
     };
   }
+}
 
-  // TODO @toni: How to structure these into separate classes (loopback) and use in canvas render
-  private getLoopbackCenter(): IPosition {
+export class EdgeLoopback<N extends INodeBase, E extends IEdgeBase> extends Edge<N, E> {
+  override getCenter(): IPosition {
     const offset = Math.abs(this.offset ?? 1);
     const circle = this.getCircularData();
     return {
@@ -306,7 +375,7 @@ export class Edge<N extends INodeBase, E extends IEdgeBase> {
     };
   }
 
-  private getLoopbackDistance(point: IPosition): number {
+  override getDistance(point: IPosition): number {
     const circle = this.getCircularData();
     const dx = circle.x - point.x;
     const dy = circle.y - point.y;

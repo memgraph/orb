@@ -6,7 +6,7 @@ import { IWorkerOutputPayload, WorkerOutputType } from './message/worker-output'
 const simulator = new D3SimulatorEngine();
 
 const emitToMain = (message: IWorkerOutputPayload) => {
-  // @ts-ignore
+  // @ts-ignore Web worker postMessage is a global function
   postMessage(message);
 };
 
@@ -47,6 +47,31 @@ addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {
       break;
     }
 
+    case WorkerInputType.SetData: {
+      simulator.setData(data.data);
+      break;
+    }
+
+    case WorkerInputType.AddData: {
+      simulator.addData(data.data);
+      break;
+    }
+
+    case WorkerInputType.UpdateData: {
+      simulator.updateData(data.data);
+      break;
+    }
+
+    case WorkerInputType.ClearData: {
+      simulator.clearData();
+      break;
+    }
+
+    case WorkerInputType.Simulate: {
+      simulator.simulate();
+      break;
+    }
+
     case WorkerInputType.StartSimulation: {
       simulator.startSimulation(data.data);
       break;
@@ -72,13 +97,18 @@ addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {
       break;
     }
 
-    case WorkerInputType.EndDragNode: {
-      simulator.endDragNode(data.data);
+    case WorkerInputType.FixNodes: {
+      simulator.fixNodes(data.data.nodes);
       break;
     }
 
-    case WorkerInputType.SetPhysics: {
-      simulator.setPhysics({ isEnabled: data.data.isEnabled });
+    case WorkerInputType.ReleaseNodes: {
+      simulator.releaseNodes(data.data.nodes);
+      break;
+    }
+
+    case WorkerInputType.EndDragNode: {
+      simulator.endDragNode(data.data);
       break;
     }
 

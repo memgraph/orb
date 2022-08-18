@@ -1,1 +1,10 @@
 export { Orb } from './orb';
+export { DefaultView, MapView } from './views/index';
+export { IGraph, IGraphData } from './models/graph';
+export { INode, INodeBase, INodePosition, INodeProperties } from './models/node';
+export { IEdge, IEdgeBase, IEdgePosition, IEdgeProperties } from './models/edge';
+export { IGraphStyle, IEdgeStyle, INodeStyle } from './models/style';
+export { ICircle } from './common/circle';
+export { IPosition } from './common/position';
+export { IRectangle } from './common/rectangle';
+export { Color, IColorRGB } from './models/color';

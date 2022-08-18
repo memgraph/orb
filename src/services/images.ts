@@ -1,23 +1,23 @@
 export type ImageLoadedCallback = (error?: Error) => void;
 
 export class ImageHandler {
-  private static instance: ImageHandler;
-  private readonly imageByUrl: Record<string, HTMLImageElement> = {};
+  private static _instance: ImageHandler;
+  private readonly _imageByUrl: Record<string, HTMLImageElement> = {};
 
   private constructor() {
     // Forbids usage of `new ImageHandler` - use `.getInstance()` instead
   }
 
   static getInstance(): ImageHandler {
-    if (!ImageHandler.instance) {
-      ImageHandler.instance = new ImageHandler();
+    if (!ImageHandler._instance) {
+      ImageHandler._instance = new ImageHandler();
     }
 
-    return ImageHandler.instance;
+    return ImageHandler._instance;
   }
 
   getImage(url: string): HTMLImageElement | undefined {
-    return this.imageByUrl[url];
+    return this._imageByUrl[url];
   }
 
   loadImage(url: string, callback?: ImageLoadedCallback): HTMLImageElement {
@@ -27,7 +27,7 @@ export class ImageHandler {
     }
 
     const image = new Image();
-    this.imageByUrl[url] = image;
+    this._imageByUrl[url] = image;
 
     image.onload = () => {
       fixImageSize(image);
@@ -54,7 +54,7 @@ export class ImageHandler {
 
     for (let i = 0; i < urls.length; i++) {
       const url = urls[i];
-      const existingImage = this.imageByUrl[url];
+      const existingImage = this._imageByUrl[url];
 
       if (existingImage) {
         pendingImageUrls.delete(url);
@@ -63,7 +63,7 @@ export class ImageHandler {
       }
 
       const image = new Image();
-      this.imageByUrl[url] = image;
+      this._imageByUrl[url] = image;
 
       image.onload = () => {
         fixImageSize(image);

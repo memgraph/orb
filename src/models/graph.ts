@@ -1,25 +1,45 @@
-import { Node, INodeBase, INodePosition, DEFAULT_NODE_PROPERTIES } from './node';
-import { DEFAULT_EDGE_PROPERTIES, Edge, IEdgeBase } from './edge';
-import { GraphObjectState } from './state';
+import { INode, INodeBase, INodePosition, DEFAULT_NODE_PROPERTIES, NodeFactory } from './node';
+import { DEFAULT_EDGE_PROPERTIES, IEdge, EdgeFactory, IEdgeBase, IEdgePosition } from './edge';
 import { IRectangle } from '../common/rectangle';
 import { IPosition } from '../common/position';
 import { IGraphStyle } from './style';
 import { ImageHandler } from '../services/images';
+import { getEdgeOffsets } from './topology';
 
 export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
   nodes: N[];
   edges: E[];
 }
 
-type IEdgeFilter<N extends INodeBase, E extends IEdgeBase> = (edge: Edge<N, E>) => boolean;
+type IEdgeFilter<N extends INodeBase, E extends IEdgeBase> = (edge: IEdge<N, E>) => boolean;
 
-type INodeFilter<N extends INodeBase, E extends IEdgeBase> = (node: Node<N, E>) => boolean;
+type INodeFilter<N extends INodeBase, E extends IEdgeBase> = (node: INode<N, E>) => boolean;
 
-export class Graph<N extends INodeBase, E extends IEdgeBase> {
-  protected nodeById: { [id: number]: Node<N, E> } = {};
-  protected edgeById: { [id: number]: Edge<N, E> } = {};
+export interface IGraph<N extends INodeBase, E extends IEdgeBase> {
+  getNodes(filterBy?: INodeFilter<N, E>): INode<N, E>[];
+  getEdges(filterBy?: IEdgeFilter<N, E>): IEdge<N, E>[];
+  getNodeCount(): number;
+  getEdgeCount(): number;
+  getNodeById(id: number): INode<N, E> | undefined;
+  getEdgeById(id: number): IEdge<N, E> | undefined;
+  getNodePositions(): INodePosition[];
+  setNodePositions(positions: INodePosition[]): void;
+  getEdgePositions(): IEdgePosition[];
+  setStyle(style: Partial<IGraphStyle<N, E>>): void;
+  setDefaultStyle(): void;
+  setup(data: Partial<IGraphData<N, E>>): void;
+  join(data: Partial<IGraphData<N, E>>): void;
+  hide(data: Partial<{ nodeIds: number[]; edgeIds: number[] }>): void;
+  isEqual<T extends INodeBase, K extends IEdgeBase>(graph: Graph<T, K>): boolean;
+  getBoundingBox(): IRectangle;
+  getNearestNode(point: IPosition): INode<N, E> | undefined;
+  getNearestEdge(point: IPosition, minDistance?: number): IEdge<N, E> | undefined;
+}
 
-  private style?: Partial<IGraphStyle<N, E>>;
+export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N, E> {
+  private _nodeById: { [id: number]: INode<N, E> } = {};
+  private _edgeById: { [id: number]: IEdge<N, E> } = {};
+  private _style?: Partial<IGraphStyle<N, E>>;
 
   constructor(data?: Partial<IGraphData<N, E>>) {
     const nodes = data?.nodes ?? [];
@@ -31,15 +51,15 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
    * Returns a list of nodes.
    *
    * @param {INodeFilter} filterBy Filter function for nodes
-   * @return {Node[]} List of nodes
+   * @return {INode[]} List of nodes
    */
-  getNodes(filterBy?: INodeFilter<N, E>): Node<N, E>[] {
-    const nodes = Object.values(this.nodeById);
+  getNodes(filterBy?: INodeFilter<N, E>): INode<N, E>[] {
+    const nodes = Object.values(this._nodeById);
     if (!filterBy) {
       return nodes;
     }
 
-    const filteredNodes: Node<N, E>[] = [];
+    const filteredNodes: INode<N, E>[] = [];
     for (let i = 0; i < nodes.length; i++) {
       if (filterBy(nodes[i])) {
         filteredNodes.push(nodes[i]);
@@ -52,15 +72,15 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
    * Returns a list of edges.
    *
    * @param {IEdgeFilter} filterBy Filter function for edges
-   * @return {Edge[]} List of edges
+   * @return {IEdge[]} List of edges
    */
-  getEdges(filterBy?: IEdgeFilter<N, E>): Edge<N, E>[] {
-    const edges = Object.values(this.edgeById);
+  getEdges(filterBy?: IEdgeFilter<N, E>): IEdge<N, E>[] {
+    const edges = Object.values(this._edgeById);
     if (!filterBy) {
       return edges;
     }
 
-    const filteredEdges: Edge<N, E>[] = [];
+    const filteredEdges: IEdge<N, E>[] = [];
     for (let i = 0; i < edges.length; i++) {
       if (filterBy(edges[i])) {
         filteredEdges.push(edges[i]);
@@ -75,7 +95,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
    * @return {number} Total node count
    */
   getNodeCount(): number {
-    return Object.keys(this.nodeById).length;
+    return Object.keys(this._nodeById).length;
   }
 
   /**
@@ -84,7 +104,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
    * @return {number} Total edge count
    */
   getEdgeCount(): number {
-    return Object.keys(this.edgeById).length;
+    return Object.keys(this._edgeById).length;
   }
 
   /**
@@ -93,22 +113,22 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
    * @param {number} id Node id
    * @return {Node | undefined} Node or undefined
    */
-  getNodeById(id: number): Node<N, E> | undefined {
-    return this.nodeById[id];
+  getNodeById(id: number): INode<N, E> | undefined {
+    return this._nodeById[id];
   }
 
   /**
    * Returns edge by edge id.
    *
    * @param {number} id Edge id
-   * @return {Edge | undefined} Edge or undefined
+   * @return {IEdge | undefined} Edge or undefined
    */
-  getEdgeById(id: number): Edge<N, E> | undefined {
-    return this.edgeById[id];
+  getEdgeById(id: number): IEdge<N, E> | undefined {
+    return this._edgeById[id];
   }
 
   /**
-   * Returns a list of current node positions.
+   * Returns a list of current node positions (x, y).
    *
    * @return {INodePosition[]} List of node positions
    */
@@ -121,17 +141,43 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     return positions;
   }
 
+  /**
+   * Sets new node positions (x, y).
+   *
+   * @param {INodePosition} positions Node positions
+   */
   setNodePositions(positions: INodePosition[]) {
     for (let i = 0; i < positions.length; i++) {
-      const node = this.nodeById[positions[i].id];
+      const node = this._nodeById[positions[i].id];
       if (node) {
         node.position = positions[i];
       }
     }
   }
 
+  /**
+   * Returns a list of current edge positions. Edge positions do not have
+   * (x, y) but a link to the source and target node ids.
+   *
+   * @return {IEdgePosition[]} List of edge positions
+   */
+  getEdgePositions(): IEdgePosition[] {
+    const edges = this.getEdges();
+    const positions: IEdgePosition[] = new Array<IEdgePosition>(edges.length);
+    for (let i = 0; i < edges.length; i++) {
+      positions[i] = edges[i].position;
+    }
+    return positions;
+  }
+
+  /**
+   * Sets define style to nodes and edges. The applied style will be used
+   * for all future nodes and edges added with `.join` function.
+   *
+   * @param {IGraphStyle} style Style definition
+   */
   setStyle(style: Partial<IGraphStyle<N, E>>) {
-    this.style = style;
+    this._style = style;
     const styleImageUrls: Set<string> = new Set<string>();
 
     const nodes = this.getNodes();
@@ -165,8 +211,11 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     }
   }
 
+  /**
+   * Sets default style to nodes and edges.
+   */
   setDefaultStyle() {
-    this.style = undefined;
+    this._style = undefined;
 
     const nodes = this.getNodes();
     for (let i = 0; i < nodes.length; i++) {
@@ -179,119 +228,40 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     }
   }
 
-  // TODO @toni: Split this function into multiple functions (check .join)
   setup(data: Partial<IGraphData<N, E>>) {
-    this.nodeById = {};
-    this.edgeById = {};
+    this._nodeById = {};
+    this._edgeById = {};
 
     const nodes = data?.nodes ?? [];
     const edges = data?.edges ?? [];
 
-    for (let i = 0; i < nodes.length; i++) {
-      const node = new Node<N, E>({ data: nodes[i] });
-      this.nodeById[node.id] = node;
-    }
+    this._insertNodes(nodes);
+    this._insertEdges(edges);
 
-    for (let i = 0; i < edges.length; i++) {
-      const edge = new Edge<N, E>({ data: edges[i] });
-
-      const startNode = this.getNodeById(edge.start);
-      const endNode = this.getNodeById(edge.end);
-
-      if (startNode && endNode) {
-        edge.connect(startNode, endNode);
-        this.edgeById[edge.id] = edge;
-      }
-    }
-
-    this.applyEdgeOffsets();
-    this.applyStyle();
+    this._applyEdgeOffsets();
+    this._applyStyle();
   }
 
-  // TODO @toni: Split this function into multiple functions (check .setup)
   join(data: Partial<IGraphData<N, E>>) {
     const nodes = data.nodes ?? [];
     const edges = data.edges ?? [];
 
-    for (let i = 0; i < nodes.length; i++) {
-      const existingNode = this.getNodeById(nodes[i].id);
-      if (existingNode) {
-        existingNode.data = nodes[i];
-        continue;
-      }
+    this._upsertNodes(nodes);
+    this._upsertEdges(edges);
 
-      const node = new Node<N, E>({ data: nodes[i] });
-      this.nodeById[node.id] = node;
-    }
-
-    for (let i = 0; i < edges.length; i++) {
-      const existingEdge = this.getEdgeById(edges[i].id);
-      if (existingEdge) {
-        const newEdge = edges[i];
-
-        if (existingEdge.start !== newEdge.start || existingEdge.end !== newEdge.end) {
-          existingEdge.disconnect();
-          delete this.edgeById[existingEdge.id];
-
-          const startNode = this.getNodeById(newEdge.start);
-          const endNode = this.getNodeById(newEdge.end);
-
-          if (startNode && endNode) {
-            existingEdge.connect(startNode, endNode);
-            this.edgeById[existingEdge.id] = existingEdge;
-          }
-        }
-
-        existingEdge.data = newEdge;
-        continue;
-      }
-
-      const edge = new Edge<N, E>({ data: edges[i] });
-      const startNode = this.getNodeById(edge.start);
-      const endNode = this.getNodeById(edge.end);
-
-      if (startNode && endNode) {
-        edge.connect(startNode, endNode);
-        this.edgeById[edge.id] = edge;
-      }
-    }
-
-    this.applyEdgeOffsets();
-    this.applyStyle();
+    this._applyEdgeOffsets();
+    this._applyStyle();
   }
 
   hide(data: Partial<{ nodeIds: number[]; edgeIds: number[] }>) {
     const nodeIds = data.nodeIds ?? [];
     const edgeIds = data.edgeIds ?? [];
 
-    for (let i = 0; i < nodeIds.length; i++) {
-      const node = this.getNodeById(nodeIds[i]);
-      if (!node) {
-        continue;
-      }
+    this._removeNodes(nodeIds);
+    this._removeEdges(edgeIds);
 
-      const edges = node.getEdges();
-      for (let i = 0; i < edges.length; i++) {
-        const edge = edges[i];
-        edge.disconnect();
-        delete this.edgeById[edge.id];
-      }
-
-      delete this.nodeById[node.id];
-    }
-
-    for (let i = 0; i < edgeIds.length; i++) {
-      const edge = this.getEdgeById(edgeIds[i]);
-      if (!edge) {
-        continue;
-      }
-
-      edge.disconnect();
-      delete this.edgeById[edge.id];
-    }
-
-    this.applyEdgeOffsets();
-    this.applyStyle();
+    this._applyEdgeOffsets();
+    this._applyStyle();
   }
 
   isEqual<T extends INodeBase, K extends IEdgeBase>(graph: Graph<T, K>): boolean {
@@ -318,56 +288,6 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     }
 
     return true;
-  }
-
-  // TODO @toni: Refactor this to the "SelectStrategy" class where this will be default
-  selectNode(node: Node<N, E>) {
-    this.unselectAll();
-    setNodeState(node, GraphObjectState.SELECT, { isStateOverride: true });
-  }
-
-  selectEdge(edge: Edge<N, E>) {
-    this.unselectAll();
-    setEdgeState(edge, GraphObjectState.SELECT, { isStateOverride: true });
-  }
-
-  unselectAll(): { changedCount: number } {
-    const selectedNodes = this.getNodes((node) => node.isSelected());
-    for (let i = 0; i < selectedNodes.length; i++) {
-      selectedNodes[i].clearState();
-    }
-
-    const selectedEdges = this.getEdges((edge) => edge.isSelected());
-    for (let i = 0; i < selectedEdges.length; i++) {
-      selectedEdges[i].clearState();
-    }
-
-    return { changedCount: selectedNodes.length + selectedEdges.length };
-  }
-
-  // TODO @toni: Refactor this to the "HoverStrategy" class where this will be default
-  hoverNode(node: Node<N, E>) {
-    this.unhoverAll();
-    setNodeState(node, GraphObjectState.HOVER);
-  }
-
-  hoverEdge(edge: Edge<N, E>) {
-    this.unhoverAll();
-    setEdgeState(edge, GraphObjectState.HOVER);
-  }
-
-  unhoverAll(): { changedCount: number } {
-    const hoveredNodes = this.getNodes((node) => node.isHovered());
-    for (let i = 0; i < hoveredNodes.length; i++) {
-      hoveredNodes[i].clearState();
-    }
-
-    const hoveredEdges = this.getEdges((edge) => edge.isHovered());
-    for (let i = 0; i < hoveredEdges.length; i++) {
-      hoveredEdges[i].clearState();
-    }
-
-    return { changedCount: hoveredNodes.length + hoveredEdges.length };
   }
 
   getBoundingBox(): IRectangle {
@@ -414,7 +334,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     };
   }
 
-  getNearestNode(point: IPosition): Node<N, E> | undefined {
+  getNearestNode(point: IPosition): INode<N, E> | undefined {
     // Reverse is needed to check from the top drawn to the bottom drawn node
     const nodes = this.getNodes();
     for (let i = nodes.length - 1; i >= 0; i--) {
@@ -424,8 +344,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     }
   }
 
-  getNearestEdge(point: IPosition, minDistance = 3): Edge<N, E> | undefined {
-    let nearestEdge: Edge<N, E> | undefined;
+  getNearestEdge(point: IPosition, minDistance = 3): IEdge<N, E> | undefined {
+    let nearestEdge: IEdge<N, E> | undefined;
     let nearestDistance = minDistance;
 
     const edges = this.getEdges();
@@ -439,43 +359,148 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     return nearestEdge;
   }
 
-  protected applyEdgeOffsets() {
+  private _insertNodes(nodes: N[]) {
+    for (let i = 0; i < nodes.length; i++) {
+      const node = NodeFactory.create<N, E>({ data: nodes[i] });
+      this._nodeById[node.id] = node;
+    }
+  }
+
+  private _insertEdges(edges: E[]) {
+    for (let i = 0; i < edges.length; i++) {
+      const startNode = this.getNodeById(edges[i].start);
+      const endNode = this.getNodeById(edges[i].end);
+
+      if (startNode && endNode) {
+        const edge = EdgeFactory.create<N, E>({
+          data: edges[i],
+          startNode,
+          endNode,
+        });
+        this._edgeById[edge.id] = edge;
+      }
+    }
+  }
+
+  private _upsertNodes(nodes: N[]) {
+    for (let i = 0; i < nodes.length; i++) {
+      const existingNode = this.getNodeById(nodes[i].id);
+      if (existingNode) {
+        existingNode.data = nodes[i];
+        continue;
+      }
+
+      const node = NodeFactory.create<N, E>({ data: nodes[i] });
+      this._nodeById[node.id] = node;
+    }
+  }
+
+  private _upsertEdges(edges: E[]) {
+    for (let i = 0; i < edges.length; i++) {
+      const newEdgeData = edges[i];
+      const existingEdge = this.getEdgeById(newEdgeData.id);
+
+      // New edge
+      if (!existingEdge) {
+        const startNode = this.getNodeById(newEdgeData.start);
+        const endNode = this.getNodeById(newEdgeData.end);
+
+        if (startNode && endNode) {
+          const edge = EdgeFactory.create<N, E>({
+            data: newEdgeData,
+            startNode,
+            endNode,
+          });
+          this._edgeById[edge.id] = edge;
+        }
+        continue;
+      }
+
+      // The connection of the edge stays the same, but the data has changed
+      if (existingEdge.start === newEdgeData.start && existingEdge.end === newEdgeData.end) {
+        existingEdge.data = newEdgeData;
+        continue;
+      }
+
+      // Edge connection (start or end node) has changed
+      existingEdge.startNode.removeEdge(existingEdge);
+      existingEdge.endNode.removeEdge(existingEdge);
+      delete this._edgeById[existingEdge.id];
+
+      const startNode = this.getNodeById(newEdgeData.start);
+      const endNode = this.getNodeById(newEdgeData.end);
+
+      if (startNode && endNode) {
+        const edge = EdgeFactory.create<N, E>({
+          data: newEdgeData,
+          offset: existingEdge.offset,
+          startNode,
+          endNode,
+        });
+        edge.state = existingEdge.state;
+        edge.properties = existingEdge.properties;
+        this._edgeById[existingEdge.id] = edge;
+      }
+    }
+  }
+
+  private _removeNodes(nodeIds: number[]) {
+    for (let i = 0; i < nodeIds.length; i++) {
+      const node = this.getNodeById(nodeIds[i]);
+      if (!node) {
+        continue;
+      }
+
+      const edges = node.getEdges();
+      for (let i = 0; i < edges.length; i++) {
+        const edge = edges[i];
+        edge.startNode.removeEdge(edge);
+        edge.endNode.removeEdge(edge);
+        delete this._edgeById[edge.id];
+      }
+
+      delete this._nodeById[node.id];
+    }
+  }
+
+  private _removeEdges(edgeIds: number[]) {
+    for (let i = 0; i < edgeIds.length; i++) {
+      const edge = this.getEdgeById(edgeIds[i]);
+      if (!edge) {
+        continue;
+      }
+
+      edge.startNode.removeEdge(edge);
+      edge.endNode.removeEdge(edge);
+      delete this._edgeById[edge.id];
+    }
+  }
+
+  private _applyEdgeOffsets() {
     const graphEdges = this.getEdges();
     const edgeOffsets = getEdgeOffsets<N, E>(graphEdges);
     for (let i = 0; i < edgeOffsets.length; i++) {
       const edge = graphEdges[i];
       const edgeOffset = edgeOffsets[i];
-
-      // TODO @toni: This is super unoptimized and there should be a better way \
-      // TODO @toni: to create edge types depending on the node-node connections (maybe new intermediate object)
-      // TODO @toni: Also check ImageHandler private constructor to forbid usage of new Edge and or new Node
-      const newEdge = new Edge<N, E>({
-        data: edge.data,
-        offset: edgeOffset,
-      });
-      newEdge.connect(edge.startNode!, edge.endNode!);
-      newEdge.state = edge.state;
-      newEdge.properties = edge.properties;
-
-      this.edgeById[edge.id] = newEdge;
+      this._edgeById[edge.id] = EdgeFactory.copy(edge, { offset: edgeOffset });
     }
   }
 
-  protected applyStyle() {
-    if (this.style?.getNodeStyle) {
+  private _applyStyle() {
+    if (this._style?.getNodeStyle) {
       const newNodes = this.getNodes();
       for (let i = 0; i < newNodes.length; i++) {
-        const properties = this.style.getNodeStyle(newNodes[i]);
+        const properties = this._style.getNodeStyle(newNodes[i]);
         if (properties) {
           newNodes[i].properties = properties;
         }
       }
     }
 
-    if (this.style?.getEdgeStyle) {
+    if (this._style?.getEdgeStyle) {
       const newEdges = this.getEdges();
       for (let i = 0; i < newEdges.length; i++) {
-        const properties = this.style.getEdgeStyle(newEdges[i]);
+        const properties = this._style.getEdgeStyle(newEdges[i]);
         if (properties) {
           newEdges[i].properties = properties;
         }
@@ -483,146 +508,3 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> {
     }
   }
 }
-
-interface ISetShapeStateOptions {
-  isStateOverride: boolean;
-}
-
-const setNodeState = <N extends INodeBase, E extends IEdgeBase>(
-  node: Node<N, E>,
-  state: GraphObjectState,
-  options?: ISetShapeStateOptions,
-): void => {
-  if (isStateChangeable(node, options)) {
-    node.state = state;
-  }
-
-  node.getInEdges().forEach((edge) => {
-    if (edge && isStateChangeable(edge, options)) {
-      edge.state = state;
-    }
-    if (edge.startNode && isStateChangeable(edge.startNode, options)) {
-      edge.startNode.state = state;
-    }
-  });
-
-  node.getOutEdges().forEach((edge) => {
-    if (edge && isStateChangeable(edge, options)) {
-      edge.state = state;
-    }
-    if (edge.endNode && isStateChangeable(edge.endNode, options)) {
-      edge.endNode.state = state;
-    }
-  });
-};
-
-const setEdgeState = <N extends INodeBase, E extends IEdgeBase>(
-  edge: Edge<N, E>,
-  state: GraphObjectState,
-  options?: ISetShapeStateOptions,
-): void => {
-  if (isStateChangeable(edge, options)) {
-    edge.state = state;
-  }
-
-  if (edge.startNode && isStateChangeable(edge.startNode, options)) {
-    edge.startNode.state = state;
-  }
-
-  if (edge.endNode && isStateChangeable(edge.endNode, options)) {
-    edge.endNode.state = state;
-  }
-};
-
-const isStateChangeable = <N extends INodeBase, E extends IEdgeBase>(
-  graphObject: Node<N, E> | Edge<N, E>,
-  options?: ISetShapeStateOptions,
-): boolean => {
-  const isOverride = options?.isStateOverride;
-  return isOverride || (!isOverride && !graphObject.state);
-};
-
-// TODO @toni: Move this to a separate utility class
-const getEdgeOffsets = <N extends INodeBase, E extends IEdgeBase>(edges: Edge<N, E>[]): number[] => {
-  const edgeOffsets = new Array<number>(edges.length);
-  const edgeOffsetsByUniqueKey = getEdgeOffsetsByUniqueKey(edges);
-
-  for (let i = 0; i < edges.length; i++) {
-    const edge = edges[i];
-    let offset = 0;
-
-    const uniqueKey = getUniqueEdgeKey(edge);
-    const edgeOffsetsByKey = edgeOffsetsByUniqueKey[uniqueKey];
-    if (edgeOffsetsByKey && edgeOffsetsByKey.length) {
-      // Pull the first offset
-      offset = edgeOffsetsByKey.shift() ?? 0;
-
-      const isEdgeReverseDirection = edge.end < edge.start;
-      if (isEdgeReverseDirection) {
-        offset = -1 * offset;
-      }
-    }
-
-    edgeOffsets[i] = offset;
-  }
-
-  return edgeOffsets;
-};
-
-const getUniqueEdgeKey = <E extends IEdgeBase>(edge: E): string => {
-  const sid = edge.start;
-  const tid = edge.end;
-  return sid < tid ? `${sid}-${tid}` : `${tid}-${sid}`;
-};
-
-const getEdgeOffsetsByUniqueKey = <N extends INodeBase, E extends IEdgeBase>(
-  edges: Edge<N, E>[],
-): Record<string, number[]> => {
-  const edgeCountByUniqueKey: Record<string, number> = {};
-  const loopbackUniqueKeys: Set<string> = new Set<string>();
-
-  // Count the number of edges that are between the same nodes
-  for (let i = 0; i < edges.length; i++) {
-    // TODO @toni: This is expensive, so maybe we should have unique key in the edge
-    const uniqueKey = getUniqueEdgeKey(edges[i]);
-    if (edges[i].start === edges[i].end) {
-      loopbackUniqueKeys.add(uniqueKey);
-    }
-    edgeCountByUniqueKey[uniqueKey] = (edgeCountByUniqueKey[uniqueKey] ?? 0) + 1;
-  }
-
-  const edgeOffsetsByUniqueKey: Record<string, number[]> = {};
-  const uniqueKeys = Object.keys(edgeCountByUniqueKey);
-
-  for (let i = 0; i < uniqueKeys.length; i++) {
-    const uniqueKey = uniqueKeys[i];
-    const edgeCount = edgeCountByUniqueKey[uniqueKey];
-
-    // Loopback offsets should be 1, 2, 3, ...
-    if (loopbackUniqueKeys.has(uniqueKey)) {
-      edgeOffsetsByUniqueKey[uniqueKey] = Array.from({ length: edgeCount }, (_, i) => i + 1);
-      continue;
-    }
-
-    if (edgeCount <= 1) {
-      continue;
-    }
-
-    const edgeOffsets: number[] = [];
-
-    // 0 means straight line. There will be a straight line between two nodes
-    // when there are 1 edge, 3 edges, 5 edges, ...
-    if (edgeCount % 2 !== 0) {
-      edgeOffsets.push(0);
-    }
-
-    for (let i = 2; i <= edgeCount; i += 2) {
-      edgeOffsets.push(i / 2);
-      edgeOffsets.push((i / 2) * -1);
-    }
-
-    edgeOffsetsByUniqueKey[uniqueKey] = edgeOffsets;
-  }
-
-  return edgeOffsetsByUniqueKey;
-};

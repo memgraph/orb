@@ -6,18 +6,28 @@ export type ISimulationNode = SimulationNodeDatum & { id: number; mass?: number 
 export type ISimulationEdge = SimulationLinkDatum<ISimulationNode> & { id: number };
 
 export interface ISimulator {
+  // Sets nodes and edges without running simulation
+  setData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
+  addData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
+  updateData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
+  clearData(): void;
+
   // Simulation handlers
+  simulate(): void;
   activateSimulation(): void;
   startSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
   updateSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
   stopSimulation(): void;
+
   // Node handlers
   startDragNode(): void;
   dragNode(nodeId: number, position: IPosition): void;
   endDragNode(nodeId: number): void;
+  fixNodes(nodes?: ISimulationNode[]): void;
+  releaseNodes(nodes?: ISimulationNode[]): void;
+
   // Settings handlers
   setSettings(settings: ID3SimulatorEngineSettingsUpdate): void;
-  setPhysics(isEnabled: boolean): void;
 
   terminate(): void;
 }

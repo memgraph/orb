@@ -1,18 +1,26 @@
-import { Edge, IEdgeBase } from './edge';
+import { IEdge, IEdgeBase } from './edge';
 import { IRectangle, isPointInRectangle } from '../common/rectangle';
 import { Color } from './color';
 import { IPosition } from '../common/position';
 import { ImageHandler } from '../services/images';
 import { GraphObjectState } from './state';
 
+/**
+ * Node baseline object with required fields
+ * that user needs to define for a node.
+ */
 export interface INodeBase {
   id: number;
 }
 
+/**
+ * Node position for the graph simulations. Node position
+ * is determined by x and y coordinates.
+ */
 export interface INodePosition {
   id: number;
-  x: 0;
-  y: 0;
+  x?: number;
+  y?: number;
 }
 
 export enum NodeShapeType {
@@ -26,6 +34,9 @@ export enum NodeShapeType {
   HEXAGON = 'hexagon',
 }
 
+/**
+ * Node properties used to style the node (color, width, label, etc.).
+ */
 export interface INodeProperties {
   borderColor: Color | string;
   borderColorHover: Color | string;
@@ -53,31 +64,75 @@ export interface INodeProperties {
 
 export const DEFAULT_NODE_PROPERTIES: Partial<INodeProperties> = {
   size: 5,
-  color: new Color('#000000'),
+  color: new Color('#1d87c9'),
 };
 
 export interface INodeData<N extends INodeBase> {
   data: N;
 }
 
-export class Node<N extends INodeBase, E extends IEdgeBase> {
+export interface INode<N extends INodeBase, E extends IEdgeBase> {
+  data: N;
+  position: INodePosition;
+  properties: Partial<INodeProperties>;
+  state: number;
+  get id(): number;
+  getCenter(): IPosition;
+  getRadius(): number;
+  getBorderedRadius(): number;
+  getBoundingBox(): IRectangle;
+  getInEdges(): IEdge<N, E>[];
+  getOutEdges(): IEdge<N, E>[];
+  getEdges(): IEdge<N, E>[];
+  getAdjacentNodes(): INode<N, E>[];
+  addEdge(edge: IEdge<N, E>): void;
+  removeEdge(edge: IEdge<N, E>): void;
+  isSelected(): boolean;
+  isHovered(): boolean;
+  clearState(): void;
+  getDistanceToBorder(): number;
+  includesPoint(point: IPosition): boolean;
+  hasShadow(): boolean;
+  hasBorder(): boolean;
+  getLabel(): string | undefined;
+  getColor(): Color | string | undefined;
+  getBorderWidth(): number;
+  getBorderColor(): Color | string | undefined;
+  getBackgroundImage(): HTMLImageElement | undefined;
+}
+
+export class NodeFactory {
+  static create<N extends INodeBase, E extends IEdgeBase>(data: INodeData<N>): INode<N, E> {
+    return new Node<N, E>(data);
+  }
+}
+
+export const isNode = <N extends INodeBase, E extends IEdgeBase>(obj: any): obj is INode<N, E> => {
+  return obj instanceof Node;
+};
+
+export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, E> {
   public readonly id: number;
   public data: N;
-
-  private readonly inEdgesById: { [id: number]: Edge<N, E> } = {};
-  private readonly outEdgesById: { [id: number]: Edge<N, E> } = {};
-
   public position: INodePosition;
   public properties: Partial<INodeProperties> = DEFAULT_NODE_PROPERTIES;
-  public state?: GraphObjectState;
+  public state = GraphObjectState.NONE;
+
+  private readonly _inEdgesById: { [id: number]: IEdge<N, E> } = {};
+  private readonly _outEdgesById: { [id: number]: IEdge<N, E> } = {};
 
   constructor(data: INodeData<N>) {
     this.id = data.data.id;
     this.data = data.data;
-    this.position = { id: this.id, x: 0, y: 0 };
+    this.position = { id: this.id };
   }
 
   getCenter(): IPosition {
+    // This should not be called in the render because nodes without position will be
+    // filtered out
+    if (this.position.x === undefined || this.position.y === undefined) {
+      return { x: 0, y: 0 };
+    }
     return { x: this.position.x, y: this.position.y };
   }
 
@@ -89,13 +144,9 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
     return this.getRadius() + this.getBorderWidth() / 2;
   }
 
-  getLabel(): string | undefined {
-    return this.properties.label;
-  }
-
   getBoundingBox(): IRectangle {
     const center = this.getCenter();
-    const radius = this.getBorderWidth();
+    const radius = this.getBorderedRadius();
     return {
       x: center.x - radius,
       y: center.y - radius,
@@ -104,16 +155,16 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
     };
   }
 
-  getInEdges(): Edge<N, E>[] {
-    return Object.values(this.inEdgesById);
+  getInEdges(): IEdge<N, E>[] {
+    return Object.values(this._inEdgesById);
   }
 
-  getOutEdges(): Edge<N, E>[] {
-    return Object.values(this.outEdgesById);
+  getOutEdges(): IEdge<N, E>[] {
+    return Object.values(this._outEdgesById);
   }
 
-  getEdges(): Edge<N, E>[] {
-    const edgeById: { [id: number]: Edge<N, E> } = {};
+  getEdges(): IEdge<N, E>[] {
+    const edgeById: { [id: number]: IEdge<N, E> } = {};
 
     const outEdges = this.getOutEdges();
     for (let i = 0; i < outEdges.length; i++) {
@@ -130,8 +181,8 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
     return Object.values(edgeById);
   }
 
-  getAdjacentNodes(): Node<N, E>[] {
-    const adjacentNodeById: { [id: number]: Node<N, E> } = {};
+  getAdjacentNodes(): INode<N, E>[] {
+    const adjacentNodeById: { [id: number]: INode<N, E> } = {};
 
     const outEdges = this.getOutEdges();
     for (let i = 0; i < outEdges.length; i++) {
@@ -152,39 +203,39 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
     return Object.values(adjacentNodeById);
   }
 
-  addEdge(edge: Edge<N, E>) {
+  addEdge(edge: IEdge<N, E>) {
     if (edge.start === this.id) {
-      this.outEdgesById[edge.id] = edge;
+      this._outEdgesById[edge.id] = edge;
     }
     if (edge.end === this.id) {
-      this.inEdgesById[edge.id] = edge;
+      this._inEdgesById[edge.id] = edge;
     }
   }
 
-  removeEdge(edge: Edge<N, E>) {
-    delete this.outEdgesById[edge.id];
-    delete this.inEdgesById[edge.id];
+  removeEdge(edge: IEdge<N, E>) {
+    delete this._outEdgesById[edge.id];
+    delete this._inEdgesById[edge.id];
   }
 
   isSelected(): boolean {
-    return this.state === GraphObjectState.SELECT;
+    return this.state === GraphObjectState.SELECTED;
   }
 
   isHovered(): boolean {
-    return this.state === GraphObjectState.HOVER;
+    return this.state === GraphObjectState.HOVERED;
   }
 
   clearState(): void {
-    this.state = undefined;
+    this.state = GraphObjectState.NONE;
   }
 
-  getDistanceToBorder(_angle: number): number {
-    // TODO @toni: Add getDistanceToBorder for each node shape type because this covers only circles
+  getDistanceToBorder(): number {
+    // TODO: Add "getDistanceToBorder(angle: number)" for each node shape type because this covers only circles
     return this.getBorderedRadius();
   }
 
   includesPoint(point: IPosition): boolean {
-    const isInBoundingBox = this.isPointInBoundingBox(point);
+    const isInBoundingBox = this._isPointInBoundingBox(point);
     if (!isInBoundingBox) {
       return false;
     }
@@ -194,7 +245,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
       return isInBoundingBox;
     }
 
-    // TODO @toni: Add better checks for stars, triangles, hexagons, etc.
+    // TODO: Add better "includePoint" checks for stars, triangles, hexagons, etc.
     const center = this.getCenter();
     const borderedRadius = this.getBorderedRadius();
 
@@ -215,6 +266,10 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
     const hasBorderWidth = (this.properties.borderWidth ?? 0) > 0;
     const hasBorderWidthSelected = (this.properties.borderWidthSelected ?? 0) > 0;
     return hasBorderWidth || (this.isSelected() && hasBorderWidthSelected);
+  }
+
+  getLabel(): string | undefined {
+    return this.properties.label;
   }
 
   getColor(): Color | string | undefined {
@@ -285,7 +340,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> {
     return ImageHandler.getInstance().getImage(imageUrl);
   }
 
-  protected isPointInBoundingBox(point: IPosition): boolean {
+  protected _isPointInBoundingBox(point: IPosition): boolean {
     return isPointInRectangle(this.getBoundingBox(), point);
   }
 }
