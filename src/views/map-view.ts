@@ -3,9 +3,10 @@ import { IEdgeBase, isEdge } from '../models/edge';
 import { INode, INodeBase, INodePosition, isNode } from '../models/node';
 import { IGraph } from '../models/graph';
 import { IOrbView, IViewContext, OrbEmitter, OrbEventType } from '../orb';
-import { Renderer } from '../renderer/canvas/renderer';
+import { IRendererSettings, Renderer } from '../renderer/canvas/renderer';
 import { IPosition } from '../common/position';
 import { IEventStrategy } from '../models/strategy';
+import { copyObject } from '../utils/object.utils';
 
 export interface ILeafletMapTile {
   instance: L.TileLayer;
@@ -25,8 +26,10 @@ const DEFAULT_ZOOM_LEVEL = 2;
 
 export interface IMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
+  // TODO: Move into a grouped settings (e.g. map)
   zoomLevel?: number;
   tile?: ILeafletMapTile;
+  render?: Partial<IRendererSettings>;
 }
 
 export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbView {
@@ -54,6 +57,9 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       zoomLevel: DEFAULT_ZOOM_LEVEL,
       tile: DEFAULT_MAP_TILE,
       ...settings,
+      render: {
+        ...settings?.render,
+      },
     };
 
     // Check for more details here: https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent
@@ -69,21 +75,28 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     resizeObs.observe(this._container);
 
     this._renderer = new Renderer(this._context);
+    this._settings.render = this._renderer.settings;
     this._leaflet = this._initLeaflet();
     // Setting up leaflet map tile
     this._handleTileChange();
   }
 
-  render() {
-    this._updateGraphPositions();
-    this._renderer.render(this._graph);
+  get settings(): IMapViewSettings<N, E> {
+    return copyObject(this._settings);
   }
 
-  recenter() {
+  render(onRendered?: () => void) {
+    this._updateGraphPositions();
+    this._renderer.render(this._graph);
+    onRendered?.();
+  }
+
+  recenter(onRendered?: () => void) {
     const view = this._graph.getBoundingBox();
     const topRightCoordinate = this._leaflet.layerPointToLatLng([view.x, view.y]);
     const bottomLeftCoordinate = this._leaflet.layerPointToLatLng([view.x + view.width, view.y + view.height]);
     this._leaflet.fitBounds(L.latLngBounds(topRightCoordinate, bottomLeftCoordinate));
+    onRendered?.();
   }
 
   destroy() {
@@ -106,6 +119,14 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     if (settings.tile) {
       this._settings.tile = settings.tile;
       this._handleTileChange();
+    }
+
+    if (settings.render) {
+      this._renderer.settings = {
+        ...this._renderer.settings,
+        ...settings.render,
+      };
+      this._settings.render = this._renderer.settings;
     }
   }
 

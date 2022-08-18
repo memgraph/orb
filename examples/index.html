@@ -19,26 +19,37 @@
   <script type="text/javascript">
     const container = document.getElementById('graph');
     const nodes = [
-      { id: 0, labels: ['Node A'], properties: { test: 1 }, lat: 45.795548, lng: 15.977526, x: 1, y: 1 },
-      { id: 1, labels: ['Node B'], properties: { test: 2 }, lat: 43.513429, lng: 16.463262, x: 2, y: 2 },
-      { id: 2, labels: ['Node C'], properties: { test: 3 }, lat: 45.537078, lng: 18.692907, x: 3, y: 3 },
-    ]
+      { id: 0, labels: ['Node A'], properties: { test: 1 }, lat: 45.795548, lng: 15.977526, x: -100, y: 0 },
+      { id: 1, labels: ['Node B'], properties: { test: 2 }, lat: 43.513429, lng: 16.463262, x: 100, y: 0 },
+      { id: 2, labels: ['Node C'], properties: { test: 3 }, lat: 45.537078, lng: 18.692907, x: 0, y: 100 },
+    ];
+    for (let i = 3; i < 5000; i++) {
+      nodes.push({ id: i, labels: [`Node ${i}`], x: Math.random() * 1000, y: Math.random() * 1000 });
+    }
     const edges = [
-      { id: 0, start: 0, end: 0, label: 'Edge Q', properties: { test: 3 } },
-      { id: 1, start: 0, end: 1, label: 'Edge W', properties: { test: 3 } },
-      { id: 2, start: 0, end: 2, label: 'Edge E', properties: { test: 3 } },
-      { id: 3, start: 1, end: 2, label: 'Edge T', properties: { test: 3 } },
-      { id: 4, start: 2, end: 2, label: 'Edge Y', properties: { test: 3 } },
-      { id: 5, start: 0, end: 1, label: 'Edge V', properties: { test: 3 } },
+      { id: 10, start: 0, end: 0, label: 'Edge Q', properties: { test: 3 } },
+      { id: 11, start: 0, end: 1, label: 'Edge W', properties: { test: 3 } },
+      { id: 12, start: 0, end: 2, label: 'Edge E', properties: { test: 3 } },
+      { id: 13, start: 1, end: 2, label: 'Edge T', properties: { test: 3 } },
+      { id: 14, start: 2, end: 2, label: 'Edge Y', properties: { test: 3 } },
+      { id: 15, start: 0, end: 1, label: 'Edge V', properties: { test: 3 } },
     ]
 
     const orb = new Orb.Orb(container);
+    orb.setView((context) => new Orb.DefaultView(context));
+    /*
+    orb.setView((context) => new Orb.DefaultView(context, {
+      getPosition: (node) => ({ x: node.data.x, y: node.data.y })
+    }))
+    */
     // orb.setView((context) => new Orb.MapView(context, {
     //   getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng, }),
     // }));
 
     // Initialize nodes and edges
     orb.data.setup({ nodes, edges });
+
+    // Assign a basic style
     orb.data.setStyle({
       getNodeStyle(node) {
         return {
@@ -66,36 +77,57 @@
       },
     });
 
+    orb.events.on('simulation-step', (data) => {
+      orb.view.render();
+    });
+
     // Render and recenter the view
     orb.view.render(() => {
-      // orb.view.recenter();
-      console.log('rendered');
+      orb.view.recenter();
     });
+    
 
-    orb.events.on('node-click', (node) => {
-      console.log('Event: node-click', node);
-    });
-    orb.events.on('node-hover', (node) => {
-      console.log('Event: node-hover', node);
-    });
-    orb.events.on('edge-click', (edge) => {
-      console.log('Event: edge-click', edge);
-    });
+    // orb.events.on('node-click', (node) => {
+    //   console.log('Event: node-click', node);
+    // });
+    // orb.events.on('node-hover', (node) => {
+    //   console.log('Event: node-hover', node);
+    // });
+    // orb.events.on('edge-click', (edge) => {
+    //   console.log('Event: edge-click', edge);
+    // });
 
-    setTimeout(() => {
-      orb.data.join({
-        nodes: [
-          { id: 3, labels: ['Node D'], properties: { test: 2 }, x: 2, y: 2 },
-          { id: 4, labels: ['Node E'], properties: { test: 3 }, x: 3, y: 3 },
-        ],
-      });
-      orb.view.render(() => {
-        setTimeout(() => {
-          orb.view.recenter();
-        }, 2000);
-      });
-      orb.view.render();
-    }, 5000);
+    // setTimeout(() => {
+    //   orb.data.join({
+    //     nodes: [
+    //       { id: 3, labels: ['Node D'], properties: { test: 2 }, x: 50, y: 50 },
+    //       { id: 4, labels: ['Node E'], properties: { test: 3 }, x: 100, y: 100 },
+    //     ],
+    //   });
+    //   orb.view.render();
+
+    //   setTimeout(() => {
+    //     orb.data.join({
+    //       nodes: [
+    //         { id: 5, labels: ['Node F'], properties: { test: 2 } },
+    //         { id: 6, labels: ['Node G'], properties: { test: 3 } },
+    //         { id: 7, labels: ['Node H'], properties: { test: 3 } },
+    //       ],
+    //       edges: [
+    //         { id: 21, start: 5, end: 4, label: 'Edge Q', properties: { test: 3 } },
+    //         { id: 22, start: 6, end: 4, label: 'Edge Q', properties: { test: 3 } },
+    //         { id: 23, start: 7, end: 4, label: 'Edge Q', properties: { test: 3 } },
+    //       ]
+    //     });
+
+    //     orb.view.render(() => {
+    //       setTimeout(() => {
+    //         orb.view.recenter();
+    //       }, 2000);
+    //     });
+    //   }, 3000);
+
+    // }, 3000);
   </script>
 </body>
 </html>

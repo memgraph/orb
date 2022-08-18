@@ -40,6 +40,26 @@ export class WebWorkerSimulator implements ISimulator {
     };
   }
 
+  setData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.emitToWorker({ type: WorkerInputType.SetData, data: { nodes, edges } });
+  }
+
+  addData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.emitToWorker({ type: WorkerInputType.AddData, data: { nodes, edges } });
+  }
+
+  updateData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.emitToWorker({ type: WorkerInputType.UpdateData, data: { nodes, edges } });
+  }
+
+  clearData() {
+    this.emitToWorker({ type: WorkerInputType.ClearData });
+  }
+
+  simulate() {
+    this.emitToWorker({ type: WorkerInputType.Simulate });
+  }
+
   activateSimulation() {
     this.emitToWorker({ type: WorkerInputType.ActivateSimulation });
   }
@@ -68,12 +88,16 @@ export class WebWorkerSimulator implements ISimulator {
     this.emitToWorker({ type: WorkerInputType.EndDragNode, data: { id: nodeId } });
   }
 
-  setSettings(settings: ID3SimulatorEngineSettingsUpdate) {
-    this.emitToWorker({ type: WorkerInputType.SetSettings, data: settings });
+  fixNodes(nodes?: ISimulationNode[]) {
+    this.emitToWorker({ type: WorkerInputType.FixNodes, data: { nodes } });
   }
 
-  setPhysics(isEnabled: boolean) {
-    this.emitToWorker({ type: WorkerInputType.SetPhysics, data: { isEnabled } });
+  releaseNodes(nodes?: ISimulationNode[]): void {
+    this.emitToWorker({ type: WorkerInputType.ReleaseNodes, data: { nodes } });
+  }
+
+  setSettings(settings: ID3SimulatorEngineSettingsUpdate) {
+    this.emitToWorker({ type: WorkerInputType.SetSettings, data: settings });
   }
 
   terminate() {

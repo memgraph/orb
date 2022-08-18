@@ -8,7 +8,14 @@ import { IWorkerPayload } from './worker-payload';
 // (not quite as there is no immediate response to a request)
 
 export enum WorkerInputType {
+  // Set node and edge data without simulating
+  SetData = 'Set Data',
+  AddData = 'Add Data',
+  UpdateData = 'Update Data',
+  ClearData = 'Clear Data',
+
   // Simulation message types
+  Simulate = 'Simulate',
   ActivateSimulation = 'Activate Simulation',
   StartSimulation = 'Start Simulation',
   UpdateSimulation = 'Update Simulation',
@@ -18,11 +25,40 @@ export enum WorkerInputType {
   StartDragNode = 'Start Drag Node',
   DragNode = 'Drag Node',
   EndDragNode = 'End Drag Node',
+  FixNodes = 'Fix Nodes',
+  ReleaseNodes = 'Release Nodes',
 
   // Settings and special params
-  SetPhysics = 'Set Physics',
   SetSettings = 'Set Settings',
 }
+
+type IWorkerInputSetDataPayload = IWorkerPayload<
+  WorkerInputType.SetData,
+  {
+    nodes: ISimulationNode[];
+    edges: ISimulationEdge[];
+  }
+>;
+
+type IWorkerInputAddDataPayload = IWorkerPayload<
+  WorkerInputType.AddData,
+  {
+    nodes: ISimulationNode[];
+    edges: ISimulationEdge[];
+  }
+>;
+
+type IWorkerInputUpdateDataPayload = IWorkerPayload<
+  WorkerInputType.UpdateData,
+  {
+    nodes: ISimulationNode[];
+    edges: ISimulationEdge[];
+  }
+>;
+
+type IWorkerInputClearDataPayload = IWorkerPayload<WorkerInputType.ClearData>;
+
+type IWorkerInputSimulatePayload = IWorkerPayload<WorkerInputType.Simulate>;
 
 type IWorkerInputActivateSimulationPayload = IWorkerPayload<WorkerInputType.ActivateSimulation>;
 
@@ -55,22 +91,35 @@ type IWorkerInputEndDragNodePayload = IWorkerPayload<
   }
 >;
 
-type IWorkerInputSetPhysicsPayload = IWorkerPayload<
-  WorkerInputType.SetPhysics,
+type IWorkerInputFixNodesPayload = IWorkerPayload<
+  WorkerInputType.FixNodes,
   {
-    isEnabled: boolean;
+    nodes: ISimulationNode[] | undefined;
+  }
+>;
+
+type IWorkerInputReleaseNodesPayload = IWorkerPayload<
+  WorkerInputType.ReleaseNodes,
+  {
+    nodes: ISimulationNode[] | undefined;
   }
 >;
 
 type IWorkerInputSetSettingsPayload = IWorkerPayload<WorkerInputType.SetSettings, ID3SimulatorEngineSettingsUpdate>;
 
 export type IWorkerInputPayload =
+  | IWorkerInputSetDataPayload
+  | IWorkerInputAddDataPayload
+  | IWorkerInputUpdateDataPayload
+  | IWorkerInputClearDataPayload
+  | IWorkerInputSimulatePayload
   | IWorkerInputActivateSimulationPayload
   | IWorkerInputStartSimulationPayload
   | IWorkerInputUpdateSimulationPayload
   | IWorkerInputStopSimulationPayload
   | IWorkerInputStartDragNodePayload
   | IWorkerInputDragNodePayload
+  | IWorkerInputFixNodesPayload
+  | IWorkerInputReleaseNodesPayload
   | IWorkerInputEndDragNodePayload
-  | IWorkerInputSetPhysicsPayload
   | IWorkerInputSetSettingsPayload;

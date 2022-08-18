@@ -1,30 +1,38 @@
 import { D3DragEvent, drag } from 'd3-drag';
 import { easeLinear } from 'd3-ease';
-// import transition from 'd3-transition';
+// @ts-ignore
+import transition from 'd3-transition';
 import { D3ZoomEvent, zoom, ZoomBehavior } from 'd3-zoom';
 import { select } from 'd3-selection';
 import { IPosition, isEqualPosition } from '../common/position';
 
-import { Renderer } from '../renderer/canvas/renderer';
+import { IRendererSettings, Renderer } from '../renderer/canvas/renderer';
 import { ISimulator, SimulatorFactory } from '../simulator/index';
 import { IGraph } from '../models/graph';
-import { INodeBase, isNode } from '../models/node';
+import { INode, INodeBase, isNode } from '../models/node';
 import { IEdgeBase, isEdge } from '../models/edge';
 import { OrbEmitter, OrbEventType, IOrbView, IViewContext } from '../orb';
 import { IEventStrategy } from '../models/strategy';
+import { ID3SimulatorEngineSettingsUpdate } from '../simulator/engine/d3-simulator-engine';
+import { copyObject } from '../utils/object.utils';
 
+// TODO: Move to settings all these five
 const DISABLE_OUT_OF_BOUNDS_DRAG = true;
 const ROUND_COORDINATES = true;
-const ZOOM_SCALE_MAX = 8;
-const ZOOM_SCALE_MIN = 0.25;
 const ZOOM_FIT_TRANSITION_MS = 200;
-// const THROTTLE_TIME = 10;
+
+export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> {
+  getPosition?(node: INode<N, E>): IPosition | undefined;
+  simulation: ID3SimulatorEngineSettingsUpdate;
+  render: Partial<IRendererSettings>;
+}
 
 export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IOrbView {
   private _container: HTMLElement;
   private _graph: IGraph<N, E>;
   private _events: OrbEmitter<N, E>;
   private _strategy: IEventStrategy<N, E>;
+  private _settings: IDefaultViewSettings<N, E>;
 
   private _canvas: HTMLCanvasElement;
   private _context: CanvasRenderingContext2D | null;
@@ -32,17 +40,29 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   private _renderer: Renderer;
   private simulator: ISimulator;
 
-  private isPhysicsEnabled = false;
+  private _isSimulating = false;
+  private _onSimulationEnd: (() => void) | undefined;
 
   private d3Zoom: ZoomBehavior<HTMLCanvasElement, any>;
 
   private dragStartPosition: IPosition | undefined;
 
-  constructor(context: IViewContext<N, E>) {
+  constructor(context: IViewContext<N, E>, settings?: Partial<IDefaultViewSettings<N, E>>) {
     this._container = context.container;
     this._graph = context.graph;
     this._events = context.events;
     this._strategy = context.strategy;
+
+    this._settings = {
+      getPosition: settings?.getPosition,
+      simulation: {
+        isPhysicsEnabled: false,
+        ...settings?.simulation,
+      },
+      render: {
+        ...settings?.render,
+      },
+    };
 
     this._container.textContent = '';
     this._canvas = document.createElement('canvas');
@@ -56,10 +76,13 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     const resizeObs = new ResizeObserver(this.onContainerResize);
     resizeObs.observe(this._container);
 
-    this._renderer = new Renderer(this._context);
+    this._renderer = new Renderer(this._context, this._settings.render);
     this._renderer.translateOriginToCenter();
+    this._settings.render = this._renderer.settings;
 
-    this.d3Zoom = zoom<HTMLCanvasElement, any>().scaleExtent([ZOOM_SCALE_MIN, ZOOM_SCALE_MAX]).on('zoom', this.zoomed);
+    this.d3Zoom = zoom<HTMLCanvasElement, any>()
+      .scaleExtent([this._renderer.settings.minZoom, this._renderer.settings.maxZoom])
+      .on('zoom', this.zoomed);
 
     select<HTMLCanvasElement, any>(this._canvas)
       .call(
@@ -76,73 +99,64 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
 
     this.simulator = SimulatorFactory.getSimulator({
       onStabilizationStart: () => {
+        this._isSimulating = true;
         this._events.emit(OrbEventType.SIMULATION_START, undefined);
-        // this.isUpdatingGraph_.next(true);
-        // this.isLabelRendered_.next(false);
-        // this.stabilizationProgress_.next(0);
       },
       onStabilizationProgress: (data) => {
         this._graph.setNodePositions(data.nodes);
         this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
-
-        this._renderer.render(this._graph);
-        // TODO: Move to proper position
-        this._events.emit(OrbEventType.RENDER_END, undefined);
-
-        // Only for physics stabilization events which block the user interaction.
-        // (temporarily disabling drag)
-        /*
-        this.stabilizationProgress_.next(data.progress);
-        */
-
-        // Tick marks the physics simulation steps.
-        // So only render each step if the flag is enabled.
-        /*
-        if (this.showStabilization) {
-          this.renderThrottle_.next();
-        }
-        */
       },
       onStabilizationEnd: (data) => {
         this._graph.setNodePositions(data.nodes);
-
-        // this.isLabelRendered_.next(true);
-        // Reset progress.
-        // this.isUpdatingGraph_.next(false);
-        // this.stabilizationProgress_.next(null);
+        this._renderer.render(this._graph);
+        this._isSimulating = false;
+        this._onSimulationEnd?.();
+        this._events.emit(OrbEventType.SIMULATION_END, undefined);
       },
       onNodeDrag: (data) => {
         // Node dragging does not trigger a user blocking percentage loader.
         this._graph.setNodePositions(data.nodes);
+        // TODO: Add throttle render
         this._renderer.render(this._graph);
-
-        // (old)
-        // this.graph?.setNodePositions(data.nodes);
-        // this.renderThrottle_.next();
       },
-      onSettingsUpdate: (_) => {
-        if (this._graph && !this.isPhysicsEnabled) {
-          this.simulator.startSimulation(this._graph.getNodePositions(), this._graph.getEdgePositions());
-        }
+      onSettingsUpdate: (data) => {
+        this._settings.simulation = data.settings;
+        // TODO: Send event to the user so user can handle this if needed
+        // TODO: Do we need to call .render() here or user should take care of it
       },
     });
+
+    this.simulator.setSettings(this._settings.simulation);
   }
 
-  render(onRendered: () => void) {
-    // TODO: Render here and have callback!
-    this.startSimulation();
-    this._renderer.render(this._graph);
-    if (onRendered) {
-      onRendered();
+  get settings(): IDefaultViewSettings<N, E> {
+    return copyObject(this._settings);
+  }
+
+  render(onRendered?: () => void) {
+    if (this._isSimulating) {
+      this._renderer.render(this._graph);
+      onRendered?.();
+      return;
     }
+
+    if (this._settings.getPosition) {
+      const nodes = this._graph.getNodes();
+      for (let i = 0; i < nodes.length; i++) {
+        const position = this._settings.getPosition(nodes[i]);
+        if (position) {
+          nodes[i].position = { id: nodes[i].id, ...position };
+        }
+      }
+    }
+
+    this._isSimulating = true;
+    this._onSimulationEnd = onRendered;
+    this.startSimulation();
   }
 
-  recenter() {
-    const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph, {
-      minZoom: ZOOM_SCALE_MIN,
-      maxZoom: ZOOM_SCALE_MAX,
-    });
-    console.log('fitZoomTransform', fitZoomTransform);
+  recenter(onRendered?: () => void) {
+    const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph);
 
     select(this._canvas)
       .transition()
@@ -151,12 +165,34 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       .call(this.d3Zoom.transform, fitZoomTransform)
       .call(() => {
         this._renderer.render(this._graph);
-        // this.renderImmediate_.next()
+        onRendered?.();
       });
   }
 
   destroy() {
     this._container.textContent = '';
+  }
+
+  change(settings: Partial<IDefaultViewSettings<N, E>>) {
+    if (settings.getPosition) {
+      this._settings.getPosition = settings.getPosition;
+    }
+
+    if (settings.simulation) {
+      this._settings.simulation = {
+        ...this._settings.simulation,
+        ...settings.simulation,
+      };
+      this.simulator.setSettings(this._settings.simulation);
+    }
+
+    if (settings.render) {
+      this._renderer.settings = {
+        ...this._renderer.settings,
+        ...settings.render,
+      };
+      this._settings.render = this._renderer.settings;
+    }
   }
 
   dragSubject = (event: D3DragEvent<any, any, N>) => {
@@ -228,7 +264,6 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     return { x, y };
   }
 
-  // mouseMoved = (event: MouseEvent) => {
   mouseMoved = (event: MouseEvent) => {
     const mousePoint = this.getCanvasMousePosition(event);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
@@ -308,17 +343,19 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   };
 
   startSimulation() {
-    this._renderer.reset();
+    // this._renderer.reset();
     const nodePositions = this._graph.getNodePositions();
     const edgePositions = this._graph.getEdgePositions();
 
-    const isSimulationUpdate = nodePositions.some((position) => position.x !== undefined || position.y !== undefined);
+    this.simulator.updateData(nodePositions, edgePositions);
+    this.simulator.simulate();
+  }
 
-    // TODO: Maybe move logic to start/update simulation to the simulator?!
-    if (!isSimulationUpdate) {
-      this.simulator.startSimulation(nodePositions, edgePositions);
-    } else {
-      this.simulator.updateSimulation(nodePositions, edgePositions);
-    }
+  fixNodes() {
+    this.simulator.fixNodes();
+  }
+
+  releaseNodes() {
+    this.simulator.releaseNodes();
   }
 }

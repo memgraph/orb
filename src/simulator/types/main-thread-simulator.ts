@@ -34,6 +34,26 @@ export class MainThreadSimulator implements ISimulator {
     });
   }
 
+  setData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.simulator.setData({ nodes, edges });
+  }
+
+  addData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.simulator.addData({ nodes, edges });
+  }
+
+  updateData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.simulator.updateData({ nodes, edges });
+  }
+
+  clearData() {
+    this.simulator.clearData();
+  }
+
+  simulate() {
+    this.simulator.simulate();
+  }
+
   activateSimulation() {
     this.simulator.activateSimulation();
   }
@@ -62,12 +82,16 @@ export class MainThreadSimulator implements ISimulator {
     this.simulator.endDragNode({ id: nodeId });
   }
 
-  setSettings(settings: ID3SimulatorEngineSettingsUpdate) {
-    this.simulator.setSettings(settings);
+  fixNodes(nodes: ISimulationNode[]) {
+    this.simulator.fixNodes(nodes);
   }
 
-  setPhysics(isEnabled: boolean) {
-    this.simulator.setPhysics({ isEnabled });
+  releaseNodes(nodes?: ISimulationNode[] | undefined): void {
+    this.simulator.releaseNodes(nodes);
+  }
+
+  setSettings(settings: ID3SimulatorEngineSettingsUpdate) {
+    this.simulator.setSettings(settings);
   }
 
   terminate() {
