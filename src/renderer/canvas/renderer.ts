@@ -16,20 +16,23 @@ const DEBUG_PINK = '#F333FF';
 const DEFAULT_RENDERER_WIDTH = 640;
 const DEFAULT_RENDERER_HEIGHT = 480;
 const DEFAULT_RENDERER_FIT_ZOOM_MARGIN = 0.2;
+const DEFAULT_RENDERER_MAX_ZOOM = 8;
+const DEFAULT_RENDERER_MIN_ZOOM = 0.25;
 
-export interface RendererFitZoomOptions {
+export interface IRendererSettings {
   minZoom: number;
   maxZoom: number;
-}
-
-export interface IGraphDrawOptions {
+  fitZoomMargin: number;
   labelsIsEnabled: boolean;
   labelsOnEventIsEnabled: boolean;
   contextAlphaOnEvent: number;
   contextAlphaOnEventIsEnabled: boolean;
 }
 
-const DEFAULT_DRAW_OPTIONS: IGraphDrawOptions = {
+const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
+  minZoom: DEFAULT_RENDERER_MIN_ZOOM,
+  maxZoom: DEFAULT_RENDERER_MAX_ZOOM,
+  fitZoomMargin: DEFAULT_RENDERER_FIT_ZOOM_MARGIN,
   labelsIsEnabled: true,
   labelsOnEventIsEnabled: true,
   contextAlphaOnEvent: 0.3,
@@ -38,52 +41,57 @@ const DEFAULT_DRAW_OPTIONS: IGraphDrawOptions = {
 
 export class Renderer {
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
-  protected readonly context: CanvasRenderingContext2D;
+  private readonly _context: CanvasRenderingContext2D;
 
   // Width and height of the canvas. Used for clearing
   public width: number;
   public height: number;
+  public settings: IRendererSettings;
 
   // Includes translation (pan) in the x and y direction
   // as well as scaling (level of zoom).
   public transform: ZoomTransform;
 
   // Translates (0, 0) coordinates to (width/2, height/2).
-  protected isOriginCentered = false;
+  private _isOriginCentered = false;
 
-  constructor(context: CanvasRenderingContext2D) {
-    this.context = context;
+  constructor(context: CanvasRenderingContext2D, settings?: Partial<IRendererSettings>) {
+    this._context = context;
     this.width = DEFAULT_RENDERER_WIDTH;
     this.height = DEFAULT_RENDERER_HEIGHT;
     this.transform = zoomIdentity;
+    this.settings = {
+      ...DEFAULT_RENDERER_SETTINGS,
+      ...settings,
+    };
   }
 
-  render<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>, drawOptions?: Partial<IGraphDrawOptions>) {
+  render<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>) {
     if (!graph.getNodeCount()) {
       return;
     }
 
     // Clear drawing.
-    this.context.clearRect(0, 0, this.width, this.height);
-    this.context.save();
+    this._context.clearRect(0, 0, this.width, this.height);
+    this._context.save();
 
     if (DEBUG) {
-      this.context.lineWidth = 3;
-      this.context.fillStyle = DEBUG_RED;
-      this.context.fillRect(0, 0, this.width, this.height);
+      this._context.lineWidth = 3;
+      this._context.fillStyle = DEBUG_RED;
+      this._context.fillRect(0, 0, this.width, this.height);
     }
 
     // Apply any scaling (zoom) or translation (pan) transformations.
-    this.context.translate(this.transform.x, this.transform.y);
+    this._context.translate(this.transform.x, this.transform.y);
     if (DEBUG) {
-      this.context.fillStyle = DEBUG_BLUE;
-      this.context.fillRect(0, 0, this.width, this.height);
+      this._context.fillStyle = DEBUG_BLUE;
+      this._context.fillRect(0, 0, this.width, this.height);
     }
 
-    this.context.scale(this.transform.k, this.transform.k);
+    this._context.scale(this.transform.k, this.transform.k);
     if (DEBUG) {
-      this.context.fillStyle = DEBUG_GREEN;
-      this.context.fillRect(0, 0, this.width, this.height);
+      this._context.fillStyle = DEBUG_GREEN;
+      this._context.fillRect(0, 0, this.width, this.height);
     }
 
     // Move coordinates (0, 0) to canvas center.
@@ -91,29 +99,25 @@ export class Renderer {
     // This is only for display purposes, the simulation coordinates are still
     // relative to (0, 0), so any source mouse event position needs to take this
     // offset into account. (Handled in getMousePos())
-    if (this.isOriginCentered) {
-      this.context.translate(this.width / 2, this.height / 2);
+    if (this._isOriginCentered) {
+      this._context.translate(this.width / 2, this.height / 2);
     }
     if (DEBUG) {
-      this.context.fillStyle = DEBUG_PINK;
-      this.context.fillRect(0, 0, this.width, this.height);
+      this._context.fillStyle = DEBUG_PINK;
+      this._context.fillRect(0, 0, this.width, this.height);
     }
 
-    this.drawObjects<N, E>(graph.getEdges(), drawOptions);
-    this.drawObjects<N, E>(graph.getNodes(), drawOptions);
+    this.drawObjects<N, E>(graph.getEdges());
+    this.drawObjects<N, E>(graph.getNodes());
 
-    this.context.restore();
+    this._context.restore();
   }
 
-  private drawObjects<N extends INodeBase, E extends IEdgeBase>(
-    objects: (INode<N, E> | IEdge<N, E>)[],
-    options?: Partial<IGraphDrawOptions>,
-  ) {
+  private drawObjects<N extends INodeBase, E extends IEdgeBase>(objects: (INode<N, E> | IEdge<N, E>)[]) {
     if (objects.length === 0) {
       return;
     }
 
-    const drawOptions = Object.assign(DEFAULT_DRAW_OPTIONS, options);
     const selectedObjects: (INode<N, E> | IEdge<N, E>)[] = [];
     const hoveredObjects: (INode<N, E> | IEdge<N, E>)[] = [];
 
@@ -128,26 +132,26 @@ export class Renderer {
     }
     const hasStateChangedShapes = selectedObjects.length || hoveredObjects.length;
 
-    if (drawOptions.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
-      this.context.globalAlpha = drawOptions.contextAlphaOnEvent;
+    if (this.settings.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
+      this._context.globalAlpha = this.settings.contextAlphaOnEvent;
     }
 
     for (let i = 0; i < objects.length; i++) {
       const obj = objects[i];
       if (!obj.isSelected() && !obj.isHovered()) {
-        this.drawObject(obj, { isLabelEnabled: drawOptions.labelsIsEnabled });
+        this.drawObject(obj, { isLabelEnabled: this.settings.labelsIsEnabled });
       }
     }
 
-    if (drawOptions.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
-      this.context.globalAlpha = 1;
+    if (this.settings.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
+      this._context.globalAlpha = 1;
     }
 
     for (let i = 0; i < selectedObjects.length; i++) {
-      this.drawObject(selectedObjects[i], { isLabelEnabled: drawOptions.labelsOnEventIsEnabled });
+      this.drawObject(selectedObjects[i], { isLabelEnabled: this.settings.labelsOnEventIsEnabled });
     }
     for (let i = 0; i < hoveredObjects.length; i++) {
-      this.drawObject(hoveredObjects[i], { isLabelEnabled: drawOptions.labelsOnEventIsEnabled });
+      this.drawObject(hoveredObjects[i], { isLabelEnabled: this.settings.labelsOnEventIsEnabled });
     }
   }
 
@@ -156,9 +160,9 @@ export class Renderer {
     options?: Partial<INodeDrawOptions> | Partial<IEdgeDrawOptions>,
   ) {
     if (isNode(obj)) {
-      drawNode(this.context, obj, options);
+      drawNode(this._context, obj, options);
     } else {
-      drawEdge(this.context, obj, options);
+      drawEdge(this._context, obj, options);
     }
   }
 
@@ -166,28 +170,42 @@ export class Renderer {
     this.transform = zoomIdentity;
 
     // Clear drawing.
-    this.context.clearRect(0, 0, this.width, this.height);
-    this.context.save();
+    this._context.clearRect(0, 0, this.width, this.height);
+    this._context.save();
   }
 
-  getFitZoomTransform<N extends INodeBase, E extends IEdgeBase>(
-    graph: IGraph<N, E>,
-    options: RendererFitZoomOptions,
-  ): ZoomTransform {
+  getFitZoomTransform<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>): ZoomTransform {
+    // Graph view is a bounding box of the graph nodes that takes into
+    // account node positions (x, y) and node sizes (style: size + border width)
     const graphView = graph.getBoundingBox();
+    const graphMiddleX = graphView.x + graphView.width / 2;
+    const graphMiddleY = graphView.y + graphView.height / 2;
+
+    // Simulation view is actually a renderer view (canvas) but in the coordinate system of
+    // the simulator: node position (x, y). We want to fit a graph view into a simulation view.
     const simulationView = this.getSimulationViewRectangle();
 
-    const heightScale = simulationView.height / (graphView.height * (1 + DEFAULT_RENDERER_FIT_ZOOM_MARGIN));
-    const widthScale = simulationView.width / (graphView.width * (1 + DEFAULT_RENDERER_FIT_ZOOM_MARGIN));
+    const heightScale = simulationView.height / (graphView.height * (1 + this.settings.fitZoomMargin));
+    const widthScale = simulationView.width / (graphView.width * (1 + this.settings.fitZoomMargin));
+    // The scale of the translation and the zoom needed to fit a graph view
+    // into a simulation view (renderer canvas)
     const scale = Math.min(heightScale, widthScale);
 
-    // TODO @toni: Add explanation why this works ok
-    const previousZoomLevel = this.transform.k;
-    const newZoomLevel = Math.max(Math.min(scale * previousZoomLevel, options.maxZoom), options.minZoom);
-    const newX = (simulationView.width / 2) * previousZoomLevel * (1 - newZoomLevel);
-    const newY = (simulationView.height / 2) * previousZoomLevel * (1 - newZoomLevel);
+    const previousZoom = this.transform.k;
+    const newZoom = Math.max(Math.min(scale * previousZoom, this.settings.maxZoom), this.settings.minZoom);
+    // Translation is done in the following way for both coordinates:
+    // - M = expected movement to the middle of the view (simulation width or height / 2)
+    // - Z(-1) = previous zoom level
+    // - S = scale to fit the graph view into simulation view
+    // - Z(0) = new zoom level / Z(0) := S * Z(-1)
+    // - GM = current middle coordinate of the graph view
+    // Formula:
+    // X/Y := M * Z(-1) - M * Z(-1) * Z(0) - GM * Z(0)
+    // X/Y := M * Z(-1) * (1 - Z(0)) - GM * Z(0)
+    const newX = (simulationView.width / 2) * previousZoom * (1 - newZoom) - graphMiddleX * newZoom;
+    const newY = (simulationView.height / 2) * previousZoom * (1 - newZoom) - graphMiddleY * newZoom;
 
-    return zoomIdentity.translate(newX, newY).scale(newZoomLevel);
+    return zoomIdentity.translate(newX, newY).scale(newZoom);
   }
 
   getSimulationPosition(canvasPoint: IPosition): IPosition {
@@ -219,6 +237,6 @@ export class Renderer {
   }
 
   translateOriginToCenter() {
-    this.isOriginCentered = true;
+    this._isOriginCentered = true;
   }
 }

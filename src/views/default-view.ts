@@ -6,7 +6,7 @@ import { D3ZoomEvent, zoom, ZoomBehavior } from 'd3-zoom';
 import { select } from 'd3-selection';
 import { IPosition, isEqualPosition } from '../common/position';
 
-import { Renderer } from '../renderer/canvas/renderer';
+import { IRendererSettings, Renderer } from '../renderer/canvas/renderer';
 import { ISimulator, SimulatorFactory } from '../simulator/index';
 import { IGraph } from '../models/graph';
 import { INode, INodeBase, isNode } from '../models/node';
@@ -14,17 +14,17 @@ import { IEdgeBase, isEdge } from '../models/edge';
 import { OrbEmitter, OrbEventType, IOrbView, IViewContext } from '../orb';
 import { IEventStrategy } from '../models/strategy';
 import { ID3SimulatorEngineSettingsUpdate } from '../simulator/engine/d3-simulator-engine';
+import { copyObject } from '../utils/object.utils';
 
 // TODO: Move to settings all these five
 const DISABLE_OUT_OF_BOUNDS_DRAG = true;
 const ROUND_COORDINATES = true;
-const ZOOM_SCALE_MAX = 8;
-const ZOOM_SCALE_MIN = 0.25;
 const ZOOM_FIT_TRANSITION_MS = 200;
 
 export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> {
-  getPosition(node: INode<N, E>): IPosition;
+  getPosition?(node: INode<N, E>): IPosition | undefined;
   simulation: ID3SimulatorEngineSettingsUpdate;
+  render: Partial<IRendererSettings>;
 }
 
 export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IOrbView {
@@ -32,7 +32,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   private _graph: IGraph<N, E>;
   private _events: OrbEmitter<N, E>;
   private _strategy: IEventStrategy<N, E>;
-  private _settings: Partial<IDefaultViewSettings<N, E>>;
+  private _settings: IDefaultViewSettings<N, E>;
 
   private _canvas: HTMLCanvasElement;
   private _context: CanvasRenderingContext2D | null;
@@ -59,6 +59,9 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
         isPhysicsEnabled: false,
         ...settings?.simulation,
       },
+      render: {
+        ...settings?.render,
+      },
     };
 
     this._container.textContent = '';
@@ -73,10 +76,13 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     const resizeObs = new ResizeObserver(this.onContainerResize);
     resizeObs.observe(this._container);
 
-    this._renderer = new Renderer(this._context);
+    this._renderer = new Renderer(this._context, this._settings.render);
     this._renderer.translateOriginToCenter();
+    this._settings.render = this._renderer.settings;
 
-    this.d3Zoom = zoom<HTMLCanvasElement, any>().scaleExtent([ZOOM_SCALE_MIN, ZOOM_SCALE_MAX]).on('zoom', this.zoomed);
+    this.d3Zoom = zoom<HTMLCanvasElement, any>()
+      .scaleExtent([this._renderer.settings.minZoom, this._renderer.settings.maxZoom])
+      .on('zoom', this.zoomed);
 
     select<HTMLCanvasElement, any>(this._canvas)
       .call(
@@ -113,15 +119,18 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
         // TODO: Add throttle render
         this._renderer.render(this._graph);
       },
-      onSettingsUpdate: (_) => {
+      onSettingsUpdate: (data) => {
+        this._settings.simulation = data.settings;
         // TODO: Send event to the user so user can handle this if needed
         // TODO: Do we need to call .render() here or user should take care of it
       },
     });
 
-    if (this._settings.simulation) {
-      this.simulator.setSettings(this._settings.simulation);
-    }
+    this.simulator.setSettings(this._settings.simulation);
+  }
+
+  get settings(): IDefaultViewSettings<N, E> {
+    return copyObject(this._settings);
   }
 
   render(onRendered?: () => void) {
@@ -147,10 +156,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   }
 
   recenter(onRendered?: () => void) {
-    const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph, {
-      minZoom: ZOOM_SCALE_MIN,
-      maxZoom: ZOOM_SCALE_MAX,
-    });
+    const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph);
 
     select(this._canvas)
       .transition()
@@ -178,6 +184,14 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
         ...settings.simulation,
       };
       this.simulator.setSettings(this._settings.simulation);
+    }
+
+    if (settings.render) {
+      this._renderer.settings = {
+        ...this._renderer.settings,
+        ...settings.render,
+      };
+      this._settings.render = this._renderer.settings;
     }
   }
 
