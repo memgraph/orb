@@ -29,7 +29,7 @@
     for (let i = 0; i < n; i++) {
       nodes[i] = {
         id: i,
-        labels: [`Node ${i}`],
+        label: `Node ${i}`,
       };
       edges[i] = {
         id: i,
@@ -39,7 +39,6 @@
     }
 
     const orb = new Orb.Orb(container);
-    orb.setView((context) => new Orb.DefaultView(context));
 
     // Initialize nodes and edges
     orb.data.setup({ nodes, edges });
@@ -54,7 +53,7 @@
           colorHover: '#e7644e',
           colorSelected: '#e7644e',
           fontSize: 3,
-          label: node.data.labels[0],
+          label: node.data.label,
           size: 6,
         };
       },
@@ -81,14 +80,14 @@
       orb.view.render();
     })
 
-    orb.events.on('node-click', (node) => {
-      console.log('Event: node-click', node);
+    orb.events.on('node-click', (event) => {
+      console.log('Event: node-click', event);
     })
-    orb.events.on('node-hover', (node) => {
-      console.log('Event: node-hover', node);
+    orb.events.on('node-hover', (event) => {
+      console.log('Event: node-hover', event);
     });
-    orb.events.on('edge-click', (edge) => {
-      console.log('Event: edge-click', edge);
+    orb.events.on('edge-click', (event) => {
+      console.log('Event: edge-click', event);
     });
 
   </script>

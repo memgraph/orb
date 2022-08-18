@@ -105,6 +105,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
         this._renderer.render(this._graph);
         this._isSimulating = false;
         this._onSimulationEnd?.();
+        this._events.emit(OrbEventType.SIMULATION_END, undefined);
       },
       onNodeDrag: (data) => {
         // Node dragging does not trigger a user blocking percentage loader.
