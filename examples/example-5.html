@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang='en' type="module">
+<head>
+  <base href=".">
+  <meta charset='UTF-8'>
+  <title>Orb | 5</title>
+  <script type="text/javascript" src="./bundle.js"></script>
+</head>
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+</style>
+<body>
+  <div style="display: flex; flex-direction: column; align-items: center; height: 100%;">
+    <h1>Example 5</h1>
+    <p>Rendering a simple graph with graph dynamics - expand, hide (dynamics)</p>
+
+    <div id='graph' style="flex: 1; width: 100%;"></div>
+  </div>
+  <script type="text/javascript">
+    const container = document.getElementById('graph');
+
+    const n = 20;
+    let nodes = new Array(n);
+    let edges = new Array(n);
+    for (let i = 0; i < n; i++) {
+      nodes[i] = {
+        id: i,
+        labels: [`Node ${i}`],
+      };
+      edges[i] = {
+        id: i,
+        start: Math.floor(Math.sqrt(i)),
+        end: i + 1,
+      };
+    }
+
+    const orb = new Orb.Orb(container);
+    orb.setView((context) => new Orb.DefaultView(context));
+
+    // Initialize nodes and edges
+    orb.data.setup({ nodes, edges });
+
+    // Assign a basic style
+    orb.data.setStyle({
+      getNodeStyle(node) {
+        return {
+          borderColor: '#1d1d1d',
+          borderWidth: 0.6,
+          color: '#DD2222',
+          colorHover: '#e7644e',
+          colorSelected: '#e7644e',
+          fontSize: 3,
+          label: node.data.labels[0],
+          size: 6,
+        };
+      },
+      getEdgeStyle(edge) {
+        return {
+          color: '#999999',
+          colorHover: '#1d1d1d',
+          colorSelected: '#1d1d1d',
+          fontSize: 3,
+          width: 0.3,
+          widthHover: 0.9,
+          widthSelected: 0.9,
+          label: edge.data.label,
+        };
+      },
+    });
+    const randomlyExpandGraph = () => {
+      console.log('Randomly expanding graph...');
+      setTimeout(() => {
+        nodes = new Array(n);
+        edges = new Array(n);
+        for (let i = 0; i < n; i++) {
+          nodes[i] = {
+            id: i,
+            labels: [`Node ${i}`],
+          };
+          edges[i] = {
+            id: i,
+            start: Math.floor(Math.random() * data.nodes.length),
+            end: i + 1,
+          };
+        }
+
+        console.log('expanding graph', nodes, edges);
+        orb.data.join({ nodes, edges });
+        randomlyExpandGraph();
+      }, 3000);
+    };
+
+
+    orb.events.on('simulation-step', () => {
+      orb.view.render();
+    });
+
+    orb.events.on('render-end', () => {
+      console.log('ending simul')
+      randomlyExpandGraph();
+    });
+
+    orb.events.on('simulation-end', randomlyExpandGraph);
+
+    orb.events.on('node-click', (node) => {
+      console.log('Node clicked: ', node);
+      orb.data.hide({ nodeIds: [node.id] });
+      orb.view.render();
+    });
+
+    // Render and recenter the view
+    orb.view.render(() => {
+      orb.view.recenter();
+    });
+
+  </script>
+</body>
+</html>

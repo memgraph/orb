@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang='en' type="module">
+<head>
+  <base href=".">
+  <meta charset='UTF-8'>
+  <title>Orb | 2</title>
+  <script type="text/javascript" src="./bundle.js"></script>
+</head>
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+</style>
+<body>
+  <div style="display: flex; flex-direction: column; align-items: center; height: 100%;">
+    <h1>Example 2</h1>
+    <p>Rendering a simple simulated graph on default canvas with custom style (basic + style)</p>
+
+    <div id='graph' style="flex: 1; width: 100%;"></div>
+  </div>
+  <script type="text/javascript">
+    const container = document.getElementById('graph');
+
+    const nodes = [
+      { id: 0, labels: ['Node A'] },
+      { id: 1, labels: ['Node B'] },
+      { id: 2, labels: ['Node C'] },
+    ];
+    const edges = [
+      { id: 10, start: 0, end: 0, label: 'Edge Q' },
+      { id: 11, start: 0, end: 1, label: 'Edge W' },
+      { id: 12, start: 0, end: 2, label: 'Edge E' },
+      { id: 13, start: 1, end: 2, label: 'Edge T' },
+      { id: 14, start: 2, end: 2, label: 'Edge Y' },
+      { id: 15, start: 0, end: 1, label: 'Edge V' },
+    ]
+
+    const orb = new Orb.Orb(container);
+    orb.setView((context) => new Orb.DefaultView(context));
+
+    // Initialize nodes and edges
+    orb.data.setup({ nodes, edges });
+
+    // Assign a basic style
+    orb.data.setStyle({
+      getNodeStyle(node) {
+        return {
+          borderColor: '#1d1d1d',
+          borderWidth: 0.6,
+          color: '#DD2222',
+          colorHover: '#e7644e',
+          colorSelected: '#e7644e',
+          fontSize: 3,
+          label: node.data.labels[0],
+          size: 6,
+        };
+      },
+      getEdgeStyle(edge) {
+        return {
+          color: '#999999',
+          colorHover: '#1d1d1d',
+          colorSelected: '#1d1d1d',
+          fontSize: 3,
+          width: 0.3,
+          widthHover: 0.9,
+          widthSelected: 0.9,
+          label: edge.data.label,
+        };
+      },
+    });
+
+    orb.view.render();
+  </script>
+</body>
+</html>
