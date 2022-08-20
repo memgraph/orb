@@ -6,6 +6,7 @@ import { IEdge, IEdgeBase } from '../../models/edge';
 import { IGraph } from '../../models/graph';
 import { drawEdge, IEdgeDrawOptions } from './edge/index';
 import { drawNode, INodeDrawOptions } from './node';
+import { Emitter } from '../../utils/emitter.utils';
 
 const DEBUG = false;
 const DEBUG_RED = '#FF5733';
@@ -18,6 +19,11 @@ const DEFAULT_RENDERER_HEIGHT = 480;
 const DEFAULT_RENDERER_FIT_ZOOM_MARGIN = 0.2;
 const DEFAULT_RENDERER_MAX_ZOOM = 8;
 const DEFAULT_RENDERER_MIN_ZOOM = 0.25;
+
+export enum RenderEventType {
+  RENDER_START = 'render-start',
+  RENDER_END = 'render-end',
+}
 
 export interface IRendererSettings {
   minZoom: number;
@@ -39,7 +45,10 @@ const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
   contextAlphaOnEventIsEnabled: true,
 };
 
-export class Renderer {
+export class Renderer extends Emitter<{
+  [RenderEventType.RENDER_START]: undefined;
+  [RenderEventType.RENDER_END]: { durationMs: number };
+}> {
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
   private readonly _context: CanvasRenderingContext2D;
 
@@ -55,7 +64,11 @@ export class Renderer {
   // Translates (0, 0) coordinates to (width/2, height/2).
   private _isOriginCentered = false;
 
+  // False if renderer never rendered on canvas, otherwise true
+  private _isInitiallyRendered = false;
+
   constructor(context: CanvasRenderingContext2D, settings?: Partial<IRendererSettings>) {
+    super();
     this._context = context;
     this.width = DEFAULT_RENDERER_WIDTH;
     this.height = DEFAULT_RENDERER_HEIGHT;
@@ -66,10 +79,17 @@ export class Renderer {
     };
   }
 
+  get isInitiallyRendered(): boolean {
+    return this._isInitiallyRendered;
+  }
+
   render<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>) {
     if (!graph.getNodeCount()) {
       return;
     }
+
+    this.emit(RenderEventType.RENDER_START, undefined);
+    const renderStartedAt = Date.now();
 
     // Clear drawing.
     this._context.clearRect(0, 0, this.width, this.height);
@@ -111,6 +131,8 @@ export class Renderer {
     this.drawObjects<N, E>(graph.getNodes());
 
     this._context.restore();
+    this.emit(RenderEventType.RENDER_END, { durationMs: Date.now() - renderStartedAt });
+    this._isInitiallyRendered = true;
   }
 
   private drawObjects<N extends INodeBase, E extends IEdgeBase>(objects: (INode<N, E> | IEdge<N, E>)[]) {

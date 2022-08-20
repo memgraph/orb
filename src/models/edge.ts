@@ -13,9 +13,9 @@ const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;
  * that user needs to define for an edge.
  */
 export interface IEdgeBase {
-  id: number;
-  start: number;
-  end: number;
+  id: any;
+  start: any;
+  end: any;
 }
 
 /**
@@ -23,9 +23,9 @@ export interface IEdgeBase {
  * is determined by source (start) and target (end) nodes.
  */
 export interface IEdgePosition {
-  id: number;
-  source: number;
-  target: number;
+  id: any;
+  source: any;
+  target: any;
 }
 
 /**
@@ -76,11 +76,11 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> {
   position: IEdgePosition;
   properties: Partial<IEdgeProperties>;
   state: number;
-  get id(): number;
+  get id(): any;
   get offset(): number;
-  get start(): number;
+  get start(): any;
   get startNode(): INode<N, E>;
-  get end(): number;
+  get end(): any;
   get endNode(): INode<N, E>;
   get type(): EdgeType;
   isSelected(): boolean;

@@ -36,7 +36,7 @@ export class Label {
   public readonly textBaseline: LabelTextBaseline;
 
   constructor(text: string, data: ILabelData) {
-    this.text = text ?? '';
+    this.text = `${text === undefined ? '' : text}`;
     this.textLines = splitTextLines(this.text);
     this.position = data.position;
     this.properties = data.properties;

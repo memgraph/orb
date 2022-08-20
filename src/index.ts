@@ -1,4 +1,5 @@
 export { Orb } from './orb';
+export { OrbEventType } from './events';
 export { DefaultView, MapView } from './views/index';
 export { IGraph, IGraphData } from './models/graph';
 export { INode, INodeBase, INodePosition, INodeProperties } from './models/node';

@@ -36,15 +36,23 @@ export interface IGraph<N extends INodeBase, E extends IEdgeBase> {
   getNearestEdge(point: IPosition, minDistance?: number): IEdge<N, E> | undefined;
 }
 
+// TODO: Move this to node events when image listening will be on node level
+// TODO: Add global events user can listen for: images-load-start, images-load-end
+export interface IGraphSettings {
+  onLoadedImages: () => void;
+}
+
 export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N, E> {
   private _nodeById: { [id: number]: INode<N, E> } = {};
   private _edgeById: { [id: number]: IEdge<N, E> } = {};
   private _style?: Partial<IGraphStyle<N, E>>;
+  private _onLoadedImages?: () => void;
 
-  constructor(data?: Partial<IGraphData<N, E>>) {
+  constructor(data?: Partial<IGraphData<N, E>>, settings?: Partial<IGraphSettings>) {
     const nodes = data?.nodes ?? [];
     const edges = data?.edges ?? [];
     this.setup({ nodes, edges });
+    this._onLoadedImages = settings?.onLoadedImages;
   }
 
   /**
@@ -185,7 +193,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
       const properties = style.getNodeStyle?.(nodes[i]);
       if (properties) {
         nodes[i].properties = properties;
-        // TODO @toni: Add these checks for any property setup (maybe to the node itself) - check below
+        // TODO Add these checks to node property setup
         if (properties.imageUrl) {
           styleImageUrls.add(properties.imageUrl);
         }
@@ -205,8 +213,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
 
     if (styleImageUrls.size) {
       ImageHandler.getInstance().loadImages(Array.from(styleImageUrls), () => {
-        // TODO @toni: Either call internal render or an event for the user to rerender
-        // TODO @toni: Or orb can use the singleton of ImageHandler and listen for new images
+        this._onLoadedImages?.();
       });
     }
   }

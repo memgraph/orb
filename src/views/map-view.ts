@@ -1,16 +1,27 @@
 import * as L from 'leaflet';
 import { IEdgeBase, isEdge } from '../models/edge';
-import { INode, INodeBase, INodePosition, isNode } from '../models/node';
+import { INode, INodeBase, isNode } from '../models/node';
 import { IGraph } from '../models/graph';
-import { IOrbView, IViewContext, OrbEmitter, OrbEventType } from '../orb';
-import { IRendererSettings, Renderer } from '../renderer/canvas/renderer';
+import { IOrbView, IOrbViewContext } from '../orb';
+import { IRendererSettings, Renderer, RenderEventType } from '../renderer/canvas/renderer';
 import { IPosition } from '../common/position';
 import { IEventStrategy } from '../models/strategy';
 import { copyObject } from '../utils/object.utils';
+import { OrbEmitter, OrbEventType } from '../events';
 
 export interface ILeafletMapTile {
   instance: L.TileLayer;
   attribution: string;
+}
+
+interface ILeafletEvent<T extends Event> {
+  containerPoint: { x: number; y: number };
+  latlng: { lat: number; lng: number };
+  layerPoint: { x: number; y: number };
+  originalEvent: T;
+  sourceTarget: any;
+  target: any;
+  type: string;
 }
 
 const osmAttribution =
@@ -24,41 +35,54 @@ const DEFAULT_MAP_TILE: ILeafletMapTile = {
 
 const DEFAULT_ZOOM_LEVEL = 2;
 
+export interface IMapSettings {
+  zoomLevel: number;
+  tile: ILeafletMapTile;
+}
+
 export interface IMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
-  // TODO: Move into a grouped settings (e.g. map)
-  zoomLevel?: number;
-  tile?: ILeafletMapTile;
+  map: IMapSettings;
+  render: Partial<IRendererSettings>;
+}
+
+export interface IMapViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
+  getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
+  map?: Partial<IMapSettings>;
   render?: Partial<IRendererSettings>;
 }
 
-export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbView {
+export type IMapViewSettingsUpdate<N extends INodeBase, E extends IEdgeBase> = Partial<IMapViewSettingsInit<N, E>>;
+
+export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<IMapViewSettings<N, E>> {
   private _container: HTMLElement;
   private _graph: IGraph<N, E>;
   private _events: OrbEmitter<N, E>;
   private _strategy: IEventStrategy<N, E>;
 
-  private _settings: Required<IMapViewSettings<N, E>>;
+  private _settings: IMapViewSettings<N, E>;
 
   private _canvas: HTMLCanvasElement;
   private _map: HTMLDivElement;
   private _context: CanvasRenderingContext2D | null;
 
-  private _renderer: Renderer;
-  private _leaflet: L.Map;
+  private readonly _renderer: Renderer;
+  private readonly _leaflet: L.Map;
 
-  constructor(context: IViewContext<N, E>, settings: IMapViewSettings<N, E>) {
+  constructor(context: IOrbViewContext<N, E>, settings: IMapViewSettingsInit<N, E>) {
     this._container = context.container;
     this._graph = context.graph;
     this._events = context.events;
     this._strategy = context.strategy;
 
     this._settings = {
-      zoomLevel: DEFAULT_ZOOM_LEVEL,
-      tile: DEFAULT_MAP_TILE,
       ...settings,
+      map: {
+        zoomLevel: settings.map?.zoomLevel ?? DEFAULT_ZOOM_LEVEL,
+        tile: settings.map?.tile ?? DEFAULT_MAP_TILE,
+      },
       render: {
-        ...settings?.render,
+        ...settings.render,
       },
     };
 
@@ -74,15 +98,56 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     const resizeObs = new ResizeObserver(() => this._handleResize());
     resizeObs.observe(this._container);
 
-    this._renderer = new Renderer(this._context);
+    this._renderer = new Renderer(this._context, this._settings.render);
+    this._renderer.on(RenderEventType.RENDER_START, () => {
+      this._events.emit(OrbEventType.RENDER_START, undefined);
+    });
+    this._renderer.on(RenderEventType.RENDER_END, (data) => {
+      this._events.emit(OrbEventType.RENDER_END, data);
+    });
     this._settings.render = this._renderer.settings;
     this._leaflet = this._initLeaflet();
     // Setting up leaflet map tile
     this._handleTileChange();
   }
 
-  get settings(): IMapViewSettings<N, E> {
+  get leaflet(): L.Map {
+    return this._leaflet;
+  }
+
+  isInitiallyRendered(): boolean {
+    return this._renderer.isInitiallyRendered;
+  }
+
+  getSettings(): IMapViewSettings<N, E> {
     return copyObject(this._settings);
+  }
+
+  setSettings(settings: IMapViewSettingsUpdate<N, E>) {
+    if (settings.getGeoPosition) {
+      this._settings.getGeoPosition = settings.getGeoPosition;
+      this._updateGraphPositions();
+    }
+
+    if (settings.map) {
+      if (typeof settings.map.zoomLevel === 'number') {
+        this._settings.map.zoomLevel = settings.map.zoomLevel;
+        this._leaflet.setZoom(settings.map.zoomLevel);
+      }
+
+      if (settings.map.tile) {
+        this._settings.map.tile = settings.map.tile;
+        this._handleTileChange();
+      }
+    }
+
+    if (settings.render) {
+      this._renderer.settings = {
+        ...this._renderer.settings,
+        ...settings.render,
+      };
+      this._settings.render = this._renderer.settings;
+    }
   }
 
   render(onRendered?: () => void) {
@@ -100,34 +165,10 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   }
 
   destroy() {
+    this._renderer.removeAllListeners();
     this._leaflet.off();
     this._leaflet.remove();
     this._container.textContent = '';
-  }
-
-  change(settings: Partial<IMapViewSettings<N, E>>) {
-    if (settings.getGeoPosition) {
-      this._settings.getGeoPosition = settings.getGeoPosition;
-      this._updateGraphPositions();
-    }
-
-    if (typeof settings.zoomLevel === 'number') {
-      this._settings.zoomLevel = settings.zoomLevel;
-      this._leaflet.setZoom(settings.zoomLevel);
-    }
-
-    if (settings.tile) {
-      this._settings.tile = settings.tile;
-      this._handleTileChange();
-    }
-
-    if (settings.render) {
-      this._renderer.settings = {
-        ...this._renderer.settings,
-        ...settings.render,
-      };
-      this._settings.render = this._renderer.settings;
-    }
   }
 
   private _initCanvas() {
@@ -154,18 +195,20 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   }
 
   private _initLeaflet() {
-    const leaflet = L.map(this._map).setView([0, 0], this._settings.zoomLevel);
+    const leaflet = L.map(this._map).setView([0, 0], this._settings.map.zoomLevel);
 
     leaflet.on('zoomstart', () => {
       this._renderer.reset();
     });
 
-    leaflet.on('zoom', () => {
+    leaflet.on('zoom', (event) => {
       this._updateGraphPositions();
       this._renderer.render(this._graph);
+      const transform = { ...event.target._mapPane._leaflet_pos, k: event.target._zoom };
+      this._events.emit(OrbEventType.TRANSFORM, { transform });
     });
 
-    leaflet.on('mousemove', (event: any) => {
+    leaflet.on('mousemove', (event: ILeafletEvent<MouseEvent>) => {
       const point: IPosition = { x: event.layerPoint.x, y: event.layerPoint.y };
       const containerPoint: IPosition = { x: event.containerPoint.x, y: event.containerPoint.y };
       // TODO: Add throttle
@@ -177,6 +220,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
           if (isNode(subject)) {
             this._events.emit(OrbEventType.NODE_HOVER, {
               node: subject,
+              event: event.originalEvent,
               localPoint: point,
               globalPoint: containerPoint,
             });
@@ -184,13 +228,19 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
           if (isEdge(subject)) {
             this._events.emit(OrbEventType.EDGE_HOVER, {
               edge: subject,
+              event: event.originalEvent,
               localPoint: point,
               globalPoint: containerPoint,
             });
           }
         }
 
-        this._events.emit(OrbEventType.MOUSE_MOVE, { subject, localPoint: point, globalPoint: containerPoint });
+        this._events.emit(OrbEventType.MOUSE_MOVE, {
+          subject,
+          event: event.originalEvent,
+          localPoint: point,
+          globalPoint: containerPoint,
+        });
 
         if (response.isStateChanged || response.changedSubject) {
           this._renderer.render(this._graph);
@@ -198,7 +248,9 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       }
     });
 
-    leaflet.on('click', (event: any) => {
+    // Leaflet doesn't have a valid type definition for click event
+    // @ts-ignore
+    leaflet.on('click', (event: ILeafletEvent<PointerEvent>) => {
       const point: IPosition = { x: event.layerPoint.x, y: event.layerPoint.y };
       const containerPoint: IPosition = { x: event.containerPoint.x, y: event.containerPoint.y };
 
@@ -210,6 +262,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
           if (isNode(subject)) {
             this._events.emit(OrbEventType.NODE_CLICK, {
               node: subject,
+              event: event.originalEvent,
               localPoint: point,
               globalPoint: containerPoint,
             });
@@ -217,13 +270,19 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
           if (isEdge(subject)) {
             this._events.emit(OrbEventType.EDGE_CLICK, {
               edge: subject,
+              event: event.originalEvent,
               localPoint: point,
               globalPoint: containerPoint,
             });
           }
         }
 
-        this._events.emit(OrbEventType.MOUSE_CLICK, { subject, localPoint: point, globalPoint: containerPoint });
+        this._events.emit(OrbEventType.MOUSE_CLICK, {
+          subject,
+          event: event.originalEvent,
+          localPoint: point,
+          globalPoint: containerPoint,
+        });
 
         if (response.isStateChanged || response.changedSubject) {
           this._renderer.render(this._graph);
@@ -231,24 +290,24 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       }
     });
 
-    leaflet.on('moveend', () => {
-      leaflet.fire('drag');
+    leaflet.on('moveend', (event) => {
+      const leafletPos = event.target._mapPane._leaflet_pos;
+      this._renderer.transform = { ...leafletPos, k: 1 };
+      this._renderer.render(this._graph);
     });
 
     leaflet.on('drag', (event) => {
       const leafletPos = event.target._mapPane._leaflet_pos;
       this._renderer.transform = { ...leafletPos, k: 1 };
       this._renderer.render(this._graph);
-      // TODO: How to indicate this event for map drag - maybe just send map-drag event?
-      // this.selectedShape.next(null);
-      // this.selectedShapePosition.next(null);
+      const transform = { ...leafletPos, k: event.target._zoom };
+      this._events.emit(OrbEventType.TRANSFORM, { transform });
     });
 
     return leaflet;
   }
 
   private _updateGraphPositions() {
-    const nodePositions: INodePosition[] = [];
     const nodes = this._graph.getNodes();
 
     for (let i = 0; i < nodes.length; i++) {
@@ -261,10 +320,9 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       }
 
       const layerPoint = this._leaflet.latLngToLayerPoint([coordinates.lat, coordinates.lng]);
-      nodePositions.push({ id: nodes[i].id, x: layerPoint.x, y: layerPoint.y });
+      nodes[i].position.x = layerPoint.x;
+      nodes[i].position.y = layerPoint.y;
     }
-
-    this._graph.setNodePositions(nodePositions);
   }
 
   private _handleResize() {
@@ -278,7 +336,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   }
 
   private _handleTileChange() {
-    const newTile: ILeafletMapTile = this._settings.tile;
+    const newTile: ILeafletMapTile = this._settings.map.tile;
 
     this._leaflet.whenReady(() => {
       this._leaflet.attributionControl.setPrefix(newTile.attribution);

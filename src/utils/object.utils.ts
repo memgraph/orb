@@ -7,8 +7,12 @@ export const copyObject = <T extends any[] | any>(obj: T): T => {
     return copyArray(obj) as T;
   }
 
-  if (obj && typeof obj === 'object') {
+  if (obj !== null && obj && typeof obj === 'object') {
     return copyPlainObject(obj) as T;
+  }
+
+  if (typeof obj === 'function') {
+    return obj;
   }
 
   // It is a primitive
@@ -60,8 +64,8 @@ export const isObjectEqual = (obj1: any, obj2: any): boolean => {
     });
   }
 
-  const isObject1 = obj1 && typeof obj1 === 'object';
-  const isObject2 = obj2 && typeof obj2 === 'object';
+  const isObject1 = obj1 !== null && obj1 && typeof obj1 === 'object';
+  const isObject2 = obj1 !== null && obj2 && typeof obj2 === 'object';
 
   if ((isObject1 && !isObject2) || (!isObject1 && isObject2)) {
     return false;

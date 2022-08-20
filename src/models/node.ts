@@ -10,7 +10,7 @@ import { GraphObjectState } from './state';
  * that user needs to define for a node.
  */
 export interface INodeBase {
-  id: number;
+  id: any;
 }
 
 /**
@@ -18,7 +18,7 @@ export interface INodeBase {
  * is determined by x and y coordinates.
  */
 export interface INodePosition {
-  id: number;
+  id: any;
   x?: number;
   y?: number;
 }
@@ -76,7 +76,7 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> {
   position: INodePosition;
   properties: Partial<INodeProperties>;
   state: number;
-  get id(): number;
+  get id(): any;
   getCenter(): IPosition;
   getRadius(): number;
   getBorderedRadius(): number;
