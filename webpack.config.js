@@ -33,10 +33,12 @@ module.exports = {
     port: 9000,
   },
   plugins: [
-    new CopyWebpackPlugin([
-      {
-        from: './examples',
-      }
-    ])
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: './examples',
+        }
+      ]
+    })
   ]
 };

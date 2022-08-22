@@ -23,7 +23,7 @@ export enum OrbEventType {
   // Mouse node drag events
   NODE_DRAG_START = 'node-drag-start',
   NODE_DRAG = 'node-drag',
-  NODE_DRAG_END = 'node-drag',
+  NODE_DRAG_END = 'node-drag-end',
 }
 
 export interface IOrbEventDuration {
