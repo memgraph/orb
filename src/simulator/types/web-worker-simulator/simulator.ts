@@ -8,7 +8,13 @@ export class WebWorkerSimulator implements ISimulator {
   protected readonly worker: Worker;
 
   constructor(events: Partial<ISimulatorEvents>) {
-    this.worker = new Worker(new URL('./process.worker', import.meta.url));
+    this.worker = new Worker(
+      new URL(
+        /* webpackChunkName: 'process.worker' */
+        './process.worker',
+        import.meta.url,
+      ),
+    );
 
     this.worker.onmessage = ({ data }: MessageEvent<IWorkerOutputPayload>) => {
       switch (data.type) {
