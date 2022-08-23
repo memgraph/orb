@@ -225,7 +225,7 @@
     initialSetupFree('oldNodesFixedNewNodesFree1', (orb) => {
       setTimeout(() => {
         orb.view.fixNodes();
-        orb.data.join({
+        orb.data.merge({
           nodes: [
             { id: 4, labels: ['Node E'] },
           ],
@@ -243,7 +243,7 @@
 
     initialSetupFixed('oldNodesFixedNewNodesFree2', (orb) => {
       setTimeout(() => {
-        orb.data.join({
+        orb.data.merge({
           nodes: [
             { id: 4, labels: ['Node E'] },
           ],
@@ -261,7 +261,7 @@
 
     initialSetupFree('oldNodesFreeNewNodesFree', (orb) => {
       setTimeout(() => {
-        orb.data.join({
+        orb.data.merge({
           nodes: [
             { id: 4, labels: ['Node E'] },
           ],
@@ -279,7 +279,7 @@
 
     initialSetupFixed('oldNodesFixedNewNodesFixed', (orb) => {
       setTimeout(() => {
-        orb.data.join({
+        orb.data.merge({
           nodes: [
             { id: 4, labels: ['Node E'], x: 0, y: 50 },
           ],
@@ -297,7 +297,7 @@
 
     initialSetupFree('oldNodesFreeNewNodesFixed1', (orb) => {
       setTimeout(() => {
-        orb.data.join({
+        orb.data.merge({
           nodes: [
             { id: 4, labels: ['Node E'], x: 100, y: 0 },
           ],
@@ -316,7 +316,7 @@
     initialSetupFixed('oldNodesFreeNewNodesFixed2', (orb) => {
       setTimeout(() => {
         orb.view.releaseNodes();
-        orb.data.join({
+        orb.data.merge({
           nodes: [
             { id: 4, labels: ['Node E'], x: -100, y: -50 },
             { id: 5, labels: ['Node F'], x: -100, y: 50 },

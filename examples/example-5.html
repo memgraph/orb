@@ -85,7 +85,7 @@
         };
         n += 1;
 
-        orb.data.join({ nodes: [newNode], edges: [newEdge] });
+        orb.data.merge({ nodes: [newNode], edges: [newEdge] });
         orb.view.render();
         randomlyExpandGraph();
       }, 3000);
@@ -100,7 +100,7 @@
     
     orb.events.on('node-click', ({ node }) => {
       console.log('Node clicked: ', node);
-      orb.data.hide({ nodeIds: [node.id] });
+      orb.data.remove({ nodeIds: [node.id] });
       orb.view.render();
     });
 
