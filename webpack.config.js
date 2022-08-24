@@ -21,11 +21,11 @@ module.exports = {
     chunkFilename(pathData) {
       console.log('pathdata', pathData);
       if (pathData.chunk.id.includes('d3-force')) {
-        return 'd3-force.bundle.js';
+        return 'orb-d3.js';
       }
-      return pathData.chunk.name === 'process.worker' ? 'worker.bundle.js' : '[name].bundle.js';
+      return pathData.chunk.name === 'process.worker' ? 'orb-worker.js' : '[name].bundle.js';
     },
-    filename: 'bundle.js',
+    filename: 'orb.js',
     path: path.resolve(__dirname, 'dist'),
     library: {
       name: 'Orb',
