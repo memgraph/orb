@@ -28,8 +28,9 @@ export interface IGraph<N extends INodeBase, E extends IEdgeBase> {
   setStyle(style: Partial<IGraphStyle<N, E>>): void;
   setDefaultStyle(): void;
   setup(data: Partial<IGraphData<N, E>>): void;
-  join(data: Partial<IGraphData<N, E>>): void;
-  hide(data: Partial<{ nodeIds: number[]; edgeIds: number[] }>): void;
+  clearPositions(): void;
+  merge(data: Partial<IGraphData<N, E>>): void;
+  remove(data: Partial<{ nodeIds: number[]; edgeIds: number[] }>): void;
   isEqual<T extends INodeBase, K extends IEdgeBase>(graph: Graph<T, K>): boolean;
   getBoundingBox(): IRectangle;
   getNearestNode(point: IPosition): INode<N, E> | undefined;
@@ -249,7 +250,14 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     this._applyStyle();
   }
 
-  join(data: Partial<IGraphData<N, E>>) {
+  clearPositions() {
+    const nodes = this.getNodes();
+    for (let i = 0; i < nodes.length; i++) {
+      nodes[i].clearPosition();
+    }
+  }
+
+  merge(data: Partial<IGraphData<N, E>>) {
     const nodes = data.nodes ?? [];
     const edges = data.edges ?? [];
 
@@ -260,7 +268,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     this._applyStyle();
   }
 
-  hide(data: Partial<{ nodeIds: number[]; edgeIds: number[] }>) {
+  remove(data: Partial<{ nodeIds: number[]; edgeIds: number[] }>) {
     const nodeIds = data.nodeIds ?? [];
     const edgeIds = data.edgeIds ?? [];
 

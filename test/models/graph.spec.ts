@@ -273,7 +273,7 @@ describe('Graph', () => {
 
     test('should join new nodes', () => {
       const graph = new Graph({ nodes, edges });
-      graph.join({ nodes: newNodes });
+      graph.merge({ nodes: newNodes });
 
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
       const currentExpectedNodes: IExpectedNode<ITestNode>[] = [
@@ -294,7 +294,7 @@ describe('Graph', () => {
 
     test('should join new edges', () => {
       const graph = new Graph({ nodes, edges });
-      graph.join({ edges: newEdges });
+      graph.merge({ edges: newEdges });
 
       const currentNodes: ITestNode[] = [...nodes];
       const currentExpectedNodes: IExpectedNode<ITestNode>[] = [
@@ -322,7 +322,7 @@ describe('Graph', () => {
 
     test('should join new nodes and edges', () => {
       const graph = new Graph({ nodes, edges });
-      graph.join({ nodes: newNodes, edges: newEdges });
+      graph.merge({ nodes: newNodes, edges: newEdges });
 
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
       const currentExpectedNodes: IExpectedNode<ITestNode>[] = [
@@ -355,7 +355,7 @@ describe('Graph', () => {
   describe('hide', () => {
     test('should hide nodes', () => {
       const graph = new Graph({ nodes, edges });
-      graph.hide({ nodeIds: [0, 2] });
+      graph.remove({ nodeIds: [0, 2] });
 
       const currentNodes: ITestNode[] = [nodes[1]];
       const currentExpectedNodes: IExpectedNode<ITestNode>[] = [
@@ -383,7 +383,7 @@ describe('Graph', () => {
       const graph = new Graph({ nodes, edges });
 
       const hiddenEdgeIds = [0, 1, 4];
-      graph.hide({ edgeIds: hiddenEdgeIds });
+      graph.remove({ edgeIds: hiddenEdgeIds });
 
       const currentNodes: ITestNode[] = [...nodes];
       const currentExpectedNodes: IExpectedNode<ITestNode>[] = expectedNodes.map((expectedNode) => {
@@ -409,7 +409,7 @@ describe('Graph', () => {
 
     test('should hide nodes and edges', () => {
       const graph = new Graph({ nodes, edges });
-      graph.hide({ nodeIds: [0, 2], edgeIds: [1, 2, 4] });
+      graph.remove({ nodeIds: [0, 2], edgeIds: [1, 2, 4] });
 
       const currentNodes: ITestNode[] = [nodes[1]];
       const currentExpectedNodes: IExpectedNode<ITestNode>[] = [
@@ -500,7 +500,7 @@ describe('Graph', () => {
 
     test('should apply style after join', () => {
       const graph = new Graph({ nodes, edges });
-      graph.join({ nodes: newNodes, edges: newEdges });
+      graph.merge({ nodes: newNodes, edges: newEdges });
       graph.setStyle(style);
 
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
@@ -520,7 +520,7 @@ describe('Graph', () => {
     test('should apply style before join', () => {
       const graph = new Graph({ nodes, edges });
       graph.setStyle(style);
-      graph.join({ nodes: newNodes, edges: newEdges });
+      graph.merge({ nodes: newNodes, edges: newEdges });
 
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
       const currentEdges: ITestEdge[] = [...edges, ...newEdges];
@@ -540,7 +540,7 @@ describe('Graph', () => {
       const graph = new Graph();
       graph.setStyle(style);
       graph.setup({ nodes, edges });
-      graph.join({ nodes: newNodes, edges: newEdges });
+      graph.merge({ nodes: newNodes, edges: newEdges });
       graph.setDefaultStyle();
 
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
@@ -562,7 +562,7 @@ describe('Graph', () => {
       graph.setStyle(style);
       graph.setup({ nodes, edges });
       graph.setDefaultStyle();
-      graph.join({ nodes: newNodes, edges: newEdges });
+      graph.merge({ nodes: newNodes, edges: newEdges });
 
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
       const currentEdges: ITestEdge[] = [...edges, ...newEdges];

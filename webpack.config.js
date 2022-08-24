@@ -18,7 +18,13 @@ module.exports = {
     extensions: ['.tsx', '.ts', '.js'],
   },
   output: {
-    filename: 'bundle.js',
+    chunkFilename(pathData) {
+      if (pathData.chunk.id.includes('d3-force')) {
+        return 'orb-d3.js';
+      }
+      return pathData.chunk.name === 'process.worker' ? 'orb-worker.js' : '[name].bundle.js';
+    },
+    filename: 'orb.js',
     path: path.resolve(__dirname, 'dist'),
     library: {
       name: 'Orb',
