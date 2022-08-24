@@ -16,15 +16,13 @@ import { ID3SimulatorEngineSettingsUpdate } from '../simulator/engine/d3-simulat
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
 
-// TODO: Move to settings all these five
-const DISABLE_OUT_OF_BOUNDS_DRAG = true;
-const ROUND_COORDINATES = true;
-const ZOOM_FIT_TRANSITION_MS = 200;
-
 export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
   simulation: ID3SimulatorEngineSettingsUpdate;
   render: Partial<IRendererSettings>;
+  zoomFitTransitionMs: number;
+  isOutOfBoundsDragEnabled: boolean;
+  areCoordinatesRounded: boolean;
 }
 
 export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<IDefaultViewSettings<N, E>> {
@@ -53,6 +51,10 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
 
     this._settings = {
       getPosition: settings?.getPosition,
+      zoomFitTransitionMs: 200,
+      isOutOfBoundsDragEnabled: false,
+      areCoordinatesRounded: true,
+      ...settings,
       simulation: {
         isPhysicsEnabled: false,
         ...settings?.simulation,
@@ -188,7 +190,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
 
     select(this._canvas)
       .transition()
-      .duration(ZOOM_FIT_TRANSITION_MS)
+      .duration(this._settings.zoomFitTransitionMs)
       .ease(easeLinear)
       .call(this._d3Zoom.transform, fitZoomTransform)
       .call(() => {
@@ -277,13 +279,13 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     y = y - rect.top;
 
     // Improve performance by rounding the canvas coordinates to avoid aliasing.
-    if (ROUND_COORDINATES) {
+    if (this._settings.areCoordinatesRounded) {
       x = Math.floor(x);
       y = Math.floor(y);
     }
 
     // Disable dragging nodes outside of the canvas borders.
-    if (DISABLE_OUT_OF_BOUNDS_DRAG) {
+    if (!this._settings.isOutOfBoundsDragEnabled) {
       x = Math.max(0, Math.min(this._renderer.width, x));
       y = Math.max(0, Math.min(this._renderer.height, y));
     }
