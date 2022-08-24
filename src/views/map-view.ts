@@ -308,7 +308,6 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   }
 
   private _updateGraphPositions() {
-    // TODO(dlozic): should this return a copy?
     const nodes = this._graph.getNodes();
 
     for (let i = 0; i < nodes.length; i++) {
