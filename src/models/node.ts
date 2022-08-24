@@ -77,6 +77,7 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> {
   properties: Partial<INodeProperties>;
   state: number;
   get id(): any;
+  clearPosition(): void;
   getCenter(): IPosition;
   getRadius(): number;
   getBorderedRadius(): number;
@@ -125,6 +126,11 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
     this.id = data.data.id;
     this.data = data.data;
     this.position = { id: this.id };
+  }
+
+  clearPosition() {
+    this.position.x = undefined;
+    this.position.y = undefined;
   }
 
   getCenter(): IPosition {

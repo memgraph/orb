@@ -28,7 +28,7 @@ export interface IGraph<N extends INodeBase, E extends IEdgeBase> {
   setStyle(style: Partial<IGraphStyle<N, E>>): void;
   setDefaultStyle(): void;
   setup(data: Partial<IGraphData<N, E>>): void;
-  reset(): void;
+  clearPositions(): void;
   merge(data: Partial<IGraphData<N, E>>): void;
   remove(data: Partial<{ nodeIds: number[]; edgeIds: number[] }>): void;
   isEqual<T extends INodeBase, K extends IEdgeBase>(graph: Graph<T, K>): boolean;
@@ -250,10 +250,11 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     this._applyStyle();
   }
 
-  reset() {
-    const nodes = this.getNodes().map((node) => node.data);
-    const edges = this.getEdges().map((edge) => edge.data);
-    this.setup({ nodes, edges });
+  clearPositions() {
+    const nodes = this.getNodes();
+    for (let i = 0; i < nodes.length; i++) {
+      nodes[i].clearPosition();
+    }
   }
 
   merge(data: Partial<IGraphData<N, E>>) {

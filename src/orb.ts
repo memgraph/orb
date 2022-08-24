@@ -83,7 +83,7 @@ export class Orb<N extends INodeBase, E extends IEdgeBase, S> {
 
     // Reset the existing graph in case of switching between different view types.
     if (this._graph.getNodeCount() > 0) {
-      this._graph.reset();
+      this._graph.clearPositions();
     }
   }
 }

@@ -19,7 +19,6 @@ module.exports = {
   },
   output: {
     chunkFilename(pathData) {
-      console.log('pathdata', pathData);
       if (pathData.chunk.id.includes('d3-force')) {
         return 'orb-d3.js';
       }
