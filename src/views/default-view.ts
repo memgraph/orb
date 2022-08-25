@@ -5,7 +5,6 @@ import transition from 'd3-transition';
 import { D3ZoomEvent, zoom, ZoomBehavior } from 'd3-zoom';
 import { select } from 'd3-selection';
 import { IPosition, isEqualPosition } from '../common/position';
-import { IRendererSettings, Renderer, RenderEventType } from '../renderer/canvas/renderer';
 import { ISimulator, SimulatorFactory } from '../simulator/index';
 import { IGraph } from '../models/graph';
 import { INode, INodeBase, isNode } from '../models/node';
@@ -15,6 +14,8 @@ import { IEventStrategy } from '../models/strategy';
 import { ID3SimulatorEngineSettingsUpdate } from '../simulator/engine/d3-simulator-engine';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
+import { IRenderer, IRendererSettings, RendererType, RenderEventType } from '../renderer/interface';
+import { RendererFactory } from '../renderer/factory';
 
 export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
@@ -32,9 +33,8 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   private _strategy: IEventStrategy<N, E>;
   private _settings: IDefaultViewSettings<N, E>;
   private _canvas: HTMLCanvasElement;
-  private _context: CanvasRenderingContext2D | null;
 
-  private readonly _renderer: Renderer;
+  private readonly _renderer: IRenderer;
   private readonly _simulator: ISimulator;
 
   private _isSimulating = false;
@@ -60,6 +60,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
         ...settings?.simulation,
       },
       render: {
+        type: RendererType.CANVAS,
         ...settings?.render,
       },
     };
@@ -69,14 +70,11 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     this._canvas.style.position = 'absolute';
     this._container.appendChild(this._canvas);
 
-    // Get the 2d rendering context which is used by D3 in the Renderer.
-    this._context = this._canvas.getContext('2d') || new CanvasRenderingContext2D(); // TODO: how to handle functions that return null?
-
     // Resize the canvas based on the dimensions of it's parent container <div>.
     const resizeObs = new ResizeObserver(() => this._handleResize());
     resizeObs.observe(this._container);
 
-    this._renderer = new Renderer(this._context, this._settings.render);
+    this._renderer = RendererFactory.getRenderer(this._canvas, this._settings.render);
     this._renderer.on(RenderEventType.RENDER_START, () => {
       this._events.emit(OrbEventType.RENDER_START, undefined);
     });

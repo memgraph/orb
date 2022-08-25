@@ -7,6 +7,7 @@ import { IGraph } from '../../models/graph';
 import { drawEdge, IEdgeDrawOptions } from './edge/index';
 import { drawNode, INodeDrawOptions } from './node';
 import { Emitter } from '../../utils/emitter.utils';
+import { IRenderer, IRendererSettings, RendererType, RenderEventType } from '../interface';
 
 const DEBUG = false;
 const DEBUG_RED = '#FF5733';
@@ -20,22 +21,8 @@ const DEFAULT_RENDERER_FIT_ZOOM_MARGIN = 0.2;
 const DEFAULT_RENDERER_MAX_ZOOM = 8;
 const DEFAULT_RENDERER_MIN_ZOOM = 0.25;
 
-export enum RenderEventType {
-  RENDER_START = 'render-start',
-  RENDER_END = 'render-end',
-}
-
-export interface IRendererSettings {
-  minZoom: number;
-  maxZoom: number;
-  fitZoomMargin: number;
-  labelsIsEnabled: boolean;
-  labelsOnEventIsEnabled: boolean;
-  contextAlphaOnEvent: number;
-  contextAlphaOnEventIsEnabled: boolean;
-}
-
 const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
+  type: RendererType.CANVAS,
   minZoom: DEFAULT_RENDERER_MIN_ZOOM,
   maxZoom: DEFAULT_RENDERER_MAX_ZOOM,
   fitZoomMargin: DEFAULT_RENDERER_FIT_ZOOM_MARGIN,
@@ -45,10 +32,13 @@ const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
   contextAlphaOnEventIsEnabled: true,
 };
 
-export class Renderer extends Emitter<{
-  [RenderEventType.RENDER_START]: undefined;
-  [RenderEventType.RENDER_END]: { durationMs: number };
-}> {
+export class CanvasRenderer
+  extends Emitter<{
+    [RenderEventType.RENDER_START]: undefined;
+    [RenderEventType.RENDER_END]: { durationMs: number };
+  }>
+  implements IRenderer
+{
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
   private readonly _context: CanvasRenderingContext2D;
 

@@ -3,11 +3,12 @@ import { IEdgeBase, isEdge } from '../models/edge';
 import { INode, INodeBase, isNode } from '../models/node';
 import { IGraph } from '../models/graph';
 import { IOrbView, IOrbViewContext } from '../orb';
-import { IRendererSettings, Renderer, RenderEventType } from '../renderer/canvas/renderer';
 import { IPosition } from '../common/position';
 import { IEventStrategy } from '../models/strategy';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
+import { CanvasRenderer } from '../renderer/canvas/canvas-renderer';
+import { IRendererSettings, RenderEventType } from '../renderer/interface';
 
 export interface ILeafletMapTile {
   instance: L.TileLayer;
@@ -66,7 +67,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   private _map: HTMLDivElement;
   private _context: CanvasRenderingContext2D | null;
 
-  private readonly _renderer: Renderer;
+  private readonly _renderer: CanvasRenderer;
   private readonly _leaflet: L.Map;
 
   constructor(context: IOrbViewContext<N, E>, settings: IMapViewSettingsInit<N, E>) {
@@ -98,7 +99,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     const resizeObs = new ResizeObserver(() => this._handleResize());
     resizeObs.observe(this._container);
 
-    this._renderer = new Renderer(this._context, this._settings.render);
+    this._renderer = new CanvasRenderer(this._context, this._settings.render);
     this._renderer.on(RenderEventType.RENDER_START, () => {
       this._events.emit(OrbEventType.RENDER_START, undefined);
     });
