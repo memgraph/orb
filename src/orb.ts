@@ -4,8 +4,8 @@ import { IEdgeBase } from './models/edge';
 import { DefaultView } from './views/default-view';
 import { getDefaultEventStrategy, IEventStrategy } from './models/strategy';
 import { OrbEmitter } from './events';
+import { getDefaultGraphStyle } from './models/style';
 
-// TODO: Fix any here
 export interface IOrbView<S = any> {
   isInitiallyRendered(): boolean;
   getSettings(): S;
@@ -31,11 +31,10 @@ export interface IOrbSettings<N extends INodeBase, E extends IEdgeBase, S> {
   strategy: IEventStrategy<N, E>;
 }
 
-export class Orb<N extends INodeBase, E extends IEdgeBase, S> {
+export class Orb<N extends INodeBase, E extends IEdgeBase, S = any> {
   private _view: IOrbView;
   private readonly _events: OrbEmitter<N, E>;
   private readonly _graph: IGraph<N, E>;
-
   private readonly _context: IOrbViewContext<N, E>;
 
   constructor(private container: HTMLElement, settings?: Partial<IOrbSettings<N, E, S>>) {
@@ -48,6 +47,7 @@ export class Orb<N extends INodeBase, E extends IEdgeBase, S> {
         }
       },
     });
+    this._graph.setDefaultStyle(getDefaultGraphStyle());
 
     this._context = {
       container: this.container,
