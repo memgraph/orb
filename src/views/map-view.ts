@@ -309,7 +309,6 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   }
 
   private _updateGraphPositions() {
-    // TODO(dlozic): should this return a copy?
     const nodes = this._graph.getNodes();
 
     for (let i = 0; i < nodes.length; i++) {
@@ -322,7 +321,6 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       }
 
       const layerPoint = this._leaflet.latLngToLayerPoint([coordinates.lat, coordinates.lng]);
-      // TODO(dlozic): and then use setPosition here?
       nodes[i].position.x = layerPoint.x;
       nodes[i].position.y = layerPoint.y;
     }
