@@ -40,10 +40,6 @@
     const orb = new Orb.Orb(container);
     orb.setView((context) => new Orb.DefaultView(context));
 
-    // Initialize nodes and edges
-    orb.data.setup({ nodes, edges });
-
-    // Assign a basic style
     orb.data.setDefaultStyle({
       getNodeStyle(node) {
         return {
@@ -71,6 +67,10 @@
       },
     });
 
+    // Initialize nodes and edges
+    orb.data.setup({ nodes, edges });
+
+    // Assign a basic style
     const randomlyExpandGraph = () => {
       console.log('Randomly expanding graph...');
       setTimeout(() => {

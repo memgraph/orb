@@ -42,9 +42,6 @@
       getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng, }),
     }));
 
-    // Initialize nodes and edges
-    orb.data.setup({ nodes, edges });
-
     // Assign a basic style
     orb.data.setDefaultStyle({
       getNodeStyle(node) {
@@ -72,6 +69,9 @@
         };
       },
     });
+
+    // Initialize nodes and edges
+    orb.data.setup({ nodes, edges });
 
     // Render and recenter the view
     orb.view.render(() => {
