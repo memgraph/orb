@@ -1,6 +1,13 @@
-import { DEFAULT_NODE_PROPERTIES, INode, INodeBase, INodePosition, INodeProperties } from '../../src/models/node';
-import { DEFAULT_EDGE_PROPERTIES, IEdge, IEdgeBase, EdgeType, IEdgeProperties } from '../../src/models/edge';
-import { IGraphStyle, IEdgeStyle, INodeStyle } from '../../src/models/style';
+import { INode, INodeBase, INodePosition, INodeProperties } from '../../src/models/node';
+import { IEdge, IEdgeBase, EdgeType, IEdgeProperties } from '../../src/models/edge';
+import {
+  IGraphStyle,
+  IEdgeStyle,
+  INodeStyle,
+  DEFAULT_NODE_PROPERTIES,
+  DEFAULT_EDGE_PROPERTIES,
+  getDefaultGraphStyle,
+} from '../../src/models/style';
 import { Graph } from '../../src/models/graph';
 import { GraphObjectState } from '../../src/models/state';
 
@@ -107,7 +114,7 @@ describe('Graph', () => {
     {
       id: 0,
       data: nodes[0],
-      properties: DEFAULT_NODE_PROPERTIES,
+      properties: {},
       inEdges: [2],
       outEdges: [0, 3],
       state: GraphObjectState.NONE,
@@ -116,7 +123,7 @@ describe('Graph', () => {
     {
       id: 1,
       data: nodes[1],
-      properties: DEFAULT_NODE_PROPERTIES,
+      properties: {},
       inEdges: [0, 4],
       outEdges: [1, 4],
       state: GraphObjectState.NONE,
@@ -125,7 +132,7 @@ describe('Graph', () => {
     {
       id: 2,
       data: nodes[2],
-      properties: DEFAULT_NODE_PROPERTIES,
+      properties: {},
       inEdges: [1, 3],
       outEdges: [2],
       state: GraphObjectState.NONE,
@@ -143,7 +150,7 @@ describe('Graph', () => {
       data: edges[0],
       type: EdgeType.STRAIGHT,
       offset: 0,
-      properties: DEFAULT_EDGE_PROPERTIES,
+      properties: {},
       state: GraphObjectState.NONE,
     },
     {
@@ -155,7 +162,7 @@ describe('Graph', () => {
       data: edges[1],
       type: EdgeType.STRAIGHT,
       offset: 0,
-      properties: DEFAULT_EDGE_PROPERTIES,
+      properties: {},
       state: GraphObjectState.NONE,
     },
     {
@@ -167,7 +174,7 @@ describe('Graph', () => {
       data: edges[2],
       type: EdgeType.CURVED,
       offset: -1,
-      properties: DEFAULT_EDGE_PROPERTIES,
+      properties: {},
       state: GraphObjectState.NONE,
     },
     {
@@ -179,7 +186,7 @@ describe('Graph', () => {
       data: edges[3],
       type: EdgeType.CURVED,
       offset: -1,
-      properties: DEFAULT_EDGE_PROPERTIES,
+      properties: {},
       state: GraphObjectState.NONE,
     },
     {
@@ -191,7 +198,7 @@ describe('Graph', () => {
       data: edges[4],
       type: EdgeType.LOOPBACK,
       offset: 1,
-      properties: DEFAULT_EDGE_PROPERTIES,
+      properties: {},
       state: GraphObjectState.NONE,
     },
   ];
@@ -212,7 +219,7 @@ describe('Graph', () => {
     });
   });
 
-  describe('join', () => {
+  describe('merge', () => {
     const newNodes: ITestNode[] = [
       { id: 3, name: 'Mia' },
       { id: 4, name: 'Lana' },
@@ -227,7 +234,7 @@ describe('Graph', () => {
       {
         id: 3,
         data: newNodes[0],
-        properties: DEFAULT_NODE_PROPERTIES,
+        properties: {},
         inEdges: [],
         outEdges: [6],
         state: GraphObjectState.NONE,
@@ -236,7 +243,7 @@ describe('Graph', () => {
       {
         id: 4,
         data: newNodes[1],
-        properties: DEFAULT_NODE_PROPERTIES,
+        properties: {},
         inEdges: [6],
         outEdges: [],
         state: GraphObjectState.NONE,
@@ -254,7 +261,7 @@ describe('Graph', () => {
         data: newEdges[0],
         type: EdgeType.LOOPBACK,
         offset: 1,
-        properties: DEFAULT_EDGE_PROPERTIES,
+        properties: {},
         state: GraphObjectState.NONE,
       },
       {
@@ -266,12 +273,12 @@ describe('Graph', () => {
         data: newEdges[1],
         type: EdgeType.STRAIGHT,
         offset: 0,
-        properties: DEFAULT_EDGE_PROPERTIES,
+        properties: {},
         state: GraphObjectState.NONE,
       },
     ];
 
-    test('should join new nodes', () => {
+    test('should merge new nodes', () => {
       const graph = new Graph({ nodes, edges });
       graph.merge({ nodes: newNodes });
 
@@ -292,7 +299,7 @@ describe('Graph', () => {
       });
     });
 
-    test('should join new edges', () => {
+    test('should merge new edges', () => {
       const graph = new Graph({ nodes, edges });
       graph.merge({ edges: newEdges });
 
@@ -320,7 +327,7 @@ describe('Graph', () => {
       });
     });
 
-    test('should join new nodes and edges', () => {
+    test('should merge new nodes and edges', () => {
       const graph = new Graph({ nodes, edges });
       graph.merge({ nodes: newNodes, edges: newEdges });
 
@@ -352,8 +359,8 @@ describe('Graph', () => {
     // test('should update existing nodes and edges', () => {});
   });
 
-  describe('hide', () => {
-    test('should hide nodes', () => {
+  describe('remove', () => {
+    test('should remove nodes', () => {
       const graph = new Graph({ nodes, edges });
       graph.remove({ nodeIds: [0, 2] });
 
@@ -379,7 +386,7 @@ describe('Graph', () => {
       });
     });
 
-    test('should hide edges', () => {
+    test('should remove edges', () => {
       const graph = new Graph({ nodes, edges });
 
       const hiddenEdgeIds = [0, 1, 4];
@@ -469,10 +476,10 @@ describe('Graph', () => {
 
     test('should apply style after setup', () => {
       const graph = new Graph({ nodes, edges });
-      graph.setStyle(style);
+      graph.setDefaultStyle(style);
 
-      expect(graph.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
-      expect(graph.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
+      expect(graph.getNodeById(0)?.properties).toEqual({});
+      expect(graph.getEdgeById(0)?.properties).toEqual({});
 
       nodes.slice(1).forEach((node) => {
         expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
@@ -484,11 +491,11 @@ describe('Graph', () => {
 
     test('should apply style before setup', () => {
       const graph = new Graph();
-      graph.setStyle(style);
+      graph.setDefaultStyle(style);
       graph.setup({ nodes, edges });
 
-      expect(graph.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
-      expect(graph.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
+      expect(graph.getNodeById(0)?.properties).toEqual({});
+      expect(graph.getEdgeById(0)?.properties).toEqual({});
 
       nodes.slice(1).forEach((node) => {
         expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
@@ -498,15 +505,55 @@ describe('Graph', () => {
       });
     });
 
-    test('should apply style after join', () => {
+    test('should apply style after merge', () => {
       const graph = new Graph({ nodes, edges });
       graph.merge({ nodes: newNodes, edges: newEdges });
-      graph.setStyle(style);
+      graph.setDefaultStyle(style);
 
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
       const currentEdges: ITestEdge[] = [...edges, ...newEdges];
 
-      expect(graph.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
+      expect(graph.getNodeById(0)?.properties).toEqual({});
+      expect(graph.getEdgeById(0)?.properties).toEqual({});
+
+      currentNodes.slice(1).forEach((node) => {
+        expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
+      });
+      currentEdges.slice(1).forEach((edge) => {
+        expect(graph.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
+      });
+    });
+
+    test('should apply style before merge', () => {
+      const graph = new Graph({ nodes, edges });
+      graph.setDefaultStyle(style);
+      graph.merge({ nodes: newNodes, edges: newEdges });
+
+      const currentNodes: ITestNode[] = [...nodes, ...newNodes];
+      const currentEdges: ITestEdge[] = [...edges, ...newEdges];
+
+      expect(graph.getNodeById(0)?.properties).toEqual({});
+      expect(graph.getEdgeById(0)?.properties).toEqual({});
+
+      currentNodes.slice(1).forEach((node) => {
+        expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
+      });
+      currentEdges.slice(1).forEach((edge) => {
+        expect(graph.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
+      });
+    });
+
+    test('should not apply second default style', () => {
+      const graph = new Graph();
+      graph.setDefaultStyle(style);
+      graph.setup({ nodes, edges });
+      graph.merge({ nodes: newNodes, edges: newEdges });
+      graph.setDefaultStyle(getDefaultGraphStyle());
+
+      const currentNodes: ITestNode[] = [...nodes, ...newNodes];
+      const currentEdges: ITestEdge[] = [...edges, ...newEdges];
+
+      expect(graph.getNodeById(0)?.properties).toEqual({ ...DEFAULT_NODE_PROPERTIES, label: nodes[0].name });
       expect(graph.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
 
       currentNodes.slice(1).forEach((node) => {
@@ -517,63 +564,27 @@ describe('Graph', () => {
       });
     });
 
-    test('should apply style before join', () => {
-      const graph = new Graph({ nodes, edges });
-      graph.setStyle(style);
+    test('should apply second default style for new nodes', () => {
+      const graph = new Graph();
+      graph.setDefaultStyle(style);
+      graph.setup({ nodes, edges });
+      graph.setDefaultStyle(getDefaultGraphStyle());
       graph.merge({ nodes: newNodes, edges: newEdges });
 
-      const currentNodes: ITestNode[] = [...nodes, ...newNodes];
-      const currentEdges: ITestEdge[] = [...edges, ...newEdges];
-
-      expect(graph.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
+      expect(graph.getNodeById(0)?.properties).toEqual({ ...DEFAULT_NODE_PROPERTIES, label: nodes[0].name });
       expect(graph.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
 
-      currentNodes.slice(1).forEach((node) => {
+      nodes.slice(1).forEach((node) => {
         expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
       });
-      currentEdges.slice(1).forEach((edge) => {
+      newNodes.forEach((node) => {
+        expect(graph.getNodeById(node.id)?.properties).toEqual({ ...DEFAULT_NODE_PROPERTIES, label: node.name });
+      });
+
+      edges.slice(1).forEach((edge) => {
         expect(graph.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
       });
-    });
-
-    test('should apply default style after join', () => {
-      const graph = new Graph();
-      graph.setStyle(style);
-      graph.setup({ nodes, edges });
-      graph.merge({ nodes: newNodes, edges: newEdges });
-      graph.setDefaultStyle();
-
-      const currentNodes: ITestNode[] = [...nodes, ...newNodes];
-      const currentEdges: ITestEdge[] = [...edges, ...newEdges];
-
-      expect(graph.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
-      expect(graph.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
-
-      currentNodes.slice(1).forEach((node) => {
-        expect(graph.getNodeById(node.id)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
-      });
-      currentEdges.slice(1).forEach((edge) => {
-        expect(graph.getEdgeById(edge.id)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
-      });
-    });
-
-    test('should apply default style before join', () => {
-      const graph = new Graph();
-      graph.setStyle(style);
-      graph.setup({ nodes, edges });
-      graph.setDefaultStyle();
-      graph.merge({ nodes: newNodes, edges: newEdges });
-
-      const currentNodes: ITestNode[] = [...nodes, ...newNodes];
-      const currentEdges: ITestEdge[] = [...edges, ...newEdges];
-
-      expect(graph.getNodeById(0)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
-      expect(graph.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
-
-      currentNodes.slice(1).forEach((node) => {
-        expect(graph.getNodeById(node.id)?.properties).toEqual(DEFAULT_NODE_PROPERTIES);
-      });
-      currentEdges.slice(1).forEach((edge) => {
+      newEdges.forEach((edge) => {
         expect(graph.getEdgeById(edge.id)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
       });
     });

@@ -62,11 +62,6 @@ export interface INodeProperties {
   mass: number;
 }
 
-export const DEFAULT_NODE_PROPERTIES: Partial<INodeProperties> = {
-  size: 5,
-  color: new Color('#1d87c9'),
-};
-
 export interface INodeData<N extends INodeBase> {
   data: N;
 }
@@ -86,6 +81,7 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> {
   getOutEdges(): IEdge<N, E>[];
   getEdges(): IEdge<N, E>[];
   getAdjacentNodes(): INode<N, E>[];
+  hasProperties(): boolean;
   addEdge(edge: IEdge<N, E>): void;
   removeEdge(edge: IEdge<N, E>): void;
   isSelected(): boolean;
@@ -116,7 +112,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   public readonly id: number;
   public data: N;
   public position: INodePosition;
-  public properties: Partial<INodeProperties> = DEFAULT_NODE_PROPERTIES;
+  public properties: Partial<INodeProperties> = {};
   public state = GraphObjectState.NONE;
 
   private readonly _inEdgesById: { [id: number]: IEdge<N, E> } = {};
@@ -207,6 +203,10 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
     }
 
     return Object.values(adjacentNodeById);
+  }
+
+  hasProperties(): boolean {
+    return this.properties && Object.keys(this.properties).length > 0;
   }
 
   addEdge(edge: IEdge<N, E>) {

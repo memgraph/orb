@@ -1,5 +1,5 @@
-import { INode, INodeBase, INodePosition, DEFAULT_NODE_PROPERTIES, NodeFactory } from './node';
-import { DEFAULT_EDGE_PROPERTIES, IEdge, EdgeFactory, IEdgeBase, IEdgePosition } from './edge';
+import { INode, INodeBase, INodePosition, NodeFactory } from './node';
+import { IEdge, EdgeFactory, IEdgeBase, IEdgePosition } from './edge';
 import { IRectangle } from '../common/rectangle';
 import { IPosition } from '../common/position';
 import { IGraphStyle } from './style';
@@ -20,13 +20,12 @@ export interface IGraph<N extends INodeBase, E extends IEdgeBase> {
   getEdges(filterBy?: IEdgeFilter<N, E>): IEdge<N, E>[];
   getNodeCount(): number;
   getEdgeCount(): number;
-  getNodeById(id: number): INode<N, E> | undefined;
-  getEdgeById(id: number): IEdge<N, E> | undefined;
+  getNodeById(id: any): INode<N, E> | undefined;
+  getEdgeById(id: any): IEdge<N, E> | undefined;
   getNodePositions(): INodePosition[];
   setNodePositions(positions: INodePosition[]): void;
   getEdgePositions(): IEdgePosition[];
-  setStyle(style: Partial<IGraphStyle<N, E>>): void;
-  setDefaultStyle(): void;
+  setDefaultStyle(style: Partial<IGraphStyle<N, E>>): void;
   setup(data: Partial<IGraphData<N, E>>): void;
   clearPositions(): void;
   merge(data: Partial<IGraphData<N, E>>): void;
@@ -46,7 +45,7 @@ export interface IGraphSettings {
 export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N, E> {
   private _nodeById: { [id: number]: INode<N, E> } = {};
   private _edgeById: { [id: number]: IEdge<N, E> } = {};
-  private _style?: Partial<IGraphStyle<N, E>>;
+  private _defaultStyle?: Partial<IGraphStyle<N, E>>;
   private _onLoadedImages?: () => void;
 
   constructor(data?: Partial<IGraphData<N, E>>, settings?: Partial<IGraphSettings>) {
@@ -119,20 +118,20 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
   /**
    * Returns node by node id.
    *
-   * @param {number} id Node id
+   * @param {any} id Node id
    * @return {Node | undefined} Node or undefined
    */
-  getNodeById(id: number): INode<N, E> | undefined {
+  getNodeById(id: any): INode<N, E> | undefined {
     return this._nodeById[id];
   }
 
   /**
    * Returns edge by edge id.
    *
-   * @param {number} id Edge id
+   * @param {any} id Edge id
    * @return {IEdge | undefined} Edge or undefined
    */
-  getEdgeById(id: number): IEdge<N, E> | undefined {
+  getEdgeById(id: any): IEdge<N, E> | undefined {
     return this._edgeById[id];
   }
 
@@ -180,17 +179,21 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
   }
 
   /**
-   * Sets define style to nodes and edges. The applied style will be used
-   * for all future nodes and edges added with `.join` function.
+   * Sets default style to new nodes and edges. The applied style will be used
+   * for all future nodes and edges added with `.merge` function.
    *
    * @param {IGraphStyle} style Style definition
    */
-  setStyle(style: Partial<IGraphStyle<N, E>>) {
-    this._style = style;
+  setDefaultStyle(style: Partial<IGraphStyle<N, E>>) {
+    this._defaultStyle = style;
     const styleImageUrls: Set<string> = new Set<string>();
 
     const nodes = this.getNodes();
     for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].hasProperties()) {
+        continue;
+      }
+
       const properties = style.getNodeStyle?.(nodes[i]);
       if (properties) {
         nodes[i].properties = properties;
@@ -206,6 +209,10 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
 
     const edges = this.getEdges();
     for (let i = 0; i < edges.length; i++) {
+      if (edges[i].hasProperties()) {
+        continue;
+      }
+
       const properties = style.getEdgeStyle?.(edges[i]);
       if (properties) {
         edges[i].properties = properties;
@@ -216,23 +223,6 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
       ImageHandler.getInstance().loadImages(Array.from(styleImageUrls), () => {
         this._onLoadedImages?.();
       });
-    }
-  }
-
-  /**
-   * Sets default style to nodes and edges.
-   */
-  setDefaultStyle() {
-    this._style = undefined;
-
-    const nodes = this.getNodes();
-    for (let i = 0; i < nodes.length; i++) {
-      nodes[i].properties = DEFAULT_NODE_PROPERTIES;
-    }
-
-    const edges = this.getEdges();
-    for (let i = 0; i < edges.length; i++) {
-      edges[i].properties = DEFAULT_EDGE_PROPERTIES;
     }
   }
 
@@ -276,7 +266,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     this._removeEdges(edgeIds);
 
     this._applyEdgeOffsets();
-    this._applyStyle();
+    // this._applyStyle();
   }
 
   isEqual<T extends INodeBase, K extends IEdgeBase>(graph: Graph<T, K>): boolean {
@@ -502,20 +492,28 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
   }
 
   private _applyStyle() {
-    if (this._style?.getNodeStyle) {
+    if (this._defaultStyle?.getNodeStyle) {
       const newNodes = this.getNodes();
       for (let i = 0; i < newNodes.length; i++) {
-        const properties = this._style.getNodeStyle(newNodes[i]);
+        if (newNodes[i].hasProperties()) {
+          continue;
+        }
+
+        const properties = this._defaultStyle.getNodeStyle(newNodes[i]);
         if (properties) {
           newNodes[i].properties = properties;
         }
       }
     }
 
-    if (this._style?.getEdgeStyle) {
+    if (this._defaultStyle?.getEdgeStyle) {
       const newEdges = this.getEdges();
       for (let i = 0; i < newEdges.length; i++) {
-        const properties = this._style.getEdgeStyle(newEdges[i]);
+        if (newEdges[i].hasProperties()) {
+          continue;
+        }
+
+        const properties = this._defaultStyle.getEdgeStyle(newEdges[i]);
         if (properties) {
           newEdges[i].properties = properties;
         }

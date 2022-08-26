@@ -1,78 +1,83 @@
-# Orb
+Orb
+===
 
-Graph visualization library
+Orb is a graph visualization library.
 
 > TBD: Add short description and image
+
+Read more about Orb in the following guides:
+
+* [Handling nodes and edges](./docs/data.md)
+* [Styling nodes and edges](./docs/styles.md)
+* [Handling events](./docs/events.md)
+* Using different views
+  * [Default view]() 
+  * [Map view](./docs/view-map.md)
 
 ## Install
 
 > TBD: Add: Install via npm, or script link 
 
-In Node.js application:
+With `npm` install:
 
 ```
-npm install orb
+npm install @memgraph/orb
 ```
 
-In web browser:
+With a link:
 
 ```html
 <!-- Direct reference -->
-<script src="lib/orb.min.js"></script>
+<script src="dist/orb.min.js"></script>
 
 <!-- unpkg CDN non-minified -->
 <script src="https://unpkg.com/orb"></script>
 <!-- unpkg CDN minified for production use, version X.Y.Z -->
 <script src="https://unpkg.com/orb@X.Y.Z/lib/orb.min.js"></script>
-
-<!-- jsDelivr CDN non-minified -->
-<script src="https://cdn.jsdelivr.net/npm/orb"></script>
-<!-- jsDelivr CDN minified for production use, version X.Y.Z -->
-<script src="https://cdn.jsdelivr.net/npm/orb@X.Y.Z/lib/orb.min.js"></script>
 ```
 
 ## Example
-
-> TBD: Add a simple example here
 
 ```html
 <!DOCTYPE html>
 <html lang='en'>
 <head>
-  <meta charset='UTF-8'>
+  <meta charset="UTF-8">
   <title>Orb | Simple graph</title>
+  <script type="text/javascript" src="./orb.js"></script>
   <style>
     #graph {
+      border: 1px solid #e0e0e0;
       width: 600px;
-      height: 400px;
+      height: 600px;
     }
   </style>
 </head>
 <body>
-  <div id='graph'></div>
-  <script>
-    const container = document.getElementById('graph');
+<div id="graph"></div>
+<script>
+  const container = document.getElementById('graph');
 
-    const nodes = [
-      { id: 1, properties: { name: 'Orb' } },
-      { id: 2, properties: { name: 'Graph' } },
-      { id: 3, properties: { name: 'Canvas' } },
-    ]
-    const edges = [
-      { id: 1, start: 1, end: 2, label: 'DRAWS' },
-      { id: 2, start: 2, end: 3, label: 'ON' },
-    ]
+  const nodes = [
+    { id: 1, label: 'Orb' },
+    { id: 2, label: 'Graph' },
+    { id: 3, label: 'Canvas' },
+  ];
+  const edges = [
+    { id: 1, start: 1, end: 2, label: 'DRAWS' },
+    { id: 2, start: 2, end: 3, label: 'ON' },
+  ];
 
-    const orb = new Orb(container);
+  const orb = new Orb.Orb(container);
 
-    // Initialize nodes and edges
-    orb.data.setup({ nodes, edges })
+  // Initialize nodes and edges
+  orb.data.setup({ nodes, edges });
 
-    // Render and recenter the view
-    orb.view.render(() => {
-      orb.view.recenter();
-    });
-  </script>
+  // Render and recenter the view
+  orb.view.render(() => {
+    orb.view.recenter();
+  });
+</script>
 </body>
 </html>
 ```
@@ -82,8 +87,6 @@ In web browser:
 > TBD: Add build commands
 
 ## Test
-
-> TBD: Add test text
 
 ```
 npm run test

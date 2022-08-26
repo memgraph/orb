@@ -31,6 +31,8 @@ export interface IRendererSettings {
   fitZoomMargin: number;
   labelsIsEnabled: boolean;
   labelsOnEventIsEnabled: boolean;
+  shadowIsEnabled: boolean;
+  shadowOnEventIsEnabled: boolean;
   contextAlphaOnEvent: number;
   contextAlphaOnEventIsEnabled: boolean;
 }
@@ -41,6 +43,8 @@ const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
   fitZoomMargin: DEFAULT_RENDERER_FIT_ZOOM_MARGIN,
   labelsIsEnabled: true,
   labelsOnEventIsEnabled: true,
+  shadowIsEnabled: true,
+  shadowOnEventIsEnabled: true,
   contextAlphaOnEvent: 0.3,
   contextAlphaOnEventIsEnabled: true,
 };
@@ -161,7 +165,10 @@ export class Renderer extends Emitter<{
     for (let i = 0; i < objects.length; i++) {
       const obj = objects[i];
       if (!obj.isSelected() && !obj.isHovered()) {
-        this.drawObject(obj, { isLabelEnabled: this.settings.labelsIsEnabled });
+        this.drawObject(obj, {
+          isLabelEnabled: this.settings.labelsIsEnabled,
+          isShadowEnabled: this.settings.shadowIsEnabled,
+        });
       }
     }
 
@@ -170,10 +177,16 @@ export class Renderer extends Emitter<{
     }
 
     for (let i = 0; i < selectedObjects.length; i++) {
-      this.drawObject(selectedObjects[i], { isLabelEnabled: this.settings.labelsOnEventIsEnabled });
+      this.drawObject(selectedObjects[i], {
+        isLabelEnabled: this.settings.labelsOnEventIsEnabled,
+        isShadowEnabled: this.settings.shadowOnEventIsEnabled,
+      });
     }
     for (let i = 0; i < hoveredObjects.length; i++) {
-      this.drawObject(hoveredObjects[i], { isLabelEnabled: this.settings.labelsOnEventIsEnabled });
+      this.drawObject(hoveredObjects[i], {
+        isLabelEnabled: this.settings.labelsOnEventIsEnabled,
+        isShadowEnabled: this.settings.shadowOnEventIsEnabled,
+      });
     }
   }
 

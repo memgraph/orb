@@ -132,7 +132,7 @@
       orb.data.setup({ nodes, edges });
 
       // Assign a basic style
-      orb.data.setStyle({
+      orb.data.setDefaultStyle({
         getNodeStyle(node) {
           const isNewNode = node.id > 3;
           const color = isNewNode ? '#F24747' : '#0F87FF';

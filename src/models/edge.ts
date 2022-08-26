@@ -50,11 +50,6 @@ export interface IEdgeProperties {
   widthSelected: number;
 }
 
-export const DEFAULT_EDGE_PROPERTIES: Partial<IEdgeProperties> = {
-  color: new Color('#ababab'),
-  width: 0.3,
-};
-
 export interface IEdgeData<N extends INodeBase, E extends IEdgeBase> {
   data: E;
   // Offset is used to mark curved or straight lines
@@ -83,6 +78,7 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> {
   get end(): any;
   get endNode(): INode<N, E>;
   get type(): EdgeType;
+  hasProperties(): boolean;
   isSelected(): boolean;
   isHovered(): boolean;
   clearState(): void;
@@ -141,7 +137,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   public readonly startNode: INode<N, E>;
   public readonly endNode: INode<N, E>;
 
-  public properties: Partial<IEdgeProperties> = DEFAULT_EDGE_PROPERTIES;
+  public properties: Partial<IEdgeProperties> = {};
   public state = GraphObjectState.NONE;
   public position: IEdgePosition;
 
@@ -170,6 +166,10 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
 
   get end(): number {
     return this.data.end;
+  }
+
+  hasProperties(): boolean {
+    return this.properties && Object.keys(this.properties).length > 0;
   }
 
   isSelected(): boolean {
