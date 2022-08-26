@@ -14,13 +14,13 @@ import { IEventStrategy } from '../models/strategy';
 import { ID3SimulatorEngineSettingsUpdate } from '../simulator/engine/d3-simulator-engine';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
-import { IRenderer, IRendererSettings, RendererType, RenderEventType } from '../renderer/interface';
+import { IRenderer, IRendererSettings, RendererType, RenderEventType } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
 
 export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
   simulation: ID3SimulatorEngineSettingsUpdate;
-  render: Partial<IRendererSettings>;
+  render: Partial<IRendererSettings> & { type?: RendererType };
   zoomFitTransitionMs: number;
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
@@ -76,7 +76,12 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     const resizeObs = new ResizeObserver(() => this._handleResize());
     resizeObs.observe(this._container);
 
-    this._renderer = RendererFactory.getRenderer(this._canvas, this._settings.render);
+    try {
+      this._renderer = RendererFactory.getRenderer(this._canvas, this._settings.render);
+    } catch (error: any) {
+      this._container.textContent = error.message;
+      throw error;
+    }
     this._renderer.on(RenderEventType.RENDER_START, () => {
       this._events.emit(OrbEventType.RENDER_START, undefined);
     });

@@ -4,7 +4,7 @@ import { IRectangle } from '../common/rectangle';
 import { INodeBase } from '../models/node';
 import { IEdgeBase } from '../models/edge';
 import { IGraph } from '../models/graph';
-import { Emitter } from '../utils/emitter.utils';
+import { IEmitter } from '../utils/emitter.utils';
 
 export enum RendererType {
   CANVAS = 'canvas',
@@ -17,7 +17,6 @@ export enum RenderEventType {
 }
 
 export interface IRendererSettings {
-  type: RendererType;
   minZoom: number;
   maxZoom: number;
   fitZoomMargin: number;
@@ -28,7 +27,7 @@ export interface IRendererSettings {
 }
 
 export interface IRenderer
-  extends Emitter<{
+  extends IEmitter<{
     [RenderEventType.RENDER_START]: undefined;
     [RenderEventType.RENDER_END]: { durationMs: number };
   }> {
@@ -60,3 +59,16 @@ export interface IRenderer
 
   translateOriginToCenter(): void;
 }
+
+export const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
+  minZoom: 0.25,
+  maxZoom: 8,
+  fitZoomMargin: 0.2,
+  labelsIsEnabled: true,
+  labelsOnEventIsEnabled: true,
+  contextAlphaOnEvent: 0.3,
+  contextAlphaOnEventIsEnabled: true,
+};
+
+export const DEFAULT_RENDERER_WIDTH = 640;
+export const DEFAULT_RENDERER_HEIGHT = 480;

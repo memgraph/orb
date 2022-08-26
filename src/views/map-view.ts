@@ -7,7 +7,7 @@ import { IPosition } from '../common/position';
 import { IEventStrategy } from '../models/strategy';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
-import { IRenderer, IRendererSettings, RendererType, RenderEventType } from '../renderer/interface';
+import { IRenderer, IRendererSettings, RendererType, RenderEventType } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
 
 export interface ILeafletMapTile {
@@ -44,7 +44,7 @@ export interface IMapSettings {
 export interface IMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
   map: IMapSettings;
-  render: Partial<IRendererSettings>;
+  render: Partial<IRendererSettings> & { type: RendererType };
 }
 
 export interface IMapViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
@@ -96,14 +96,19 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     const resizeObs = new ResizeObserver(() => this._handleResize());
     resizeObs.observe(this._container);
 
-    this._renderer = RendererFactory.getRenderer(this._canvas, this._settings.render);
-    this._renderer.on(RenderEventType.RENDER_START, () => {
-      this._events.emit(OrbEventType.RENDER_START, undefined);
-    });
+    try {
+      this._renderer = RendererFactory.getRenderer(this._canvas, this._settings.render);
+    } catch (error: any) {
+      this._container.textContent = error.message;
+      throw error;
+    }
     this._renderer.on(RenderEventType.RENDER_END, (data) => {
       this._events.emit(OrbEventType.RENDER_END, data);
     });
-    this._settings.render = this._renderer.settings;
+    this._settings.render = {
+      type: this._settings.render.type,
+      ...this._renderer.settings,
+    };
     this._leaflet = this._initLeaflet();
     // Setting up leaflet map tile
     this._handleTileChange();
@@ -144,7 +149,10 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         ...this._renderer.settings,
         ...settings.render,
       };
-      this._settings.render = this._renderer.settings;
+      this._settings.render = {
+        type: this._settings.render.type,
+        ...this._renderer.settings,
+      };
     }
   }
 

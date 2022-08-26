@@ -1,21 +1,25 @@
 import { CanvasRenderer } from './canvas/canvas-renderer';
-import { IRenderer, IRendererSettings, RendererType } from './interface';
+import { IRenderer, IRendererSettings, RendererType } from './shared';
 import { WebGLRenderer } from './webgl/webgl-renderer';
+import { OrbError } from '../models/exceptions';
 
 export class RendererFactory {
-  static getRenderer(canvas: HTMLCanvasElement, settings?: Partial<IRendererSettings>): IRenderer {
+  static getRenderer(
+    canvas: HTMLCanvasElement,
+    settings?: Partial<IRendererSettings> & { type?: RendererType },
+  ): IRenderer {
     if (settings?.type === RendererType.WEBGL) {
-      const context = canvas.getContext('webgl2') || new WebGL2RenderingContext();
+      const context = canvas.getContext('webgl2');
+      if (!context) {
+        throw new OrbError('Failed to create WebGL context.');
+      }
       return new WebGLRenderer(context, settings);
     }
 
-    if (settings?.type === RendererType.CANVAS) {
-      // Get the 2d rendering context which is used by D3 in the Renderer.
-      const context = canvas.getContext('2d') || new CanvasRenderingContext2D(); // TODO: how to handle functions that return null?
-      return new CanvasRenderer(context, settings);
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new OrbError('Failed to create Canvas context.');
     }
-
-    const context = canvas.getContext('2d') || new CanvasRenderingContext2D(); // TODO: how to handle functions that return null?
     return new CanvasRenderer(context, settings);
   }
 }
