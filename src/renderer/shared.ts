@@ -22,9 +22,12 @@ export interface IRendererSettings {
   fitZoomMargin: number;
   labelsIsEnabled: boolean;
   labelsOnEventIsEnabled: boolean;
+  shadowIsEnabled: boolean;
+  shadowOnEventIsEnabled: boolean;
   contextAlphaOnEvent: number;
   contextAlphaOnEventIsEnabled: boolean;
 }
+
 
 export interface IRenderer
   extends IEmitter<{
@@ -66,6 +69,8 @@ export const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
   fitZoomMargin: 0.2,
   labelsIsEnabled: true,
   labelsOnEventIsEnabled: true,
+  shadowIsEnabled: true,
+  shadowOnEventIsEnabled: true,
   contextAlphaOnEvent: 0.3,
   contextAlphaOnEventIsEnabled: true,
 };
