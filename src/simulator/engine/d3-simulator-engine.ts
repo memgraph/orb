@@ -157,32 +157,35 @@ export class D3SimulatorEngine extends Emitter<{
 }> {
   protected readonly linkForce: ForceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>;
   protected readonly simulation: Simulation<ISimulationNode, undefined>;
+  // TODO(dlozic): Public? renderer settings are public
   protected readonly settings: ID3SimulatorEngineSettings;
 
-  protected edges: ISimulationEdge[] = [];
-  protected nodes: ISimulationNode[] = [];
-  protected nodeIndexByNodeId: Record<number, number> = {};
+  protected _edges: ISimulationEdge[] = [];
+  protected _nodes: ISimulationNode[] = [];
+  protected _nodeIndexByNodeId: Record<number, number> = {};
 
-  protected isDragging = false;
-  protected isStabilizing = false;
+  protected _isDragging = false;
+  protected _isStabilizing = false;
 
   constructor(settings?: ID3SimulatorEngineSettings) {
     super();
 
-    this.linkForce = forceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>(this.edges).id((node) => node.id);
-    this.simulation = forceSimulation(this.nodes).force('link', this.linkForce).stop();
+    this.linkForce = forceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>(this._edges).id(
+      (node) => node.id,
+    );
+    this.simulation = forceSimulation(this._nodes).force('link', this.linkForce).stop();
 
     this.settings = Object.assign(copyObject(DEFAULT_SETTINGS), settings);
     this.initSimulation(this.settings);
 
     this.simulation.on('tick', () => {
-      this.emit(D3SimulatorEngineEventType.TICK, { nodes: this.nodes, edges: this.edges });
+      this.emit(D3SimulatorEngineEventType.TICK, { nodes: this._nodes, edges: this._edges });
     });
 
     this.simulation.on('end', () => {
-      this.isDragging = false;
-      this.isStabilizing = false;
-      this.emit(D3SimulatorEngineEventType.END, { nodes: this.nodes, edges: this.edges });
+      this._isDragging = false;
+      this._isStabilizing = false;
+      this.emit(D3SimulatorEngineEventType.END, { nodes: this._nodes, edges: this._edges });
     });
   }
 
@@ -206,20 +209,20 @@ export class D3SimulatorEngine extends Emitter<{
   }
 
   startDragNode() {
-    this.isDragging = true;
+    this._isDragging = true;
 
-    if (!this.isStabilizing) {
+    if (!this._isStabilizing) {
       this.activateSimulation();
     }
   }
 
   dragNode(data: ID3SimulatorNodeId & IPosition) {
-    const node = this.nodes[this.nodeIndexByNodeId[data.id]];
+    const node = this._nodes[this._nodeIndexByNodeId[data.id]];
     if (!node) {
       return;
     }
 
-    if (!this.isDragging) {
+    if (!this._isDragging) {
       this.startDragNode();
     }
 
@@ -232,15 +235,15 @@ export class D3SimulatorEngine extends Emitter<{
 
       // Notify the client that the node position changed.
       // This is otherwise handled by the simulation tick if physics is enabled.
-      this.emit(D3SimulatorEngineEventType.NODE_DRAGGED, { nodes: this.nodes, edges: this.edges });
+      this.emit(D3SimulatorEngineEventType.NODE_DRAGGED, { nodes: this._nodes, edges: this._edges });
     }
   }
 
   endDragNode(data: ID3SimulatorNodeId) {
-    this.isDragging = false;
+    this._isDragging = false;
 
     this.simulation.alphaTarget(0);
-    const node = this.nodes[this.nodeIndexByNodeId[data.id]];
+    const node = this._nodes[this._nodeIndexByNodeId[data.id]];
     if (node) {
       releaseNode(node);
     }
@@ -269,14 +272,14 @@ export class D3SimulatorEngine extends Emitter<{
 
   addData(data: ID3SimulatorGraph) {
     data = this.fixDefinedNodes(data);
-    this.nodes.concat(data.nodes);
-    this.edges.concat(data.edges);
+    this._nodes.concat(data.nodes);
+    this._edges.concat(data.edges);
     this.setNodeIndexByNodeId();
   }
 
   clearData() {
-    this.nodes = [];
-    this.edges = [];
+    this._nodes = [];
+    this._edges = [];
     this.setNodeIndexByNodeId();
   }
 
@@ -295,22 +298,22 @@ export class D3SimulatorEngine extends Emitter<{
     const newNodeIds = new Set(data.nodes.map((node) => node.id));
 
     // Remove old nodes that aren't present in the new data.
-    const oldNodes = this.nodes.filter((node) => newNodeIds.has(node.id));
-    const newNodes = data.nodes.filter((node) => this.nodeIndexByNodeId[node.id] === undefined);
+    const oldNodes = this._nodes.filter((node) => newNodeIds.has(node.id));
+    const newNodes = data.nodes.filter((node) => this._nodeIndexByNodeId[node.id] === undefined);
 
-    this.nodes = [...oldNodes, ...newNodes];
+    this._nodes = [...oldNodes, ...newNodes];
     this.setNodeIndexByNodeId();
 
     // Only keep new links and discard all old links.
     // Old links won't work as some discrepancies arise between the D3 index property
     // and Memgraph's `id` property which affects the source->target mapping.
-    this.edges = data.edges;
+    this._edges = data.edges;
   }
 
   simulate() {
     // Update simulation with new data.
-    this.simulation.nodes(this.nodes);
-    this.linkForce.links(this.edges);
+    this.simulation.nodes(this._nodes);
+    this.linkForce.links(this._edges);
 
     // Run stabilization "physics".
     this.runStabilization();
@@ -324,8 +327,8 @@ export class D3SimulatorEngine extends Emitter<{
     this.setData(data);
 
     // Update simulation with new data.
-    this.simulation.nodes(this.nodes);
-    this.linkForce.links(this.edges);
+    this.simulation.nodes(this._nodes);
+    this.linkForce.links(this._edges);
 
     // Run stabilization "physics".
     this.runStabilization();
@@ -339,29 +342,29 @@ export class D3SimulatorEngine extends Emitter<{
     const newNodeIds = new Set(data.nodes.map((node) => node.id));
 
     // const newNodes = data.nodes.filter((node) => !this.nodeIdentities.has(node.id));
-    const newNodes = data.nodes.filter((node) => this.nodeIndexByNodeId[node.id] === undefined);
-    const oldNodes = this.nodes.filter((node) => newNodeIds.has(node.id));
+    const newNodes = data.nodes.filter((node) => this._nodeIndexByNodeId[node.id] === undefined);
+    const oldNodes = this._nodes.filter((node) => newNodeIds.has(node.id));
 
     if (!this.settings.isPhysicsEnabled) {
       oldNodes.forEach((node) => fixNode(node));
     }
 
     // Remove old nodes that aren't present in the new data.
-    this.nodes = [...oldNodes, ...newNodes];
+    this._nodes = [...oldNodes, ...newNodes];
     this.setNodeIndexByNodeId();
 
     // Only keep new links and discard all old links.
     // Old links won't work as some discrepancies arise between the D3 index property
     // and Memgraph's `id` property which affects the source->target mapping.
-    this.edges = data.edges;
+    this._edges = data.edges;
 
     // Update simulation with new data.
-    this.simulation.nodes(this.nodes);
-    this.linkForce.links(this.edges);
+    this.simulation.nodes(this._nodes);
+    this.linkForce.links(this._edges);
 
     // If there are no new nodes, there is no need for the stabilization
     if (!this.settings.isPhysicsEnabled && !newNodes.length) {
-      this.emit(D3SimulatorEngineEventType.STABILIZATION_ENDED, { nodes: this.nodes, edges: this.edges });
+      this.emit(D3SimulatorEngineEventType.STABILIZATION_ENDED, { nodes: this._nodes, edges: this._edges });
       return;
     }
 
@@ -371,8 +374,8 @@ export class D3SimulatorEngine extends Emitter<{
 
   stopSimulation() {
     this.simulation.stop();
-    this.nodes = [];
-    this.edges = [];
+    this._nodes = [];
+    this._edges = [];
     this.setNodeIndexByNodeId();
     this.simulation.nodes();
     this.linkForce.links();
@@ -436,13 +439,13 @@ export class D3SimulatorEngine extends Emitter<{
   // This is a blocking action - the user will not be able to interact with the graph
   // during the stabilization process.
   protected runStabilization() {
-    if (this.isStabilizing) {
+    if (this._isStabilizing) {
       return;
     }
 
     this.emit(D3SimulatorEngineEventType.STABILIZATION_STARTED, undefined);
 
-    this.isStabilizing = true;
+    this._isStabilizing = true;
     this.simulation.alpha(this.settings.alpha.alpha).alphaTarget(this.settings.alpha.alphaTarget).stop();
 
     const totalSimulationSteps = Math.ceil(
@@ -456,42 +459,42 @@ export class D3SimulatorEngine extends Emitter<{
       if (currentProgress > lastProgress) {
         lastProgress = currentProgress;
         this.emit(D3SimulatorEngineEventType.STABILIZATION_PROGRESS, {
-          nodes: this.nodes,
-          edges: this.edges,
+          nodes: this._nodes,
+          edges: this._edges,
           progress: currentProgress / 100,
         });
       }
       this.simulation.tick();
     }
 
-    this.isStabilizing = false;
-    this.emit(D3SimulatorEngineEventType.STABILIZATION_ENDED, { nodes: this.nodes, edges: this.edges });
+    this._isStabilizing = false;
+    this.emit(D3SimulatorEngineEventType.STABILIZATION_ENDED, { nodes: this._nodes, edges: this._edges });
   }
 
   protected setNodeIndexByNodeId() {
-    this.nodeIndexByNodeId = {};
-    for (let i = 0; i < this.nodes.length; i++) {
-      this.nodeIndexByNodeId[this.nodes[i].id] = i;
+    this._nodeIndexByNodeId = {};
+    for (let i = 0; i < this._nodes.length; i++) {
+      this._nodeIndexByNodeId[this._nodes[i].id] = i;
     }
   }
 
   fixNodes(nodes?: ISimulationNode[]) {
     if (!nodes) {
-      nodes = this.nodes;
+      nodes = this._nodes;
     }
 
     for (let i = 0; i < nodes.length; i++) {
-      fixNode(this.nodes[i]);
+      fixNode(this._nodes[i]);
     }
   }
 
   releaseNodes(nodes?: ISimulationNode[]) {
     if (!nodes) {
-      nodes = this.nodes;
+      nodes = this._nodes;
     }
 
     for (let i = 0; i < nodes.length; i++) {
-      releaseNode(this.nodes[i]);
+      releaseNode(this._nodes[i]);
     }
   }
 }

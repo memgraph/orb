@@ -3,6 +3,7 @@ import { INodeBase, IEdgeBase, IGraph, IPosition, IRectangle } from '../../index
 import { Emitter } from '../../utils/emitter.utils';
 import { IRenderer, IRendererSettings, RendererType, RenderEventType } from '../interface';
 
+// TODO(dlozic): Where to extract these?
 const DEFAULT_RENDERER_WIDTH = 640;
 const DEFAULT_RENDERER_HEIGHT = 480;
 const DEFAULT_RENDERER_FIT_ZOOM_MARGIN = 0.2;
@@ -10,6 +11,7 @@ const DEFAULT_RENDERER_MAX_ZOOM = 8;
 const DEFAULT_RENDERER_MIN_ZOOM = 0.25;
 
 const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
+  // TODO(dlozic): Property here or separate input
   type: RendererType.WEBGL,
   minZoom: DEFAULT_RENDERER_MIN_ZOOM,
   maxZoom: DEFAULT_RENDERER_MAX_ZOOM,
