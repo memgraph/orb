@@ -67,10 +67,6 @@
       },
     });
 
-    orb.events.on('simulation-step', (data) => {
-      orb.view.render();
-    });
-
     // Render and recenter the view
     orb.view.render(() => {
       orb.view.recenter();

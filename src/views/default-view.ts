@@ -24,6 +24,7 @@ export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> 
   zoomFitTransitionMs: number;
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
+  isSimulationAnimated: boolean;
 }
 
 export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<IDefaultViewSettings<N, E>> {
@@ -54,6 +55,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       zoomFitTransitionMs: 200,
       isOutOfBoundsDragEnabled: false,
       areCoordinatesRounded: true,
+      isSimulationAnimated: true,
       ...settings,
       simulation: {
         isPhysicsEnabled: false,
@@ -110,6 +112,9 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       onStabilizationProgress: (data) => {
         this._graph.setNodePositions(data.nodes);
         this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
+        if (this._settings.isSimulationAnimated) {
+          this.render();
+        }
       },
       onStabilizationEnd: (data) => {
         this._graph.setNodePositions(data.nodes);

@@ -12,12 +12,17 @@
     height: 100%;
     margin: 0;
   }
+  .progress-bar {
+    height: 4px;
+    background-color: red;
+  }
 </style>
 <body>
   <div style="display: flex; flex-direction: column; align-items: center; height: 100%;">
     <h1>Example 4 - Events</h1>
     <p>Rendering a simple graph on default canvas with events and callbacks.</p>
 
+    <div id="progressBar" class="progress-bar"></div>
     <div id='graph' style="flex: 1; width: 100%;"></div>
   </div>
   <script type="text/javascript">
@@ -76,8 +81,12 @@
       orb.view.recenter();
     });
 
-    orb.events.on('simulation-step', () => {
-      orb.view.render();
+    orb.events.on('simulation-step', (event) => {
+      const progressBar = document.getElementById('progressBar');
+      progressBar.style.width = `${event.progress * 100}%`;
+      if (event.progress === 1) {
+        progressBar.style.width = 0;
+      }
     })
 
     orb.events.on('node-click', (event) => {

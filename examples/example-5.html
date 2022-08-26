@@ -91,11 +91,6 @@
       }, 3000);
     };
 
-
-    orb.events.on('simulation-step', () => {
-      orb.view.render();
-    });
-
     randomlyExpandGraph();
     
     orb.events.on('node-click', ({ node }) => {
