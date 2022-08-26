@@ -7,8 +7,8 @@ import { IPosition } from '../common/position';
 import { IEventStrategy } from '../models/strategy';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
-import { CanvasRenderer } from '../renderer/canvas/canvas-renderer';
-import { IRendererSettings, RenderEventType } from '../renderer/interface';
+import { IRenderer, IRendererSettings, RendererType, RenderEventType } from '../renderer/interface';
+import { RendererFactory } from '../renderer/factory';
 
 export interface ILeafletMapTile {
   instance: L.TileLayer;
@@ -65,9 +65,8 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
   private _canvas: HTMLCanvasElement;
   private _map: HTMLDivElement;
-  private _context: CanvasRenderingContext2D | null;
 
-  private readonly _renderer: CanvasRenderer;
+  private readonly _renderer: IRenderer;
   private readonly _leaflet: L.Map;
 
   constructor(context: IOrbViewContext<N, E>, settings: IMapViewSettingsInit<N, E>) {
@@ -83,6 +82,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         tile: settings.map?.tile ?? DEFAULT_MAP_TILE,
       },
       render: {
+        type: RendererType.CANVAS,
         ...settings.render,
       },
     };
@@ -92,14 +92,11 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._canvas = this._initCanvas();
     this._map = this._initMap();
 
-    // Get the 2d rendering context which is used by D3 in the Renderer.
-    this._context = this._canvas.getContext('2d') || new CanvasRenderingContext2D(); // TODO: how to handle functions that return null?
-
     // Resize the canvas based on the dimensions of it's parent container <div>.
     const resizeObs = new ResizeObserver(() => this._handleResize());
     resizeObs.observe(this._container);
 
-    this._renderer = new CanvasRenderer(this._context, this._settings.render);
+    this._renderer = RendererFactory.getRenderer(this._canvas, this._settings.render);
     this._renderer.on(RenderEventType.RENDER_START, () => {
       this._events.emit(OrbEventType.RENDER_START, undefined);
     });
