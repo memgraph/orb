@@ -2,8 +2,8 @@ Handling graph data in Orb
 ===
 
 Graph data structure (nodes and edges) is the main part of Orb. Without the graph data
-structure, there wouldn't be anything to render. Read the following guide in order to
-get to know how to handle graph data in Orb.
+structure, there wouldn't be anything to render. Read the following guide to get to know
+how to handle graph data in Orb.
 
 > Note: Please do not use `node.addEdge` and `node.removeEdge` because the general graph data
 > structure might go out of sync. Always use `orb.data.(setup|merge|remove)` to change the
@@ -28,12 +28,12 @@ const edges = [
 orb.data.setup({ nodes, edges });
 ```
 
-To set up `nodes` and `edges`, there are few requirements that Orb expects:
+To set up `nodes` and `edges`, there are a few requirements that Orb expects:
 
-* Node data object should be a JSON plain object with defined unique `id`. Value of `id` can
+* Node data object should be a JSON plain object with a defined unique `id`. The value of `id` can
   be `any`. All other properties are up to you (e.g. `text` and `myField` in the above example).
 * Edge data object should be a JSON plain object with defined unique `id`, `start` (id of
-  the source node), `end` (id of the target node). Value of `id` can be `any`. All other
+  the source node), `end` (id of the target node). The value of `id` can be `any`. All other
   properties are up to you. (e.g. `connects` in the above example).
 
 Whenever `orb.data.setup` is called, any previous graph structure will be removed.
@@ -41,7 +41,7 @@ Whenever `orb.data.setup` is called, any previous graph structure will be remove
 ### Node
 
 Node object (interface `orb.INode`) is created on top of the node data that is provided via
-`orb.data.setup` or `orb.data.merge` functions. Node object contains the information:
+`orb.data.setup` or `orb.data.merge` functions. The Node object contains the information:
 
 * `id` - Readonly unique `id` provided on init (same as `.data.id`)
 * `data` - User provided information on `orb.data.setup` or `orb.data.merge`
@@ -82,7 +82,7 @@ console.log(node.properties); // Output: { ...<default node props>, color: '#FF0
 ### Edge
 
 Edge object (interface `orb.IEdge`) is created on top of the edge data that is provided via
-`orb.data.setup` or `orb.data.merge` functions. Edge object contains the information:
+`orb.data.setup` or `orb.data.merge` functions. The Edge object contains the information:
 
 * `id` - Readonly unique `id` provided on init (same as `.data.id`)
 * `data` - User provided information on `orb.data.setup` or `orb.data.merge`
@@ -94,10 +94,10 @@ Edge object (interface `orb.IEdge`) is created on top of the edge data that is p
 * `state` - Edge state which can be selected (`GraphObjectState.SELECTED`), hovered
   (`GraphObjectState.HOVERED`), or none (`GraphObjectState.NONE` - default)
 * `type` - Edge line type which can be:
-  * straight (`EdgeType.STRAIGHT`) - if there is 1x, 3x, 5x, ... edges connecting nodes A and B,
+  * straight (`EdgeType.STRAIGHT`) - if there are 1x, 3x, 5x, ... edges connecting nodes A and B,
     one edge will be a straight line edge. If there are multiple edges, other edges will be curved
     not to overlap with each other
-  * curved (`EdgeType.CURVED`) - if there are more than one edge connecting nodes A and B, some
+  * curved (`EdgeType.CURVED`) - if there is more than one edge connecting nodes A and B, some
     of those edges will be curved, so they do not overlap with each other
   * loopback (`EdgeType.LOOPBACK) - connects a node to itself
 
@@ -137,9 +137,9 @@ console.log(edge.properties); // Output: { ...<default edge props>, color: '#FF0
 
 ## Merge nodes and edges
 
-Merge `orb.data.merge` is a handy function to add new nodes, edges or even update the existing ones.
-Update of a node or edge will happen if a node or edge with same unique `id` already exists in the
-graph structure. Check the example below:
+Merge `orb.data.merge` is a handy function to add new nodes and edges or even update the existing
+ones. An update of a node or edge will happen if a node or edge with the same unique `id` already
+exists in the graph structure. Check the example below:
 
 ```typescript
 const nodes = [
@@ -179,7 +179,7 @@ console.log(orb.data.getNodeById(1)); // Output: { id: 1, text: "Node D", myFiel
 
 ## Remove nodes and edges
 
-In order to remove nodes or edges from a graph, you just need the `id`. Removing a node will also
+To remove nodes or edges from a graph, you just need the `id`. Removing a node will also
 remove all inbound and outbound edges to that node. Removing an edge will just remove that edge.
 
 ```typescript
@@ -213,7 +213,7 @@ orb.data.remove({ nodeIds: [0, 1, 2], edgeIds: [0] });
 orb.data.remove({ edgeIds: [0, 1, 2 ] });
 ```
 
-If you need to remove everything, you can do with `remove` or even with `setup`:
+If you need to remove everything, you can do it with `remove` or even with `setup`:
 
 ```typescript
 const nodeIds = orb.data.getNodes().map(node => node.id);
@@ -227,7 +227,7 @@ orb.data.setup({ nodes: [], edges: [] });
 ## Other functions
 
 There are only three main functions to change the graph structure: `setup`, `merge`, and `remove`.
-But there are couple more functions that could be useful to you:
+But couple more functions could be useful to you:
 
 ```typescript
 // Returns the list of all nodes/edges in the graph

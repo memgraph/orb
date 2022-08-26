@@ -2,7 +2,7 @@ Orb views: Map view
 ===
 
 By default, Orb offers a `MapView` which is a graph view with a map as a background. Map rendering is
-done with a library [leaflet](https://leafletjs.com/). In order to render maps, make sure to add the
+done with a library [leaflet](https://leafletjs.com/). To render maps, make sure to add the
 following CSS to your project:
 
 ```html
@@ -64,7 +64,7 @@ orb.view.render(() => {
 
 ## Initialization
 
-On `MapView` initialization you must provide an implementation for `getGeoPosition` which is used
+On `MapView` initialization, you must provide an implementation for `getGeoPosition` which is used
 to get `latitude` and `longitude` for each node. Here is the example of settings (required and optional)
 initialized on the new `MapView`:
 
@@ -98,16 +98,16 @@ orb.setView((context) => new MapView(context, {
 ### Property `getGeoPosition`
 
 Property `getGeoPosition` is the only required one. It is a callback function that has a node (`INode`)
-as an input, and it needs to return object `{ lat: number; lng: number; }` or `undefined`. If `undefined`
-is returned those nodes won't be rendered on the map.
+as an input, and it needs to return the object `{ lat: number; lng: number; }` or `undefined`. If
+`undefined` is returned those nodes won't be rendered on the map.
 
 ### Property `map`
 
 Optional property `map` has two properties that you can set which are:
 
-* `zoomLevel` - initial map zoom level. Zoom level is forwarded to `leaflet`.
+* `zoomLevel` - initial map zoom level. The zoom level is forwarded to `leaflet`.
 * `tile` - map tile layout where you need to provide an instance (`leaflet.TileLayer`) and attribution.
-  Default tile is the OpenStreetMaps.
+  The default tile is the OpenStreetMaps.
 
 ### Property `render`
 
@@ -142,7 +142,7 @@ orb.view.setSettings({
 
 ## Rendering
 
-Just like other Orb view, use `render` to render the view and `recenter` to fit the view to
+Just like other Orb views, use `render` to render the view and `recenter` to fit the view to
 the rendered graph.
 
 ```typescript
