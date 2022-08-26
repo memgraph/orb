@@ -28,7 +28,6 @@ export interface IRendererSettings {
   contextAlphaOnEventIsEnabled: boolean;
 }
 
-
 export interface IRenderer
   extends IEmitter<{
     [RenderEventType.RENDER_START]: undefined;
@@ -77,3 +76,8 @@ export const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
 
 export const DEFAULT_RENDERER_WIDTH = 640;
 export const DEFAULT_RENDERER_HEIGHT = 480;
+
+export type RendererEvents = {
+  [RenderEventType.RENDER_START]: undefined;
+  [RenderEventType.RENDER_END]: { durationMs: number };
+};

@@ -1,23 +1,17 @@
 import { zoomIdentity, ZoomTransform } from 'd3-zoom';
 import { INodeBase, IEdgeBase, IGraph, IPosition, IRectangle } from '../../index';
 import { Emitter } from '../../utils/emitter.utils';
+import { RendererEvents } from '../shared';
 import {
   DEFAULT_RENDERER_HEIGHT,
   DEFAULT_RENDERER_SETTINGS,
   DEFAULT_RENDERER_WIDTH,
   IRenderer,
   IRendererSettings,
-  RenderEventType,
 } from '../shared';
 
 // STUB
-export class WebGLRenderer
-  extends Emitter<{
-    [RenderEventType.RENDER_START]: undefined;
-    [RenderEventType.RENDER_END]: { durationMs: number };
-  }>
-  implements IRenderer
-{
+export class WebGLRenderer extends Emitter<RendererEvents> implements IRenderer {
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
   private readonly _context: WebGL2RenderingContext;
 

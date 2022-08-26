@@ -13,6 +13,7 @@ import {
   DEFAULT_RENDERER_WIDTH,
   IRenderer,
   IRendererSettings,
+  RendererEvents,
   RenderEventType,
 } from '../shared';
 
@@ -22,13 +23,7 @@ const DEBUG_GREEN = '#3CFF33';
 const DEBUG_BLUE = '#3383FF';
 const DEBUG_PINK = '#F333FF';
 
-export class CanvasRenderer
-  extends Emitter<{
-    [RenderEventType.RENDER_START]: undefined;
-    [RenderEventType.RENDER_END]: { durationMs: number };
-  }>
-  implements IRenderer
-{
+export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer {
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
   private readonly _context: CanvasRenderingContext2D;
 
