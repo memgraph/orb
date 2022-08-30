@@ -1,6 +1,6 @@
 import { INodeBase, INode } from '../../../../models/node';
 import { EdgeStraight, IEdgeBase } from '../../../../models/edge';
-import { IBorderPosition, IEdgeArrow } from '../index';
+import { IBorderPosition, IEdgeArrow } from '../shared';
 
 export const drawStraightLine = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,

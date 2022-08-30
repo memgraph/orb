@@ -25,7 +25,7 @@ module.exports = {
       return pathData.chunk.name === 'process.worker' ? 'orb-worker.js' : '[name].bundle.js';
     },
     filename: 'orb.js',
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'dist/browser'),
     library: {
       name: 'Orb',
       type: 'umd'

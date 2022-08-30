@@ -1,4 +1,4 @@
-import { IPosition } from '../common/position';
+import { IPosition } from './position';
 
 /**
  * Calculate the distance between a point (x3,y3) and a line segment from (x1,y1) to (x2,y2).

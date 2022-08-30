@@ -1,6 +1,6 @@
 import { IEdge, IEdgeBase, IEdgeProperties } from './edge';
 import { INode, INodeBase, INodeProperties } from './node';
-import { Color } from './color';
+import { Color } from '../common';
 
 const LABEL_PROPERTY_NAMES = ['label', 'name'];
 

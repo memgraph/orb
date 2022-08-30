@@ -1,9 +1,6 @@
 import { INodeBase, INode } from './node';
 import { GraphObjectState } from './state';
-import { Color } from './color';
-import { IPosition } from '../common/position';
-import { getDistanceToLine } from './distance';
-import { ICircle } from '../common/circle';
+import { Color, IPosition, ICircle, getDistanceToLine } from '../common';
 
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
 const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;

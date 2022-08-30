@@ -1,4 +1,4 @@
-import { ISimulationNode, ISimulationEdge } from '../../../interface';
+import { ISimulationNode, ISimulationEdge } from '../../../shared';
 import { IWorkerPayload } from './worker-payload';
 import { ID3SimulatorEngineSettings } from '../../../engine/d3-simulator-engine';
 

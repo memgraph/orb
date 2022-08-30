@@ -1,5 +1,8 @@
 import { zoomIdentity, ZoomTransform } from 'd3-zoom';
-import { INodeBase, IEdgeBase, IGraph, IPosition, IRectangle } from '../../index';
+import { INodeBase } from '../../models/node';
+import { IEdgeBase } from '../../models/edge';
+import { IGraph } from '../../models/graph';
+import { IPosition, IRectangle } from '../../common';
 import { Emitter } from '../../utils/emitter.utils';
 import { RendererEvents } from '../shared';
 import {

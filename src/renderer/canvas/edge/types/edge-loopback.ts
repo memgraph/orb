@@ -1,8 +1,7 @@
 import { INode, INodeBase } from '../../../../models/node';
 import { EdgeLoopback, IEdgeBase } from '../../../../models/edge';
-import { IBorderPosition, IEdgeArrow } from '../index';
-import { ICircle } from '../../../../common/circle';
-import { IPosition } from '../../../../common/position';
+import { IBorderPosition, IEdgeArrow } from '../shared';
+import { ICircle, IPosition } from '../../../../common';
 
 export const drawLoopbackLine = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,

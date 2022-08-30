@@ -6,6 +6,7 @@
     "declaration": true,
     "sourceMap": true,
     "outDir": "./dist",
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,

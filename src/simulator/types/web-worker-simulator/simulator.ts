@@ -1,5 +1,5 @@
-import { IPosition } from '../../../common/position';
-import { ISimulator, ISimulatorEvents, ISimulationNode, ISimulationEdge } from '../../interface';
+import { IPosition } from '../../../common';
+import { ISimulator, ISimulatorEvents, ISimulationNode, ISimulationEdge } from '../../shared';
 import { ID3SimulatorEngineSettingsUpdate } from '../../engine/d3-simulator-engine';
 import { IWorkerInputPayload, WorkerInputType } from './message/worker-input';
 import { IWorkerOutputPayload, WorkerOutputType } from './message/worker-output';

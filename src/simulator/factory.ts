@@ -1,4 +1,4 @@
-import { ISimulator, ISimulatorEvents } from './interface';
+import { ISimulator, ISimulatorEvents } from './shared';
 import { MainThreadSimulator } from './types/main-thread-simulator';
 import { WebWorkerSimulator } from './types/web-worker-simulator/simulator';
 

@@ -1,7 +1,5 @@
 import { IEdge, IEdgeBase } from './edge';
-import { IRectangle, isPointInRectangle } from '../common/rectangle';
-import { Color } from './color';
-import { IPosition } from '../common/position';
+import { Color, IPosition, IRectangle, isPointInRectangle } from '../common';
 import { ImageHandler } from '../services/images';
 import { GraphObjectState } from './state';
 

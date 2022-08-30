@@ -1,10 +1,9 @@
 import { ZoomTransform, zoomIdentity } from 'd3-zoom';
-import { IPosition } from '../../common/position';
-import { IRectangle } from '../../common/rectangle';
+import { IPosition, IRectangle } from '../../common';
 import { INode, INodeBase, isNode } from '../../models/node';
 import { IEdge, IEdgeBase } from '../../models/edge';
 import { IGraph } from '../../models/graph';
-import { drawEdge, IEdgeDrawOptions } from './edge/index';
+import { drawEdge, IEdgeDrawOptions } from './edge';
 import { drawNode, INodeDrawOptions } from './node';
 import { Emitter } from '../../utils/emitter.utils';
 import {

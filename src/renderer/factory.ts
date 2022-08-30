@@ -1,7 +1,7 @@
 import { CanvasRenderer } from './canvas/canvas-renderer';
 import { IRenderer, IRendererSettings, RendererType } from './shared';
 import { WebGLRenderer } from './webgl/webgl-renderer';
-import { OrbError } from '../models/exceptions';
+import { OrbError } from '../exceptions';
 
 export class RendererFactory {
   static getRenderer(

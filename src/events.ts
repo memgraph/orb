@@ -1,7 +1,7 @@
 import { INode, INodeBase } from './models/node';
 import { IEdge, IEdgeBase } from './models/edge';
 import { Emitter } from './utils/emitter.utils';
-import { IPosition } from './common/position';
+import { IPosition } from './common';
 
 export enum OrbEventType {
   // Renderer events for drawing on canvas

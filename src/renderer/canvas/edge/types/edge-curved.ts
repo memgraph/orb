@@ -1,7 +1,7 @@
 import { INode, INodeBase } from '../../../../models/node';
 import { EdgeCurved, IEdgeBase } from '../../../../models/edge';
-import { IBorderPosition, IEdgeArrow } from '../index';
-import { IPosition } from '../../../../common/position';
+import { IBorderPosition, IEdgeArrow } from '../shared';
+import { IPosition } from '../../../../common';
 
 export const drawCurvedLine = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,

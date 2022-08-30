@@ -10,8 +10,8 @@ import {
   Simulation,
   SimulationLinkDatum,
 } from 'd3-force';
-import { IPosition } from '../../common/position';
-import { ISimulationNode, ISimulationEdge } from '../interface';
+import { IPosition } from '../../common';
+import { ISimulationNode, ISimulationEdge } from '../shared';
 import { Emitter } from '../../utils/emitter.utils';
 import { isObjectEqual, copyObject } from '../../utils/object.utils';
 

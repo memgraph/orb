@@ -1,5 +1,4 @@
-import { IPosition } from '../../common/position';
-import { Color } from '../../models/color';
+import { IPosition, Color } from '../../common';
 
 const DEFAULT_FONT_FAMILY = 'Roboto, sans-serif';
 const DEFAULT_FONT_SIZE = 4;

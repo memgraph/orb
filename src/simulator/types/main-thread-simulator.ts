@@ -1,5 +1,5 @@
-import { ISimulationEdge, ISimulationNode, ISimulator, ISimulatorEvents } from '../interface';
-import { IPosition } from '../../common/position';
+import { ISimulationEdge, ISimulationNode, ISimulator, ISimulatorEvents } from '../shared';
+import { IPosition } from '../../common';
 import {
   D3SimulatorEngine,
   D3SimulatorEngineEventType,

@@ -1,7 +1,6 @@
 import { INode, INodeBase, INodePosition, NodeFactory } from './node';
 import { IEdge, EdgeFactory, IEdgeBase, IEdgePosition } from './edge';
-import { IRectangle } from '../common/rectangle';
-import { IPosition } from '../common/position';
+import { IPosition, IRectangle } from '../common';
 import { IGraphStyle } from './style';
 import { ImageHandler } from '../services/images';
 import { getEdgeOffsets } from './topology';
@@ -11,9 +10,9 @@ export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
   edges: E[];
 }
 
-type IEdgeFilter<N extends INodeBase, E extends IEdgeBase> = (edge: IEdge<N, E>) => boolean;
+export type IEdgeFilter<N extends INodeBase, E extends IEdgeBase> = (edge: IEdge<N, E>) => boolean;
 
-type INodeFilter<N extends INodeBase, E extends IEdgeBase> = (node: INode<N, E>) => boolean;
+export type INodeFilter<N extends INodeBase, E extends IEdgeBase> = (node: INode<N, E>) => boolean;
 
 export interface IGraph<N extends INodeBase, E extends IEdgeBase> {
   getNodes(filterBy?: INodeFilter<N, E>): INode<N, E>[];
@@ -186,44 +185,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
    */
   setDefaultStyle(style: Partial<IGraphStyle<N, E>>) {
     this._defaultStyle = style;
-    const styleImageUrls: Set<string> = new Set<string>();
-
-    const nodes = this.getNodes();
-    for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i].hasProperties()) {
-        continue;
-      }
-
-      const properties = style.getNodeStyle?.(nodes[i]);
-      if (properties) {
-        nodes[i].properties = properties;
-        // TODO Add these checks to node property setup
-        if (properties.imageUrl) {
-          styleImageUrls.add(properties.imageUrl);
-        }
-        if (properties.imageUrlSelected) {
-          styleImageUrls.add(properties.imageUrlSelected);
-        }
-      }
-    }
-
-    const edges = this.getEdges();
-    for (let i = 0; i < edges.length; i++) {
-      if (edges[i].hasProperties()) {
-        continue;
-      }
-
-      const properties = style.getEdgeStyle?.(edges[i]);
-      if (properties) {
-        edges[i].properties = properties;
-      }
-    }
-
-    if (styleImageUrls.size) {
-      ImageHandler.getInstance().loadImages(Array.from(styleImageUrls), () => {
-        this._onLoadedImages?.();
-      });
-    }
+    this._applyStyle();
   }
 
   setup(data: Partial<IGraphData<N, E>>) {
@@ -492,6 +454,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
   }
 
   private _applyStyle() {
+    const styleImageUrls: Set<string> = new Set<string>();
+
     if (this._defaultStyle?.getNodeStyle) {
       const newNodes = this.getNodes();
       for (let i = 0; i < newNodes.length; i++) {
@@ -502,6 +466,13 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
         const properties = this._defaultStyle.getNodeStyle(newNodes[i]);
         if (properties) {
           newNodes[i].properties = properties;
+          // TODO Add these checks to node property setup
+          if (properties.imageUrl) {
+            styleImageUrls.add(properties.imageUrl);
+          }
+          if (properties.imageUrlSelected) {
+            styleImageUrls.add(properties.imageUrlSelected);
+          }
         }
       }
     }
@@ -518,6 +489,12 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
           newEdges[i].properties = properties;
         }
       }
+    }
+
+    if (styleImageUrls.size) {
+      ImageHandler.getInstance().loadImages(Array.from(styleImageUrls), () => {
+        this._onLoadedImages?.();
+      });
     }
   }
 }

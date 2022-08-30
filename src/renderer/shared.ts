@@ -1,6 +1,5 @@
 import { ZoomTransform } from 'd3-zoom';
-import { IPosition } from '../common/position';
-import { IRectangle } from '../common/rectangle';
+import { IPosition, IRectangle } from '../common';
 import { INodeBase } from '../models/node';
 import { IEdgeBase } from '../models/edge';
 import { IGraph } from '../models/graph';

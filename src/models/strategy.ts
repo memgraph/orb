@@ -1,7 +1,7 @@
 import { INode, INodeBase } from './node';
 import { IEdge, IEdgeBase } from './edge';
 import { IGraph } from './graph';
-import { IPosition } from '../common/position';
+import { IPosition } from '../common';
 import { GraphObjectState } from './state';
 
 export interface IEventStrategyResponse<N extends INodeBase, E extends IEdgeBase> {

@@ -1,30 +1,10 @@
 import { Graph, IGraph } from './models/graph';
 import { INodeBase } from './models/node';
 import { IEdgeBase } from './models/edge';
-import { DefaultView } from './views/default-view';
+import { DefaultView, IOrbViewFactory, IOrbView, IOrbViewContext } from './views';
 import { getDefaultEventStrategy, IEventStrategy } from './models/strategy';
 import { OrbEmitter } from './events';
 import { getDefaultGraphStyle } from './models/style';
-
-export interface IOrbView<S = any> {
-  isInitiallyRendered(): boolean;
-  getSettings(): S;
-  setSettings(settings: Partial<S>): void;
-  render(onRendered?: () => void): void;
-  recenter(onRendered?: () => void): void;
-  destroy(): void;
-}
-
-export interface IOrbViewContext<N extends INodeBase, E extends IEdgeBase> {
-  container: HTMLElement;
-  graph: IGraph<N, E>;
-  events: OrbEmitter<N, E>;
-  strategy: IEventStrategy<N, E>;
-}
-
-export type IOrbViewFactory<N extends INodeBase, E extends IEdgeBase, S> = (
-  context: IOrbViewContext<N, E>,
-) => IOrbView<S>;
 
 export interface IOrbSettings<N extends INodeBase, E extends IEdgeBase, S> {
   view: IOrbViewFactory<N, E, S>;

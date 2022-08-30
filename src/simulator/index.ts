@@ -1,2 +1,2 @@
 export { SimulatorFactory } from './factory';
-export { ISimulator, ISimulationNode, ISimulationEdge } from './interface';
+export { ISimulator, ISimulationNode, ISimulationEdge } from './shared';
