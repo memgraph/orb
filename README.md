@@ -16,6 +16,10 @@ Read more about Orb in the following guides:
 
 ## Install
 
+> **Important note**: Please note that there might be breaking changes in minor version upgrades until
+> the orb reaches version 1.0.0, so we recommend to either set strict version (`@memgraph/orb: "0.x.y"`)
+> of the orb in your `package.json` or to allow only fix updates (`@memgraph/orb: "~0.x.y"`).
+
 > TBD: Add: Install via npm, or script link 
 
 With `npm` install:
