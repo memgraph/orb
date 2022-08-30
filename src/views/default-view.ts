@@ -14,7 +14,7 @@ import { IEventStrategy } from '../models/strategy';
 import { ID3SimulatorEngineSettingsUpdate } from '../simulator/engine/d3-simulator-engine';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
-import { IRenderer, IRendererSettings, RendererType, RenderEventType, IRendererSettingsInit } from '../renderer/shared';
+import { IRenderer, RendererType, RenderEventType, IRendererSettingsInit } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
 
 export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> {

@@ -7,7 +7,7 @@ import { IPosition } from '../common/position';
 import { IEventStrategy } from '../models/strategy';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
-import { IRenderer, IRendererSettings, RendererType, RenderEventType, IRendererSettingsInit } from '../renderer/shared';
+import { IRenderer, RendererType, RenderEventType, IRendererSettingsInit } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
 
 export interface ILeafletMapTile {
@@ -50,7 +50,7 @@ export interface IMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
 export interface IMapViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
   getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
   map?: Partial<IMapSettings>;
-  render?: Partial<IRendererSettings>;
+  render?: Partial<IRendererSettingsInit>;
 }
 
 export type IMapViewSettingsUpdate<N extends INodeBase, E extends IEdgeBase> = Partial<IMapViewSettingsInit<N, E>>;
