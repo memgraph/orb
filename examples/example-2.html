@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang='en' type="module">
+<head>
+  <base href=".">
+  <meta charset='UTF-8'>
+  <title>Orb | 2</title>
+  <script type="text/javascript" src="./orb.js"></script>
+</head>
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+</style>
+<body>
+  <div style="display: flex; flex-direction: column; align-items: center; height: 100%;">
+    <h1>Example 2 - Basic + Style</h1>
+    <p>Rendering a simple simulated graph on the default canvas (basic)</p>
+
+    <div id='graph' style="flex: 1; width: 100%;"></div>
+  </div>
+  <script type="text/javascript">
+    const container = document.getElementById('graph');
+
+    const nodes = [
+      { id: 0, label: 'Node A' },
+      { id: 1, label: 'Node B' },
+      { id: 2, label: 'Node C' },
+    ];
+    const edges = [
+      { id: 0, start: 0, end: 0, label: 'Edge Q' },
+      { id: 1, start: 0, end: 1, label: 'Edge W' },
+      { id: 2, start: 0, end: 2, label: 'Edge E' },
+      { id: 3, start: 1, end: 2, label: 'Edge T' },
+      { id: 4, start: 2, end: 2, label: 'Edge Y' },
+      { id: 5, start: 0, end: 1, label: 'Edge V' },
+    ]
+
+    const orb = new Orb.Orb(container);
+
+    // Assign a basic style
+    orb.data.setDefaultStyle({
+      getNodeStyle(node) {
+        const basicStyle = {
+          borderColor: '#1d1d1d',
+          borderWidth: 0.6,
+          color: '#DD2222',
+          colorHover: '#e7644e',
+          colorSelected: '#e7644e',
+          fontSize: 3,
+          label: node.data.label,
+          size: 6,
+        };
+
+        if (node.data.label === 'Node A') {
+          return {
+            ...basicStyle,
+            size: 10,
+            color: '#00FF2B',
+          };
+        }
+
+        return {
+          ...basicStyle
+        };
+      },
+      getEdgeStyle(edge) {
+        return {
+          color: '#999999',
+          colorHover: '#1d1d1d',
+          colorSelected: '#1d1d1d',
+          fontSize: 3,
+          width: 0.3,
+          widthHover: 0.9,
+          widthSelected: 0.9,
+          label: edge.data.label,
+        };
+      },
+    });
+
+    // Initialize nodes and edges
+    orb.data.setup({ nodes, edges });
+
+    orb.view.render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+{
+  "name": "@memgraph/orb",
+  "version": "0.0.1",
+  "description": "Graph visualization library",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/memgraph/orb.git"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "contributors": [
+    {
+      "name": "David Lozic",
+      "url": "https://github.com/cizl"
+    },
+    {
+      "name": "Toni Lastre",
+      "url": "https://github.com/tonilastre"
+    }
+  ],
+  "author": "Memgraph Ltd. <contact@memgraph.com>",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "tsc && webpack",
+    "wpp": "webpack --mode=production",
+    "wpw": "webpack --watch",
+    "serve": "http-server ./dist/browser/",
+    "test": "jest --runInBand --detectOpenHandles --forceExit --verbose --useStderr",
+    "coverage": "npm test -- --coverage --collectCoverageFrom='./src/**'",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "release": "semantic-release --branches main"
+  },
+  "dependencies": {
+    "d3-drag": "3.0.0",
+    "d3-ease": "3.0.1",
+    "d3-force": "3.0.0",
+    "d3-selection": "3.0.0",
+    "d3-transition": "3.0.1",
+    "d3-zoom": "3.0.0",
+    "leaflet": "1.8.0"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "devDependencies": {
+    "@commitlint/cli": "17.0.0",
+    "@commitlint/config-conventional": "17.0.0",
+    "@semantic-release/changelog": "6.0.1",
+    "@semantic-release/git": "10.0.1",
+    "@types/d3-drag": "3.0.1",
+    "@types/d3-ease": "3.0.0",
+    "@types/d3-force": "3.0.3",
+    "@types/d3-selection": "3.0.1",
+    "@types/d3-transition": "3.0.1",
+    "@types/d3-zoom": "3.0.1",
+    "@types/jest": "27.4.1",
+    "@types/leaflet": "1.7.9",
+    "@types/resize-observer-browser": "^0.1.7",
+    "@typescript-eslint/eslint-plugin": "5.24.0",
+    "@typescript-eslint/parser": "5.24.0",
+    "conventional-changelog-eslint": "3.0.9",
+    "copy-webpack-plugin": "^11.0.0",
+    "eslint": "8.15.0",
+    "eslint-config-google": "0.14.0",
+    "eslint-config-prettier": "8.5.0",
+    "eslint-plugin-jest": "26.2.2",
+    "eslint-plugin-prettier": "4.0.0",
+    "http-server": "^14.1.1",
+    "jest": "27.5.1",
+    "prettier": "^2.7.1",
+    "semantic-release": "19.0.3",
+    "ts-jest": "27.1.4",
+    "ts-loader": "^9.3.1",
+    "ts-node": "10.8.0",
+    "typescript": "4.6.3",
+    "webpack": "^5.73.0",
+    "webpack-cli": "^4.10.0",
+    "webpack-dev-server": "^4.9.3"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "",
+    "testRegex": ".spec.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "coverageDirectory": "coverage",
+    "testEnvironment": "node",
+    "testTimeout": 5000
+  }
+}

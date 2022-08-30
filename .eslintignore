@@ -1,0 +1,6 @@
+coverage/
+dist/
+node_modules/
+examples/
+rollup.config.js
+webpack.config.js
