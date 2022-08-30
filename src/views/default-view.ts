@@ -27,15 +27,10 @@ export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> 
   isSimulationAnimated: boolean;
 }
 
-export interface IDefaultViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
-  getPosition?(node: INode<N, E>): IPosition | undefined;
-  simulation: ID3SimulatorEngineSettingsUpdate;
-  render?: Partial<IRendererSettingsInit>;
-  zoomFitTransitionMs?: number;
-  isOutOfBoundsDragEnabled?: boolean;
-  areCoordinatesRounded?: boolean;
-  isSimulationAnimated?: boolean;
-}
+export type IDefaultViewSettingsInit<N extends INodeBase, E extends IEdgeBase> = Omit<
+  Partial<IDefaultViewSettings<N, E>>,
+  'render'
+> & { render?: Partial<IRendererSettingsInit> };
 
 export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<IDefaultViewSettings<N, E>> {
   private _container: HTMLElement;
@@ -86,7 +81,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     resizeObs.observe(this._container);
 
     try {
-      this._renderer = RendererFactory.getRenderer(this._canvas, this._settings.render, settings?.render?.type);
+      this._renderer = RendererFactory.getRenderer(this._canvas, settings?.render?.type, this._settings.render);
     } catch (error: any) {
       this._container.textContent = error.message;
       throw error;

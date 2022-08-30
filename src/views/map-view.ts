@@ -97,7 +97,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     resizeObs.observe(this._container);
 
     try {
-      this._renderer = RendererFactory.getRenderer(this._canvas, this._settings.render, settings?.render?.type);
+      this._renderer = RendererFactory.getRenderer(this._canvas, settings?.render?.type, this._settings.render);
     } catch (error: any) {
       this._container.textContent = error.message;
       throw error;
