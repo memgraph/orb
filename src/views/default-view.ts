@@ -14,17 +14,27 @@ import { IEventStrategy } from '../models/strategy';
 import { ID3SimulatorEngineSettingsUpdate } from '../simulator/engine/d3-simulator-engine';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
-import { IRenderer, RendererType, RenderEventType, IRendererSettingsInit } from '../renderer/shared';
+import { IRenderer, RendererType, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
 
 export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
   simulation: ID3SimulatorEngineSettingsUpdate;
-  render: Partial<IRendererSettingsInit>;
+  render: Partial<IRendererSettings>;
   zoomFitTransitionMs: number;
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
   isSimulationAnimated: boolean;
+}
+
+export interface IDefaultViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
+  getPosition?(node: INode<N, E>): IPosition | undefined;
+  simulation: ID3SimulatorEngineSettingsUpdate;
+  render: Partial<IRendererSettingsInit>;
+  zoomFitTransitionMs: number;
+  isOutOfBoundsDragEnabled?: boolean;
+  areCoordinatesRounded?: boolean;
+  isSimulationAnimated?: boolean;
 }
 
 export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<IDefaultViewSettings<N, E>> {
@@ -44,7 +54,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   private _d3Zoom: ZoomBehavior<HTMLCanvasElement, any>;
   private _dragStartPosition: IPosition | undefined;
 
-  constructor(context: IOrbViewContext<N, E>, settings?: Partial<IDefaultViewSettings<N, E>>) {
+  constructor(context: IOrbViewContext<N, E>, settings?: Partial<IDefaultViewSettingsInit<N, E>>) {
     this._container = context.container;
     this._graph = context.graph;
     this._events = context.events;
@@ -62,7 +72,6 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
         ...settings?.simulation,
       },
       render: {
-        type: RendererType.CANVAS,
         ...settings?.render,
       },
     };
@@ -77,7 +86,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     resizeObs.observe(this._container);
 
     try {
-      this._renderer = RendererFactory.getRenderer(this._canvas, this._settings.render, this._settings.render.type);
+      this._renderer = RendererFactory.getRenderer(this._canvas, this._settings.render, settings?.render?.type);
     } catch (error: any) {
       this._container.textContent = error.message;
       throw error;

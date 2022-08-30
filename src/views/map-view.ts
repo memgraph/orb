@@ -7,7 +7,7 @@ import { IPosition } from '../common/position';
 import { IEventStrategy } from '../models/strategy';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
-import { IRenderer, RendererType, RenderEventType, IRendererSettingsInit } from '../renderer/shared';
+import { IRenderer, RendererType, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
 
 export interface ILeafletMapTile {
@@ -44,7 +44,7 @@ export interface IMapSettings {
 export interface IMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
   map: IMapSettings;
-  render: Partial<IRendererSettingsInit>;
+  render: Partial<IRendererSettings>;
 }
 
 export interface IMapViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
@@ -97,7 +97,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     resizeObs.observe(this._container);
 
     try {
-      this._renderer = RendererFactory.getRenderer(this._canvas, this._settings.render, this._settings.render.type);
+      this._renderer = RendererFactory.getRenderer(this._canvas, this._settings.render, settings?.render?.type);
     } catch (error: any) {
       this._container.textContent = error.message;
       throw error;
@@ -106,7 +106,6 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       this._events.emit(OrbEventType.RENDER_END, data);
     });
     this._settings.render = {
-      type: this._settings.render.type,
       ...this._renderer.settings,
     };
     this._leaflet = this._initLeaflet();
@@ -150,7 +149,6 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         ...settings.render,
       };
       this._settings.render = {
-        type: this._settings.render.type,
         ...this._renderer.settings,
       };
     }
