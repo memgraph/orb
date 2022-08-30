@@ -157,7 +157,6 @@ export class D3SimulatorEngine extends Emitter<{
 }> {
   protected readonly linkForce: ForceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>;
   protected readonly simulation: Simulation<ISimulationNode, undefined>;
-  // TODO(dlozic): Public? renderer settings are public
   protected readonly settings: ID3SimulatorEngineSettings;
 
   protected _edges: ISimulationEdge[] = [];

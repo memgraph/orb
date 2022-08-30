@@ -7,7 +7,7 @@ import { IPosition } from '../common/position';
 import { IEventStrategy } from '../models/strategy';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
-import { IRenderer, IRendererSettings, RendererType, RenderEventType } from '../renderer/shared';
+import { IRenderer, IRendererSettings, RendererType, RenderEventType, IRendererSettingsInit } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
 
 export interface ILeafletMapTile {
@@ -44,7 +44,7 @@ export interface IMapSettings {
 export interface IMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
   map: IMapSettings;
-  render: Partial<IRendererSettings> & { type: RendererType };
+  render: Partial<IRendererSettingsInit>;
 }
 
 export interface IMapViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
@@ -97,7 +97,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     resizeObs.observe(this._container);
 
     try {
-      this._renderer = RendererFactory.getRenderer(this._canvas, this._settings.render);
+      this._renderer = RendererFactory.getRenderer(this._canvas, this._settings.render, this._settings.render.type);
     } catch (error: any) {
       this._container.textContent = error.message;
       throw error;

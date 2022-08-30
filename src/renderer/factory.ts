@@ -6,9 +6,10 @@ import { OrbError } from '../models/exceptions';
 export class RendererFactory {
   static getRenderer(
     canvas: HTMLCanvasElement,
-    settings?: Partial<IRendererSettings> & { type?: RendererType },
+    settings: Partial<IRendererSettings>,
+    type: RendererType = RendererType.CANVAS,
   ): IRenderer {
-    if (settings?.type === RendererType.WEBGL) {
+    if (type === RendererType.WEBGL) {
       const context = canvas.getContext('webgl2');
       if (!context) {
         throw new OrbError('Failed to create WebGL context.');

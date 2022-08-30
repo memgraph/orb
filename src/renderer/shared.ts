@@ -28,6 +28,10 @@ export interface IRendererSettings {
   contextAlphaOnEventIsEnabled: boolean;
 }
 
+export interface IRendererSettingsInit extends IRendererSettings {
+  type: RendererType;
+}
+
 export interface IRenderer
   extends IEmitter<{
     [RenderEventType.RENDER_START]: undefined;
