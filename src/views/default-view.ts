@@ -30,8 +30,8 @@ export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> 
 export interface IDefaultViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
   simulation: ID3SimulatorEngineSettingsUpdate;
-  render: Partial<IRendererSettingsInit>;
-  zoomFitTransitionMs: number;
+  render?: Partial<IRendererSettingsInit>;
+  zoomFitTransitionMs?: number;
   isOutOfBoundsDragEnabled?: boolean;
   areCoordinatesRounded?: boolean;
   isSimulationAnimated?: boolean;
