@@ -15,8 +15,8 @@
 </style>
 <body>
   <div style="display: flex; flex-direction: column; align-items: center; height: 100%;">
-    <h1>Example 6</h1>
-    <p>Rendering a simple graph on map canvas (map)</p>
+    <h1>Example 6 - Dynamics</h1>
+    <p>Rendering a simple graph with graph dynamics - expand, hide (dynamics)</p>
 
     <div id='graph' style="flex: 1; width: 100%;"></div>
   </div>
@@ -41,9 +41,6 @@
     orb.setView((context) => new Orb.MapView(context, {
       getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng, }),
     }));
-
-    // Initialize nodes and edges
-    orb.data.setup({ nodes, edges });
 
     // Assign a basic style
     orb.data.setDefaultStyle({
@@ -72,6 +69,9 @@
         };
       },
     });
+
+    // Initialize nodes and edges
+    orb.data.setup({ nodes, edges });
 
     // Render and recenter the view
     orb.view.render(() => {

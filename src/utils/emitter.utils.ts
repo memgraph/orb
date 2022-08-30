@@ -1,5 +1,5 @@
 // Reference: https://rjzaworski.com/2019/10/event-emitters-in-typescript
-type IEventMap = Record<string, any>;
+export type IEventMap = Record<string, any>;
 type IEventKey<T extends IEventMap> = string & keyof T;
 type IEventReceiver<T> = (params: T) => void;
 

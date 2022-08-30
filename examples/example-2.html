@@ -14,8 +14,8 @@
 </style>
 <body>
   <div style="display: flex; flex-direction: column; align-items: center; height: 100%;">
-    <h1>Example 2</h1>
-    <p>Rendering a simple simulated graph on default canvas with custom style (basic + style)</p>
+    <h1>Example 2 - Basic + Style</h1>
+    <p>Rendering a simple simulated graph on the default canvas (basic)</p>
 
     <div id='graph' style="flex: 1; width: 100%;"></div>
   </div>
@@ -37,9 +37,6 @@
     ]
 
     const orb = new Orb.Orb(container);
-
-    // Initialize nodes and edges
-    orb.data.setup({ nodes, edges });
 
     // Assign a basic style
     orb.data.setDefaultStyle({
@@ -80,6 +77,9 @@
         };
       },
     });
+
+    // Initialize nodes and edges
+    orb.data.setup({ nodes, edges });
 
     orb.view.render();
   </script>

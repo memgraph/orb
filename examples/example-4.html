@@ -12,12 +12,17 @@
     height: 100%;
     margin: 0;
   }
+  .progress-bar {
+    height: 4px;
+    background-color: red;
+  }
 </style>
 <body>
   <div style="display: flex; flex-direction: column; align-items: center; height: 100%;">
-    <h1>Example 4</h1>
-    <p>Rendering a simple graph on default canvas with events and callbacks (events)</p>
+    <h1>Example 4 - Events</h1>
+    <p>Rendering a simple graph on default canvas with events and callbacks.</p>
 
+    <div id="progressBar" class="progress-bar"></div>
     <div id='graph' style="flex: 1; width: 100%;"></div>
   </div>
   <script type="text/javascript">
@@ -39,9 +44,6 @@
     }
 
     const orb = new Orb.Orb(container);
-
-    // Initialize nodes and edges
-    orb.data.setup({ nodes, edges });
 
     // Assign a basic style
     orb.data.setDefaultStyle({
@@ -71,13 +73,20 @@
       },
     });
 
+    // Initialize nodes and edges
+    orb.data.setup({ nodes, edges });
+
     // Render and recenter the view
     orb.view.render(() => {
       orb.view.recenter();
     });
 
-    orb.events.on('simulation-step', () => {
-      orb.view.render();
+    orb.events.on('simulation-step', (event) => {
+      const progressBar = document.getElementById('progressBar');
+      progressBar.style.width = `${event.progress * 100}%`;
+      if (event.progress === 1) {
+        progressBar.style.width = 0;
+      }
     })
 
     orb.events.on('node-click', (event) => {

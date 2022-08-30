@@ -14,8 +14,8 @@
 </style>
 <body>
   <div style="display: flex; flex-direction: column; align-items: center; height: 100%;">
-    <h1>Example 5</h1>
-    <p>Rendering a simple graph with graph dynamics - expand, hide (dynamics)</p>
+    <h1>Example 5 - Dynamics</h1>
+    <p>Rendering a simple graph on default canvas with events and callbacks.</p>
 
     <div id='graph' style="flex: 1; width: 100%;"></div>
   </div>
@@ -40,10 +40,6 @@
     const orb = new Orb.Orb(container);
     orb.setView((context) => new Orb.DefaultView(context));
 
-    // Initialize nodes and edges
-    orb.data.setup({ nodes, edges });
-
-    // Assign a basic style
     orb.data.setDefaultStyle({
       getNodeStyle(node) {
         return {
@@ -53,7 +49,7 @@
           colorHover: '#e7644e',
           colorSelected: '#e7644e',
           fontSize: 3,
-          label: node.data.labels[0],
+          label: node.data.label,
           size: 6,
         };
       },
@@ -71,6 +67,10 @@
       },
     });
 
+    // Initialize nodes and edges
+    orb.data.setup({ nodes, edges });
+
+    // Assign a basic style
     const randomlyExpandGraph = () => {
       console.log('Randomly expanding graph...');
       setTimeout(() => {
@@ -90,11 +90,6 @@
         randomlyExpandGraph();
       }, 3000);
     };
-
-
-    orb.events.on('simulation-step', () => {
-      orb.view.render();
-    });
 
     randomlyExpandGraph();
     

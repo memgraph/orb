@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang='en' type="module">
+<head>
+  <base href=".">
+  <meta charset='UTF-8'>
+  <title>Orb | Playground</title>
+  <script type="text/javascript" src="./orb.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ==" crossorigin="" />
+</head>
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+</style>
+<body>
+  <div id='graph' style="height: 100%;"></div>
+  <script type="text/javascript">
+    const container = document.getElementById('graph');
+    const nodes = [
+      { id: 0, labels: ['Node A'], properties: { test: 1 }, lat: 45.795548, lng: 15.977526, x: -100, y: 0 },
+      { id: 1, labels: ['Node B'], properties: { test: 2 }, lat: 43.513429, lng: 16.463262, x: 100, y: 0 },
+      { id: 2, labels: ['Node C'], properties: { test: 3 }, lat: 45.537078, lng: 18.692907, x: 0, y: 100 },
+    ];
+    const edges = [
+      { id: 10, start: 0, end: 0, label: 'Edge Q', properties: { test: 3 } },
+      { id: 11, start: 0, end: 1, label: 'Edge W', properties: { test: 3 } },
+      { id: 12, start: 0, end: 2, label: 'Edge E', properties: { test: 3 } },
+      { id: 13, start: 1, end: 2, label: 'Edge T', properties: { test: 3 } },
+      { id: 14, start: 2, end: 2, label: 'Edge Y', properties: { test: 3 } },
+      { id: 15, start: 0, end: 1, label: 'Edge V', properties: { test: 3 } },
+    ]
+
+    const orb = new Orb.Orb(container);
+    orb.setView((context) => new Orb.MapView(context, {
+      getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng, }),
+    }));
+
+    // Initialize nodes and edges
+    orb.data.setup({ nodes, edges });
+
+    // Assign a basic style
+    orb.data.setStyle({
+      getNodeStyle(node) {
+        return {
+          borderColor: '#1d1d1d',
+          borderWidth: 0.6,
+          color: '#DD2222',
+          colorHover: '#e7644e',
+          colorSelected: '#e7644e',
+          fontSize: 3,
+          label: node.data.labels[0],
+          size: 6,
+        };
+      },
+      getEdgeStyle(edge) {
+        return {
+          color: '#999999',
+          colorHover: '#1d1d1d',
+          colorSelected: '#1d1d1d',
+          fontSize: 3,
+          width: 0.3,
+          widthHover: 0.9,
+          widthSelected: 0.9,
+          label: edge.data.label,
+        };
+      },
+    });
+
+    // Render and recenter the view
+    orb.view.render(() => {
+      orb.view.recenter();
+    });
+
+    setTimeout(() => {
+      orb.setView((context) => new Orb.DefaultView(context));
+      orb.view.render(() => {
+        setTimeout(() => {
+
+          orb.data.clearPositions();
+          orb.view.render(() => {
+            orb.view.recenter();
+          });
+
+          setTimeout(() => {
+            orb.setView((context) => new Orb.MapView(context, {
+              getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng, }),
+            }));
+            orb.view.render(() => {
+              orb.view.recenter();
+            });
+          }, 2000);
+        }, 2000);
+      });
+    }, 3000);
+
+  </script>
+</body>
+</html>
