@@ -6,7 +6,7 @@ import { OrbError } from '../models/exceptions';
 export class RendererFactory {
   static getRenderer(
     canvas: HTMLCanvasElement,
-    settings: Partial<IRendererSettings>,
+    settings?: Partial<IRendererSettings>,
     type: RendererType = RendererType.CANVAS,
   ): IRenderer {
     if (type === RendererType.WEBGL) {
