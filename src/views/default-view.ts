@@ -1,7 +1,9 @@
 import { D3DragEvent, drag } from 'd3-drag';
 import { easeLinear } from 'd3-ease';
-// @ts-ignore
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// @ts-ignore: Transition needs to be imported in order to be available to d3
 import transition from 'd3-transition';
+/* eslint-enable @typescript-eslint/no-unused-vars */
 import { D3ZoomEvent, zoom, ZoomBehavior } from 'd3-zoom';
 import { select } from 'd3-selection';
 import { IPosition, isEqualPosition } from '../common';
@@ -76,10 +78,6 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     this._canvas.style.position = 'absolute';
     this._container.appendChild(this._canvas);
 
-    // Resize the canvas based on the dimensions of it's parent container <div>.
-    const resizeObs = new ResizeObserver(() => this._handleResize());
-    resizeObs.observe(this._container);
-
     try {
       this._renderer = RendererFactory.getRenderer(this._canvas, settings?.render?.type, this._settings.render);
     } catch (error: any) {
@@ -94,6 +92,11 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     });
     this._renderer.translateOriginToCenter();
     this._settings.render = this._renderer.settings;
+
+    // Resize the canvas based on the dimensions of it's parent container <div>.
+    const resizeObs = new ResizeObserver(() => this._handleResize());
+    resizeObs.observe(this._container);
+    this._handleResize();
 
     this._d3Zoom = zoom<HTMLCanvasElement, any>()
       .scaleExtent([this._renderer.settings.minZoom, this._renderer.settings.maxZoom])
@@ -122,7 +125,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
         this._graph.setNodePositions(data.nodes);
         this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
         if (this._settings.isSimulationAnimated) {
-          this.render();
+          this._renderer.render(this._graph);
         }
       },
       onStabilizationEnd: (data) => {
@@ -392,7 +395,9 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     this._canvas.height = containerSize.height;
     this._renderer.width = containerSize.width;
     this._renderer.height = containerSize.height;
-    this._renderer.render(this._graph);
+    if (this._renderer.isInitiallyRendered) {
+      this._renderer.render(this._graph);
+    }
   }
 
   private _startSimulation() {
