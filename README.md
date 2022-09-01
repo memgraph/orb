@@ -1,5 +1,4 @@
-Orb
-===
+# Orb
 
 Orb is a graph visualization library.
 
@@ -7,12 +6,12 @@ Orb is a graph visualization library.
 
 Read more about Orb in the following guides:
 
-* [Handling nodes and edges](./docs/data.md)
-* [Styling nodes and edges](./docs/styles.md)
-* [Handling events](./docs/events.md)
-* Using different views
-  * [Default view]() 
-  * [Map view](./docs/view-map.md)
+- [Handling nodes and edges](./docs/data.md)
+- [Styling nodes and edges](./docs/styles.md)
+- [Handling events](./docs/events.md)
+- Using different views
+  - [Default view](./docs/view-default.md)
+  - [Map view](./docs/view-map.md)
 
 ## Install
 
@@ -20,7 +19,7 @@ Read more about Orb in the following guides:
 > the orb reaches version 1.0.0, so we recommend to either set strict version (`@memgraph/orb: "0.x.y"`)
 > of the orb in your `package.json` or to allow only fix updates (`@memgraph/orb: "~0.x.y"`).
 
-> TBD: Add: Install via npm, or script link 
+> TBD: Add: Install via npm, or script link
 
 With `npm` install:
 
@@ -44,45 +43,45 @@ With a link:
 
 ```html
 <!DOCTYPE html>
-<html lang='en'>
-<head>
-  <meta charset="UTF-8">
-  <title>Orb | Simple graph</title>
-  <script type="text/javascript" src="./orb.js"></script>
-  <style>
-    #graph {
-      border: 1px solid #e0e0e0;
-      width: 600px;
-      height: 600px;
-    }
-  </style>
-</head>
-<body>
-<div id="graph"></div>
-<script>
-  const container = document.getElementById('graph');
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Orb | Simple graph</title>
+    <script type="text/javascript" src="./orb.js"></script>
+    <style>
+      #graph {
+        border: 1px solid #e0e0e0;
+        width: 600px;
+        height: 600px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="graph"></div>
+    <script>
+      const container = document.getElementById("graph");
 
-  const nodes = [
-    { id: 1, label: 'Orb' },
-    { id: 2, label: 'Graph' },
-    { id: 3, label: 'Canvas' },
-  ];
-  const edges = [
-    { id: 1, start: 1, end: 2, label: 'DRAWS' },
-    { id: 2, start: 2, end: 3, label: 'ON' },
-  ];
+      const nodes = [
+        { id: 1, label: "Orb" },
+        { id: 2, label: "Graph" },
+        { id: 3, label: "Canvas" },
+      ];
+      const edges = [
+        { id: 1, start: 1, end: 2, label: "DRAWS" },
+        { id: 2, start: 2, end: 3, label: "ON" },
+      ];
 
-  const orb = new Orb.Orb(container);
+      const orb = new Orb.Orb(container);
 
-  // Initialize nodes and edges
-  orb.data.setup({ nodes, edges });
+      // Initialize nodes and edges
+      orb.data.setup({ nodes, edges });
 
-  // Render and recenter the view
-  orb.view.render(() => {
-    orb.view.recenter();
-  });
-</script>
-</body>
+      // Render and recenter the view
+      orb.view.render(() => {
+        orb.view.recenter();
+      });
+    </script>
+  </body>
 </html>
 ```
 
@@ -113,15 +112,15 @@ This format is checked by our build tools.
 
 The `Tag` is one of the following:
 
-* `Fix` - for a bug fix.
-* `Update` - either for a backwards-compatible enhancement or for a rule change 
+- `Fix` - for a bug fix.
+- `Update` - either for a backwards-compatible enhancement or for a rule change
   that adds reported problems.
-* `New` - implemented a new feature.
-* `Breaking` - for a backwards-incompatible enhancement or feature.
-* `Docs` - changes to documentation only.
-* `Build` - changes to build process only.
-* `Upgrade` - for a dependency upgrade.
-* `Chore` - for refactoring, adding tests, etc. (anything that isn't user-facing).
+- `New` - implemented a new feature.
+- `Breaking` - for a backwards-incompatible enhancement or feature.
+- `Docs` - changes to documentation only.
+- `Build` - changes to build process only.
+- `Upgrade` - for a dependency upgrade.
+- `Chore` - for refactoring, adding tests, etc. (anything that isn't user-facing).
 
 The message summary should be a one-sentence description of the change, and it must
 be 72 characters in length or shorter. If the pull request addresses an issue, then

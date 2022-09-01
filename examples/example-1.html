@@ -17,6 +17,10 @@
     <h1>Example 1 - Basic</h1>
     <p>Rendering a simple simulated graph on the default canvas.</p>
 
+    <!--
+      Make sure that your graph container has a defined width and height.
+      Orb will expand to any available space, but won't be visible if it's parent container is collapsed.
+    -->
     <div id='graph' style="flex: 1; width: 100%;"></div>
   </div>
   <script type="text/javascript">
@@ -41,7 +45,9 @@
     // Initialize nodes and edges
     orb.data.setup({ nodes, edges });
 
-    orb.view.render();
+    orb.view.render(() => {
+      orb.view.recenter();
+    });
 
   </script>
 </body>
