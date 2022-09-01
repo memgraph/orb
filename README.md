@@ -1,5 +1,4 @@
-Orb
-===
+# Orb
 
 <p>
     <a href="https://github.com/memgraph/orb/actions"><img src="https://github.com/memgraph/orb/workflows/Build%20and%20test/badge.svg" /></a>
@@ -16,7 +15,7 @@ Orb is a graph visualization library. Read more about Orb in the following guide
 * [Styling nodes and edges](./docs/styles.md)
 * [Handling events](./docs/events.md)
 * Using different views
-  * [Default view]() 
+  * [Default view](./docs/view-default.md) 
   * [Map view](./docs/view-map.md)
 
 ## Install
@@ -52,46 +51,46 @@ Below you can find a simple example using Orb to visualize a small graph. Feel f
 
 ```html
 <!DOCTYPE html>
-<html lang='en'>
-<head>
-  <meta charset="UTF-8">
-  <title>Orb | Simple graph</title>
-  <script src="https://unpkg.com/@memgraph/orb/dist/browser/orb.min.js"></script>
-  <style>
-    #graph {
-      border: 1px solid #e0e0e0;
-      width: 600px;
-      height: 600px;
-    }
-  </style>
-</head>
-<body>
-<div id="graph"></div>
-<script>
-  const container = document.getElementById('graph');
-
-  const nodes = [
-    { id: 1, label: 'Orb' },
-    { id: 2, label: 'Graph' },
-    { id: 3, label: 'Canvas' },
-  ];
-  const edges = [
-    { id: 1, start: 1, end: 2, label: 'DRAWS' },
-    { id: 2, start: 2, end: 3, label: 'ON' },
-  ];
-
-  // First `Orb` is just a namespace of the JS package 
-  const orb = new Orb.Orb(container);
-
-  // Initialize nodes and edges
-  orb.data.setup({ nodes, edges });
-
-  // Render and recenter the view
-  orb.view.render(() => {
-    orb.view.recenter();
-  });
-</script>
-</body>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Orb | Simple graph</title>
+    <script src="https://unpkg.com/@memgraph/orb/dist/browser/orb.min.js"></script>
+    <style>
+      #graph {
+        border: 1px solid #e0e0e0;
+        width: 600px;
+        height: 600px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="graph"></div>
+    <script>
+      const container = document.getElementById("graph");
+    
+      const nodes = [
+        { id: 1, label: "Orb" },
+        { id: 2, label: "Graph" },
+        { id: 3, label: "Canvas" },
+      ];
+      const edges = [
+        { id: 1, start: 1, end: 2, label: "DRAWS" },
+        { id: 2, start: 2, end: 3, label: "ON" },
+      ];
+    
+      // First `Orb` is just a namespace of the JS package 
+      const orb = new Orb.Orb(container);
+    
+      // Initialize nodes and edges
+      orb.data.setup({ nodes, edges });
+    
+      // Render and recenter the view
+      orb.view.render(() => {
+        orb.view.recenter();
+      });
+    </script>
+  </body>
 </html>
 ```
 
