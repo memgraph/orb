@@ -92,10 +92,6 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._canvas = this._initCanvas();
     this._map = this._initMap();
 
-    // Resize the canvas based on the dimensions of it's parent container <div>.
-    const resizeObs = new ResizeObserver(() => this._handleResize());
-    resizeObs.observe(this._container);
-
     try {
       this._renderer = RendererFactory.getRenderer(this._canvas, settings?.render?.type, this._settings.render);
     } catch (error: any) {
@@ -108,6 +104,11 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._settings.render = {
       ...this._renderer.settings,
     };
+    // Resize the canvas based on the dimensions of it's parent container <div>.
+    const resizeObs = new ResizeObserver(() => this._handleResize());
+    resizeObs.observe(this._container);
+    this._handleResize();
+
     this._leaflet = this._initLeaflet();
     // Setting up leaflet map tile
     this._handleTileChange();
@@ -335,8 +336,10 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._canvas.height = containerSize.height;
     this._renderer.width = containerSize.width;
     this._renderer.height = containerSize.height;
-    this._leaflet.invalidateSize(false);
-    this._renderer.render(this._graph);
+    if (this._renderer.isInitiallyRendered) {
+      this._leaflet.invalidateSize(false);
+      this._renderer.render(this._graph);
+    }
   }
 
   private _handleTileChange() {
