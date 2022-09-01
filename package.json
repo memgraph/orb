@@ -1,6 +1,6 @@
 {
   "name": "@memgraph/orb",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Graph visualization library",
   "engines": {
     "node": ">=16.0.0"
@@ -24,9 +24,10 @@
   "author": "Memgraph Ltd. <contact@memgraph.com>",
   "license": "Apache-2.0",
   "scripts": {
-    "build": "tsc && webpack",
-    "wpp": "webpack --mode=production",
-    "wpw": "webpack --watch",
+    "build": "tsc",
+    "build:release": "tsc && webpack",
+    "webpack": "webpack",
+    "webpack:watch": "webpack --watch",
     "serve": "http-server ./dist/browser/",
     "test": "jest --runInBand --detectOpenHandles --forceExit --verbose --useStderr",
     "coverage": "npm test -- --coverage --collectCoverageFrom='./src/**'",
@@ -48,6 +49,9 @@
     "LICENSE",
     "README.md"
   ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
   "devDependencies": {
     "@commitlint/cli": "17.0.0",
     "@commitlint/config-conventional": "17.0.0",
