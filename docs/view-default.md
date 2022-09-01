@@ -112,7 +112,10 @@ on [Styling guide](./styles.md).
 
 ### Property `simulation`
 
-Fine-grained D3 simulation engine settings. This may be condensed into fewer, more abstract settings in the future.
+Fine-grained D3 simulation engine settings. They include `isPhysicsEnabled`, `alpha`, `centering`, `collision`, `links`, `manyBody`, and `positioning`.
+You can use `isPhysicsEnabled` to enable or disable physics.
+You can read more about the other settings on the official [`d3-force docs`](https://github.com/d3/d3-force).
+This may be condensed into fewer, more abstract settings in the future.
 
 ### Property `zoomFitTransitionMs`
 
