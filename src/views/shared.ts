@@ -4,7 +4,7 @@ import { IGraph } from '../models/graph';
 import { OrbEmitter } from '../events';
 import { IEventStrategy } from '../models/strategy';
 
-export interface IOrbView<S = any> {
+export interface IOrbView<S> {
   isInitiallyRendered(): boolean;
   getSettings(): S;
   setSettings(settings: Partial<S>): void;

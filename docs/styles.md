@@ -90,7 +90,6 @@ const nodes = [
 ];
 
 const orb = new Orb('container');
-orb.data.setup({ nodes });
 orb.setDefaultStyle({
   getNodeStyle: (node) => {
     return {
@@ -99,6 +98,7 @@ orb.setDefaultStyle({
     };
   },
 });
+orb.data.setup({ nodes });
 ```
 
 # Edge style properties
@@ -193,7 +193,103 @@ node.properties.colorHover = nodeBaseColor.getLighterColor();
 
 # Setting up styles
 
-> TBD: How to setup styles.
+There are two ways to set up a style:
+* Setting up default style which is an initial style applied to new nodes and new edges
+* Changing the style properties of particular nodes and edges
+
+## Setting default style
+
+Orb comes with a default style which you can override with the function `orb.data.setDefaultStyle`.
+The function expects an object where you can define one or both style callback functions:
+
+* `getNodeStyle(node)` - expects an object containing node style properties.
+* `getEdgeStyle(edge)` - expects an object containing edge style properties.
+
+The default style is an easy way to set up a style that will be applied to all newly created
+nodes or edges. With it, you don't need to worry about setting up style properties for each
+node or edge.
+
+```typescript
+orb.data.setDefaultStyle({
+  getNodeStyle(node) {
+    return {
+      color: '#FF0000',
+      fontSize: 10,
+      size: 10,
+      label: `Node: ${node.data.title}`,
+    };
+  },
+  getEdgeStyle() {
+    return {
+      color: '#000000',
+      width: 3,
+    };
+  },
+});
+// From now on, every new node or edge created with `orb.data.setup` or
+// `orb.data.merge` will get the initial style properties from the above
+// style callback functions
+
+// For all the `newNodes` and `newEdges` that have a new unique ID, a default
+// style defined above will be automatically applied
+orb.data.merge({ nodes: newNodes, edges: newEdges });
+
+```
+
+Without a default style, you would need to do the following after each call of `orb.data.setup`
+or `orb.data.merge` where new nodes/edges are created:
+
+```typescript
+// Without default style, after each call of `orb.data.setup` or `orb.data.merge`
+// you need to call the following code
+orb.data.getNodes().forEach((node) => {
+  node.properties = {
+    color: '#FF0000',
+    fontSize: 10,
+    size: 10,
+    label: `Node: ${node.data.title}`,
+  };
+});
+orb.data.getEdges().forEach((edge) => {
+  edge.properties = {
+    color: '#000000',
+    width: 3,
+  };
+});
+
+// For all the `newNodes` and `newEdges` that have a new unique ID, Orb's default
+// style will be applied, not the style properties above 
+orb.data.merge({ nodes: newNodes, edges: newEdges });
+```
+
+## Changing specific style properties
+
+After calling `orb.data.setup` or `orb.data.merge` your node/edge data will be wrapped into a
+node (`INode`) or edge (`IEdge`) object. Using those objects, you can change their style properties
+any time:
+
+```typescript
+orb.data.setup({ nodes, edges });
+
+const node = orb.data.getNodeById(0);
+// Override existing node style properties with the new ones
+node.properties = {
+  color: '#FF0000',
+  fontSize: 10,
+  size: 10,
+  label: `Node: ${node.data.title}`,
+};
+
+// Change the width of all the edges to 1, but keep other style properties
+orb.data.getEdges().forEach((edge) => {
+  edge.properties.width = 1; 
+});
+
+orb.events.on('node-click', ({ node }) => {
+  // If a node is clicked, set its size to be 10
+  node.properties.size = 10;
+});
+```
 
 # Configuring style globals
 

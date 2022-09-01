@@ -11,8 +11,10 @@ export interface IOrbSettings<N extends INodeBase, E extends IEdgeBase, S> {
   strategy: IEventStrategy<N, E>;
 }
 
+// TODO: Change the Orb API to be a single view instance to support non-any <S>
+// @see: https://stackoverflow.com/questions/73429628/how-to-setup-typescript-generics-in-class-constructors-and-functions
 export class Orb<N extends INodeBase, E extends IEdgeBase, S = any> {
-  private _view: IOrbView;
+  private _view: IOrbView<any>;
   private readonly _events: OrbEmitter<N, E>;
   private readonly _graph: IGraph<N, E>;
   private readonly _context: IOrbViewContext<N, E>;

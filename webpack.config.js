@@ -1,9 +1,8 @@
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const name = 'orb';
 
-module.exports = {
-  mode: 'development',
-  devtool: 'inline-source-map',
+const commonConfiguration = {
   entry: './src/index.ts',
   module: {
     rules: [
@@ -19,12 +18,9 @@ module.exports = {
   },
   output: {
     chunkFilename(pathData) {
-      if (pathData.chunk.id.includes('d3-force')) {
-        return 'orb-d3.js';
-      }
-      return pathData.chunk.name === 'process.worker' ? 'orb-worker.js' : '[name].bundle.js';
+      return pathData.chunk.name === 'process.worker' ? `${name}.worker.js` : `${name}.worker.vendor.js`;
     },
-    filename: 'orb.js',
+    filename: `${name}.js`,
     path: path.resolve(__dirname, 'dist/browser'),
     library: {
       name: 'Orb',
@@ -48,3 +44,23 @@ module.exports = {
     })
   ]
 };
+
+const developmentConfiguration = {
+  ...commonConfiguration,
+  mode: 'development',
+  devtool: 'inline-source-map',
+};
+
+const productionConfiguration = {
+  ...commonConfiguration,
+  mode: 'production',
+  output: {
+    ...commonConfiguration.output,
+    chunkFilename(pathData) {
+      return pathData.chunk.name === 'process.worker' ? `${name}.worker.min.js` : `${name}.worker.vendor.min.js`;
+    },
+    filename: `${name}.min.js`,
+  },
+}
+
+module.exports = [developmentConfiguration, productionConfiguration];

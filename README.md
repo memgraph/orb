@@ -1,27 +1,30 @@
 # Orb
 
-Orb is a graph visualization library.
+<p>
+    <a href="https://github.com/memgraph/orb/actions"><img src="https://github.com/memgraph/orb/workflows/Build%20and%20test/badge.svg" /></a>
+    <a href="https://github.com/memgraph/orb/blob/main/LICENSE"><img src="https://img.shields.io/github/license/memgraph/orb" /></a>
+    <a href="https://www.npmjs.com/package/@memgraph/orb"><img src="https://img.shields.io/npm/v/@memgraph/orb" /></a>
+    <a href="https://github.com/memgraph/orb/stargazers" alt="Stargazers"><img src="https://img.shields.io/github/stars/memgraph/orb?style=social" /></a>
+</p>
 
-> TBD: Add short description and image
+![](./docs/assets/graph-example.png)
 
-Read more about Orb in the following guides:
+Orb is a graph visualization library. Read more about Orb in the following guides:
 
-- [Handling nodes and edges](./docs/data.md)
-- [Styling nodes and edges](./docs/styles.md)
-- [Handling events](./docs/events.md)
-- Using different views
-  - [Default view](./docs/view-default.md)
-  - [Map view](./docs/view-map.md)
+* [Handling nodes and edges](./docs/data.md)
+* [Styling nodes and edges](./docs/styles.md)
+* [Handling events](./docs/events.md)
+* Using different views
+  * [Default view](./docs/view-default.md) 
+  * [Map view](./docs/view-map.md)
 
 ## Install
 
 > **Important note**: Please note that there might be breaking changes in minor version upgrades until
-> the orb reaches version 1.0.0, so we recommend to either set strict version (`@memgraph/orb: "0.x.y"`)
-> of the orb in your `package.json` or to allow only fix updates (`@memgraph/orb: "~0.x.y"`).
+> the Orb reaches version 1.0.0, so we recommend to either set strict version (`@memgraph/orb: "0.x.y"`)
+> of the Orb in your `package.json` or to allow only fix updates (`@memgraph/orb: "~0.x.y"`).
 
-> TBD: Add: Install via npm, or script link
-
-With `npm` install:
+With `npm` install (recommended):
 
 ```
 npm install @memgraph/orb
@@ -30,16 +33,21 @@ npm install @memgraph/orb
 With a link:
 
 ```html
-<!-- Direct reference -->
-<script src="dist/orb.min.js"></script>
+<!-- Direct reference non-minified -->
+<script src="dist/browser/orb.js"></script>
+<!-- Direct reference minified -->
+<script src="dist/browser/orb.min.js"></script>
 
 <!-- unpkg CDN non-minified -->
-<script src="https://unpkg.com/orb"></script>
-<!-- unpkg CDN minified for production use, version X.Y.Z -->
-<script src="https://unpkg.com/orb@X.Y.Z/lib/orb.min.js"></script>
+<script src="https://unpkg.com/@memgraph/orb/dist/browser/orb.js"></script>
+<!-- unpkg CDN minified -->
+<script src="https://unpkg.com/@memgraph/orb/dist/browser/orb.min.js"></script>
 ```
 
 ## Example
+
+Below you can find a simple example using Orb to visualize a small graph. Feel free to check
+`examples/` directory for more examples.
 
 ```html
 <!DOCTYPE html>
@@ -47,7 +55,7 @@ With a link:
   <head>
     <meta charset="UTF-8" />
     <title>Orb | Simple graph</title>
-    <script type="text/javascript" src="./orb.js"></script>
+    <script src="https://unpkg.com/@memgraph/orb/dist/browser/orb.min.js"></script>
     <style>
       #graph {
         border: 1px solid #e0e0e0;
@@ -60,7 +68,7 @@ With a link:
     <div id="graph"></div>
     <script>
       const container = document.getElementById("graph");
-
+    
       const nodes = [
         { id: 1, label: "Orb" },
         { id: 2, label: "Graph" },
@@ -70,12 +78,13 @@ With a link:
         { id: 1, start: 1, end: 2, label: "DRAWS" },
         { id: 2, start: 2, end: 3, label: "ON" },
       ];
-
+    
+      // First `Orb` is just a namespace of the JS package 
       const orb = new Orb.Orb(container);
-
+    
       // Initialize nodes and edges
       orb.data.setup({ nodes, edges });
-
+    
       // Render and recenter the view
       orb.view.render(() => {
         orb.view.recenter();
@@ -85,9 +94,37 @@ With a link:
 </html>
 ```
 
+In case you used `npm` to install the package:
+
+```typescript
+import { Orb } from '@memgraph/orb';
+
+const nodes = [
+  { id: 1, label: 'Orb' },
+  { id: 2, label: 'Graph' },
+  { id: 3, label: 'Canvas' },
+];
+const edges = [
+  { id: 1, start: 1, end: 2, label: 'DRAWS' },
+  { id: 2, start: 2, end: 3, label: 'ON' },
+];
+
+const orb = new Orb(container);
+
+// Initialize nodes and edges
+orb.data.setup({ nodes, edges });
+
+// Render and recenter the view
+orb.view.render(() => {
+  orb.view.recenter();
+});
+```
+
 ## Build
 
-> TBD: Add build commands
+```
+npm run build
+```
 
 ## Test
 
@@ -95,51 +132,28 @@ With a link:
 npm run test
 ```
 
-## Commits
+## Development
 
-> TODO: Move this somewhere else and create a pre-commit hook
+If you want to experiment, contribute, or simply play with the Orb locally, you can
+set up your local development environment with:
 
-Our commit message format is as follows:
+* Installation of all project dependencies
 
-```
-Tag: Short description (fixes #1234)
+  ```
+  npm install
+  ```
 
-Longer description here if necessary
-```
+* Running webpack build in the watch mode
 
-The first line of the commit message (the summary) must have a specific format.
-This format is checked by our build tools.
+  ```
+  npm run webpack:watch
+  ```
 
-The `Tag` is one of the following:
+* Running a local http server that will serve Orb and `examples/` directory on `localhost:8080`
 
-- `Fix` - for a bug fix.
-- `Update` - either for a backwards-compatible enhancement or for a rule change
-  that adds reported problems.
-- `New` - implemented a new feature.
-- `Breaking` - for a backwards-incompatible enhancement or feature.
-- `Docs` - changes to documentation only.
-- `Build` - changes to build process only.
-- `Upgrade` - for a dependency upgrade.
-- `Chore` - for refactoring, adding tests, etc. (anything that isn't user-facing).
-
-The message summary should be a one-sentence description of the change, and it must
-be 72 characters in length or shorter. If the pull request addresses an issue, then
-the issue number should be mentioned at the end. If the commit doesn't completely fix
-the issue, then use `(refs #1234)` instead of `(fixes #1234)`.
-
-Here are some good commit message summary examples:
-
-```
-Build: Update Travis to only test Node 0.10 (refs #734)
-Fix: Semi rule incorrectly flagging extra semicolon (fixes #840)
-Upgrade: Esprima to 1.2, switch to using comment attachment (fixes #730)
-```
-
-The commit message format is important because these messages are used to create
-a changelog for each release. The tag and issue number help to create more consistent
-and useful changelogs.
-
-[Check ESLint Convention](https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-changelog-eslint)
+  ```
+  npm run serve
+  ```
 
 ## License
 
