@@ -3,7 +3,7 @@
 <head>
   <base href=".">
   <meta charset='UTF-8'>
-  <title>Orb | 5</title>
+  <title>Orb | Graph dynamics: Add, update, and remove nodes and edges</title>
   <script type="text/javascript" src="./orb.js"></script>
 </head>
 <style>
@@ -15,7 +15,11 @@
 <body>
   <div style="display: flex; flex-direction: column; align-items: center; height: 100%;">
     <h1>Example 5 - Dynamics</h1>
-    <p>Rendering a simple graph on default canvas with events and callbacks.</p>
+    <p style="width: 70%">
+      Renders a simple graph to show graph dynamics: adding, updating, and removing
+      nodes and edges. In intervals of 3 seconds, 1 new node and 1 new edge will be
+      added to the graph. Node will be removed from the graph on node click event.
+    </p>
 
     <!--
       Make sure that your graph container has a defined width and height.
@@ -38,11 +42,11 @@
         id: i,
         start: Math.floor(Math.sqrt(i)),
         end: i + 1,
+        label: `Edge ${i}`
       };
     }
 
     const orb = new Orb.Orb(container);
-    orb.setView((context) => new Orb.DefaultView(context));
 
     orb.data.setDefaultStyle({
       getNodeStyle(node) {
@@ -78,18 +82,30 @@
     const randomlyExpandGraph = () => {
       console.log('Randomly expanding graph...');
       setTimeout(() => {
+        const graphUpdates = {
+          nodes: [],
+          edges: [],
+        };
+
         const newNode = {
           id: n,
-          labels: [`EXPANDED`],
+          label: `Node ${n} (new)`,
         };
-        const newEdge = {
-          id: n,
-          start: Math.floor(Math.random() * nodes.length),
-          end: n,
-        };
+        graphUpdates.nodes.push(newNode);
+
+        const currentNodes = orb.data.getNodes();
+        if (currentNodes.length) {
+          const newEdge = {
+            id: n,
+            start: currentNodes[Math.floor(Math.random() * currentNodes.length)].id,
+            end: n,
+            label: `Edge ${n} (new)`
+          };
+          graphUpdates.edges.push(newEdge);
+        }
         n += 1;
 
-        orb.data.merge({ nodes: [newNode], edges: [newEdge] });
+        orb.data.merge(graphUpdates);
         orb.view.render();
         randomlyExpandGraph();
       }, 3000);
@@ -97,9 +113,9 @@
 
     randomlyExpandGraph();
     
-    orb.events.on('node-click', ({ node }) => {
-      console.log('Node clicked: ', node);
-      orb.data.remove({ nodeIds: [node.id] });
+    orb.events.on(Orb.OrbEventType.NODE_CLICK, (event) => {
+      console.log('Node clicked: ', event.node);
+      orb.data.remove({ nodeIds: [event.node.id] });
       orb.view.render();
     });
 
