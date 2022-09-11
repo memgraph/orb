@@ -69,7 +69,7 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> {
   position: INodePosition;
   properties: Partial<INodeProperties>;
   state: number;
-  get id(): any;
+  readonly id: any;
   clearPosition(): void;
   getCenter(): IPosition;
   getRadius(): number;
