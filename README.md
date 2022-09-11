@@ -24,13 +24,44 @@ Orb is a graph visualization library. Read more about Orb in the following guide
 > the Orb reaches version 1.0.0, so we recommend to either set strict version (`@memgraph/orb: "0.x.y"`)
 > of the Orb in your `package.json` or to allow only fix updates (`@memgraph/orb: "~0.x.y"`).
 
-With `npm` install (recommended):
+### With `npm` (recommended)
 
 ```
 npm install @memgraph/orb
 ```
 
-With a link:
+Below you can find a simple Typescript example using Orb to visualize a small graph. Feel
+free to check other Javascript examples in `examples/` directory.
+
+```typescript
+import { Orb } from '@memgraph/orb';
+const container = document.getElementById('graph');
+
+const nodes: MyNode[] = [
+  { id: 1, label: 'Orb' },
+  { id: 2, label: 'Graph' },
+  { id: 3, label: 'Canvas' },
+];
+const edges: MyEdge[] = [
+  { id: 1, start: 1, end: 2, label: 'DRAWS' },
+  { id: 2, start: 2, end: 3, label: 'ON' },
+];
+
+const orb = new Orb<MyNode, MyEdge>(container);
+
+// Initialize nodes and edges
+orb.data.setup({ nodes, edges });
+
+// Render and recenter the view
+orb.view.render(() => {
+  orb.view.recenter();
+});
+```
+
+### With a direct link
+
+> Note: Simulation with web workers is not supported when Orb is used with a direct
+> link. Graph simulation will use the main thread, which will affect performance.
 
 ```html
 <!-- Direct reference non-minified -->
@@ -44,10 +75,8 @@ With a link:
 <script src="https://unpkg.com/@memgraph/orb/dist/browser/orb.min.js"></script>
 ```
 
-## Example
-
-Below you can find a simple example using Orb to visualize a small graph. Feel free to check
-`examples/` directory for more examples.
+Below you can find a simple Javascript example using Orb to visualize a small graph. Feel
+free to check other Javascript examples in `examples/` directory.
 
 ```html
 <!DOCTYPE html>
@@ -92,32 +121,6 @@ Below you can find a simple example using Orb to visualize a small graph. Feel f
     </script>
   </body>
 </html>
-```
-
-In case you used `npm` to install the package:
-
-```typescript
-import { Orb } from '@memgraph/orb';
-
-const nodes = [
-  { id: 1, label: 'Orb' },
-  { id: 2, label: 'Graph' },
-  { id: 3, label: 'Canvas' },
-];
-const edges = [
-  { id: 1, start: 1, end: 2, label: 'DRAWS' },
-  { id: 2, start: 2, end: 3, label: 'ON' },
-];
-
-const orb = new Orb(container);
-
-// Initialize nodes and edges
-orb.data.setup({ nodes, edges });
-
-// Render and recenter the view
-orb.view.render(() => {
-  orb.view.recenter();
-});
 ```
 
 ## Build
