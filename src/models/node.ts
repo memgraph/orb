@@ -33,9 +33,9 @@ export enum NodeShapeType {
 }
 
 /**
- * Node properties used to style the node (color, width, label, etc.).
+ * Node style properties used to style the node (color, width, label, etc.).
  */
-export interface INodeProperties {
+export type INodeStyle = Partial<{
   borderColor: Color | string;
   borderColorHover: Color | string;
   borderColorSelected: Color | string;
@@ -58,7 +58,7 @@ export interface INodeProperties {
   shape: NodeShapeType;
   size: number;
   mass: number;
-}
+}>;
 
 export interface INodeData<N extends INodeBase> {
   data: N;
@@ -67,7 +67,7 @@ export interface INodeData<N extends INodeBase> {
 export interface INode<N extends INodeBase, E extends IEdgeBase> {
   data: N;
   position: INodePosition;
-  properties: Partial<INodeProperties>;
+  style: INodeStyle;
   state: number;
   readonly id: any;
   clearPosition(): void;
@@ -79,7 +79,7 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> {
   getOutEdges(): IEdge<N, E>[];
   getEdges(): IEdge<N, E>[];
   getAdjacentNodes(): INode<N, E>[];
-  hasProperties(): boolean;
+  hasStyle(): boolean;
   addEdge(edge: IEdge<N, E>): void;
   removeEdge(edge: IEdge<N, E>): void;
   isSelected(): boolean;
@@ -110,7 +110,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   public readonly id: number;
   public data: N;
   public position: INodePosition;
-  public properties: Partial<INodeProperties> = {};
+  public style: INodeStyle = {};
   public state = GraphObjectState.NONE;
 
   private readonly _inEdgesById: { [id: number]: IEdge<N, E> } = {};
@@ -137,7 +137,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   }
 
   getRadius(): number {
-    return this.properties.size ?? 0;
+    return this.style.size ?? 0;
   }
 
   getBorderedRadius(): number {
@@ -203,8 +203,8 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
     return Object.values(adjacentNodeById);
   }
 
-  hasProperties(): boolean {
-    return this.properties && Object.keys(this.properties).length > 0;
+  hasStyle(): boolean {
+    return this.style && Object.keys(this.style).length > 0;
   }
 
   addEdge(edge: IEdge<N, E>) {
@@ -245,7 +245,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
     }
 
     // For square type, we don't need to check the circle
-    if (this.properties.shape === NodeShapeType.SQUARE) {
+    if (this.style.shape === NodeShapeType.SQUARE) {
       return isInBoundingBox;
     }
 
@@ -260,33 +260,31 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
 
   hasShadow(): boolean {
     return (
-      (this.properties.shadowSize ?? 0) > 0 ||
-      (this.properties.shadowOffsetX ?? 0) > 0 ||
-      (this.properties.shadowOffsetY ?? 0) > 0
+      (this.style.shadowSize ?? 0) > 0 || (this.style.shadowOffsetX ?? 0) > 0 || (this.style.shadowOffsetY ?? 0) > 0
     );
   }
 
   hasBorder(): boolean {
-    const hasBorderWidth = (this.properties.borderWidth ?? 0) > 0;
-    const hasBorderWidthSelected = (this.properties.borderWidthSelected ?? 0) > 0;
+    const hasBorderWidth = (this.style.borderWidth ?? 0) > 0;
+    const hasBorderWidthSelected = (this.style.borderWidthSelected ?? 0) > 0;
     return hasBorderWidth || (this.isSelected() && hasBorderWidthSelected);
   }
 
   getLabel(): string | undefined {
-    return this.properties.label;
+    return this.style.label;
   }
 
   getColor(): Color | string | undefined {
     let color: Color | string | undefined = undefined;
 
-    if (this.properties.color) {
-      color = this.properties.color;
+    if (this.style.color) {
+      color = this.style.color;
     }
-    if (this.isHovered() && this.properties.colorHover) {
-      color = this.properties.colorHover;
+    if (this.isHovered() && this.style.colorHover) {
+      color = this.style.colorHover;
     }
-    if (this.isSelected() && this.properties.colorSelected) {
-      color = this.properties.colorSelected;
+    if (this.isSelected() && this.style.colorSelected) {
+      color = this.style.colorSelected;
     }
 
     return color;
@@ -294,11 +292,11 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
 
   getBorderWidth(): number {
     let borderWidth = 0;
-    if (this.properties.borderWidth && this.properties.borderWidth > 0) {
-      borderWidth = this.properties.borderWidth;
+    if (this.style.borderWidth && this.style.borderWidth > 0) {
+      borderWidth = this.style.borderWidth;
     }
-    if (this.isSelected() && this.properties.borderWidthSelected && this.properties.borderWidthSelected > 0) {
-      borderWidth = this.properties.borderWidthSelected;
+    if (this.isSelected() && this.style.borderWidthSelected && this.style.borderWidthSelected > 0) {
+      borderWidth = this.style.borderWidthSelected;
     }
     return borderWidth;
   }
@@ -310,31 +308,31 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
 
     let borderColor: Color | string | undefined = undefined;
 
-    if (this.properties.borderColor) {
-      borderColor = this.properties.borderColor;
+    if (this.style.borderColor) {
+      borderColor = this.style.borderColor;
     }
-    if (this.isHovered() && this.properties.borderColorHover) {
-      borderColor = this.properties.borderColorHover;
+    if (this.isHovered() && this.style.borderColorHover) {
+      borderColor = this.style.borderColorHover;
     }
-    if (this.isSelected() && this.properties.borderColorSelected) {
-      borderColor = this.properties.borderColorSelected.toString();
+    if (this.isSelected() && this.style.borderColorSelected) {
+      borderColor = this.style.borderColorSelected.toString();
     }
 
     return borderColor;
   }
 
   getBackgroundImage(): HTMLImageElement | undefined {
-    if ((this.properties.size ?? 0) <= 0) {
+    if ((this.style.size ?? 0) <= 0) {
       return;
     }
 
     let imageUrl;
 
-    if (this.properties.imageUrl) {
-      imageUrl = this.properties.imageUrl;
+    if (this.style.imageUrl) {
+      imageUrl = this.style.imageUrl;
     }
-    if (this.isSelected() && this.properties.imageUrlSelected) {
-      imageUrl = this.properties.imageUrlSelected;
+    if (this.isSelected() && this.style.imageUrlSelected) {
+      imageUrl = this.style.imageUrlSelected;
     }
 
     if (!imageUrl) {

@@ -1,13 +1,6 @@
-import { INode, INodeBase, INodePosition, INodeProperties } from '../../src/models/node';
-import { IEdge, IEdgeBase, EdgeType, IEdgeProperties } from '../../src/models/edge';
-import {
-  IGraphStyle,
-  IEdgeStyle,
-  INodeStyle,
-  DEFAULT_NODE_PROPERTIES,
-  DEFAULT_EDGE_PROPERTIES,
-  getDefaultGraphStyle,
-} from '../../src/models/style';
+import { INode, INodeBase, INodePosition, INodeStyle } from '../../src/models/node';
+import { IEdge, IEdgeBase, EdgeType, IEdgeStyle } from '../../src/models/edge';
+import { IGraphStyle, DEFAULT_NODE_STYLE, DEFAULT_EDGE_STYLE, getDefaultGraphStyle } from '../../src/models/style';
 import { Graph } from '../../src/models/graph';
 import { GraphObjectState } from '../../src/models/state';
 
@@ -22,7 +15,7 @@ interface ITestEdge extends IEdgeBase {
 interface IExpectedNode<N extends INodeBase> {
   id: number;
   data: N;
-  properties: Partial<INodeProperties>;
+  style: INodeStyle;
   inEdges: number[];
   outEdges: number[];
   state: number;
@@ -38,7 +31,7 @@ interface IExpectedEdge<E extends IEdgeBase> {
   endNodeId?: number;
   type: EdgeType;
   offset: number;
-  properties: Partial<IEdgeProperties>;
+  style: IEdgeStyle;
   state: number;
 }
 
@@ -55,7 +48,7 @@ const expectEqualNode = <N extends INodeBase, E extends IEdgeBase>(
   const actualNode: IExpectedNode<N> = {
     id: node.id,
     data: node.data,
-    properties: node.properties,
+    style: node.style,
     inEdges: node
       .getInEdges()
       .map((edge) => edge.id)
@@ -87,7 +80,7 @@ const expectEqualEdge = <N extends INodeBase, E extends IEdgeBase>(
     startNodeId: edge.startNode?.id,
     endNodeId: edge.endNode?.id,
     data: edge.data,
-    properties: edge.properties,
+    style: edge.style,
     type: edge.type,
     offset: edge.offset,
     state: edge.state,
@@ -114,7 +107,7 @@ describe('Graph', () => {
     {
       id: 0,
       data: nodes[0],
-      properties: {},
+      style: {},
       inEdges: [2],
       outEdges: [0, 3],
       state: GraphObjectState.NONE,
@@ -123,7 +116,7 @@ describe('Graph', () => {
     {
       id: 1,
       data: nodes[1],
-      properties: {},
+      style: {},
       inEdges: [0, 4],
       outEdges: [1, 4],
       state: GraphObjectState.NONE,
@@ -132,7 +125,7 @@ describe('Graph', () => {
     {
       id: 2,
       data: nodes[2],
-      properties: {},
+      style: {},
       inEdges: [1, 3],
       outEdges: [2],
       state: GraphObjectState.NONE,
@@ -150,7 +143,7 @@ describe('Graph', () => {
       data: edges[0],
       type: EdgeType.STRAIGHT,
       offset: 0,
-      properties: {},
+      style: {},
       state: GraphObjectState.NONE,
     },
     {
@@ -162,7 +155,7 @@ describe('Graph', () => {
       data: edges[1],
       type: EdgeType.STRAIGHT,
       offset: 0,
-      properties: {},
+      style: {},
       state: GraphObjectState.NONE,
     },
     {
@@ -174,7 +167,7 @@ describe('Graph', () => {
       data: edges[2],
       type: EdgeType.CURVED,
       offset: -1,
-      properties: {},
+      style: {},
       state: GraphObjectState.NONE,
     },
     {
@@ -186,7 +179,7 @@ describe('Graph', () => {
       data: edges[3],
       type: EdgeType.CURVED,
       offset: -1,
-      properties: {},
+      style: {},
       state: GraphObjectState.NONE,
     },
     {
@@ -198,7 +191,7 @@ describe('Graph', () => {
       data: edges[4],
       type: EdgeType.LOOPBACK,
       offset: 1,
-      properties: {},
+      style: {},
       state: GraphObjectState.NONE,
     },
   ];
@@ -234,7 +227,7 @@ describe('Graph', () => {
       {
         id: 3,
         data: newNodes[0],
-        properties: {},
+        style: {},
         inEdges: [],
         outEdges: [6],
         state: GraphObjectState.NONE,
@@ -243,7 +236,7 @@ describe('Graph', () => {
       {
         id: 4,
         data: newNodes[1],
-        properties: {},
+        style: {},
         inEdges: [6],
         outEdges: [],
         state: GraphObjectState.NONE,
@@ -261,7 +254,7 @@ describe('Graph', () => {
         data: newEdges[0],
         type: EdgeType.LOOPBACK,
         offset: 1,
-        properties: {},
+        style: {},
         state: GraphObjectState.NONE,
       },
       {
@@ -273,7 +266,7 @@ describe('Graph', () => {
         data: newEdges[1],
         type: EdgeType.STRAIGHT,
         offset: 0,
-        properties: {},
+        style: {},
         state: GraphObjectState.NONE,
       },
     ];
@@ -478,14 +471,14 @@ describe('Graph', () => {
       const graph = new Graph({ nodes, edges });
       graph.setDefaultStyle(style);
 
-      expect(graph.getNodeById(0)?.properties).toEqual({});
-      expect(graph.getEdgeById(0)?.properties).toEqual({});
+      expect(graph.getNodeById(0)?.style).toEqual({});
+      expect(graph.getEdgeById(0)?.style).toEqual({});
 
       nodes.slice(1).forEach((node) => {
-        expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
+        expect(graph.getNodeById(node.id)?.style).toEqual(nodeStyle);
       });
       edges.slice(1).forEach((edge) => {
-        expect(graph.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
+        expect(graph.getEdgeById(edge.id)?.style).toEqual(edgeStyle);
       });
     });
 
@@ -494,14 +487,14 @@ describe('Graph', () => {
       graph.setDefaultStyle(style);
       graph.setup({ nodes, edges });
 
-      expect(graph.getNodeById(0)?.properties).toEqual({});
-      expect(graph.getEdgeById(0)?.properties).toEqual({});
+      expect(graph.getNodeById(0)?.style).toEqual({});
+      expect(graph.getEdgeById(0)?.style).toEqual({});
 
       nodes.slice(1).forEach((node) => {
-        expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
+        expect(graph.getNodeById(node.id)?.style).toEqual(nodeStyle);
       });
       edges.slice(1).forEach((edge) => {
-        expect(graph.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
+        expect(graph.getEdgeById(edge.id)?.style).toEqual(edgeStyle);
       });
     });
 
@@ -513,14 +506,14 @@ describe('Graph', () => {
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
       const currentEdges: ITestEdge[] = [...edges, ...newEdges];
 
-      expect(graph.getNodeById(0)?.properties).toEqual({});
-      expect(graph.getEdgeById(0)?.properties).toEqual({});
+      expect(graph.getNodeById(0)?.style).toEqual({});
+      expect(graph.getEdgeById(0)?.style).toEqual({});
 
       currentNodes.slice(1).forEach((node) => {
-        expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
+        expect(graph.getNodeById(node.id)?.style).toEqual(nodeStyle);
       });
       currentEdges.slice(1).forEach((edge) => {
-        expect(graph.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
+        expect(graph.getEdgeById(edge.id)?.style).toEqual(edgeStyle);
       });
     });
 
@@ -532,14 +525,14 @@ describe('Graph', () => {
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
       const currentEdges: ITestEdge[] = [...edges, ...newEdges];
 
-      expect(graph.getNodeById(0)?.properties).toEqual({});
-      expect(graph.getEdgeById(0)?.properties).toEqual({});
+      expect(graph.getNodeById(0)?.style).toEqual({});
+      expect(graph.getEdgeById(0)?.style).toEqual({});
 
       currentNodes.slice(1).forEach((node) => {
-        expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
+        expect(graph.getNodeById(node.id)?.style).toEqual(nodeStyle);
       });
       currentEdges.slice(1).forEach((edge) => {
-        expect(graph.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
+        expect(graph.getEdgeById(edge.id)?.style).toEqual(edgeStyle);
       });
     });
 
@@ -553,14 +546,14 @@ describe('Graph', () => {
       const currentNodes: ITestNode[] = [...nodes, ...newNodes];
       const currentEdges: ITestEdge[] = [...edges, ...newEdges];
 
-      expect(graph.getNodeById(0)?.properties).toEqual({ ...DEFAULT_NODE_PROPERTIES, label: nodes[0].name });
-      expect(graph.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
+      expect(graph.getNodeById(0)?.style).toEqual({ ...DEFAULT_NODE_STYLE, label: nodes[0].name });
+      expect(graph.getEdgeById(0)?.style).toEqual(DEFAULT_EDGE_STYLE);
 
       currentNodes.slice(1).forEach((node) => {
-        expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
+        expect(graph.getNodeById(node.id)?.style).toEqual(nodeStyle);
       });
       currentEdges.slice(1).forEach((edge) => {
-        expect(graph.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
+        expect(graph.getEdgeById(edge.id)?.style).toEqual(edgeStyle);
       });
     });
 
@@ -571,21 +564,21 @@ describe('Graph', () => {
       graph.setDefaultStyle(getDefaultGraphStyle());
       graph.merge({ nodes: newNodes, edges: newEdges });
 
-      expect(graph.getNodeById(0)?.properties).toEqual({ ...DEFAULT_NODE_PROPERTIES, label: nodes[0].name });
-      expect(graph.getEdgeById(0)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
+      expect(graph.getNodeById(0)?.style).toEqual({ ...DEFAULT_NODE_STYLE, label: nodes[0].name });
+      expect(graph.getEdgeById(0)?.style).toEqual(DEFAULT_EDGE_STYLE);
 
       nodes.slice(1).forEach((node) => {
-        expect(graph.getNodeById(node.id)?.properties).toEqual(nodeStyle);
+        expect(graph.getNodeById(node.id)?.style).toEqual(nodeStyle);
       });
       newNodes.forEach((node) => {
-        expect(graph.getNodeById(node.id)?.properties).toEqual({ ...DEFAULT_NODE_PROPERTIES, label: node.name });
+        expect(graph.getNodeById(node.id)?.style).toEqual({ ...DEFAULT_NODE_STYLE, label: node.name });
       });
 
       edges.slice(1).forEach((edge) => {
-        expect(graph.getEdgeById(edge.id)?.properties).toEqual(edgeStyle);
+        expect(graph.getEdgeById(edge.id)?.style).toEqual(edgeStyle);
       });
       newEdges.forEach((edge) => {
-        expect(graph.getEdgeById(edge.id)?.properties).toEqual(DEFAULT_EDGE_PROPERTIES);
+        expect(graph.getEdgeById(edge.id)?.style).toEqual(DEFAULT_EDGE_STYLE);
       });
     });
 

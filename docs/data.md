@@ -45,7 +45,7 @@ Node object (interface `orb.INode`) is created on top of the node data that is p
 
 * `id` - Readonly unique `id` provided on init (same as `.data.id`)
 * `data` - User provided information on `orb.data.setup` or `orb.data.merge`
-* `properties` - Style properties like color, border, size (check more on [Styling guide](./styles.md)).
+* `style` - Style properties like color, border, size (check more on [Styling guide](./styles.md)).
 * `position` - Node `x` and `y` coordinate generated before first render
 * `state` - Node state which can be selected (`GraphObjectState.SELECTED`), hovered
   (`GraphObjectState.HOVERED`), or none (`GraphObjectState.NONE` - default)
@@ -53,8 +53,8 @@ Node object (interface `orb.INode`) is created on top of the node data that is p
 There are some useful node functions that you can use such as:
 
 * `getCenter()` - Alias for `.position`
-* `getRadius()` - Alias for `.properties.size`
-* `getBorderedRadius()` - Alias for `.properties.size + .properties.borderWidth`
+* `getRadius()` - Alias for `.style.size`
+* `getBorderedRadius()` - Alias for `.style.size + .style.borderWidth`
 * `getInEdges()` - Returns a list of inbound edges connected to the node
 * `getOutEdges()` - Returns a list of outbound edges connected to the node
 * `getEdges()` - Returns a list of all edges connected to the node, inbound and outbound
@@ -75,8 +75,8 @@ console.log(node.id);   // Output: 0
 console.log(node.data); // Output: { id: 0, text: "Node A", myField: 12 }
 
 // Set node color to red
-node.properties.color = '#FF0000';
-console.log(node.properties); // Output: { ...<default node props>, color: '#FF0000' }
+node.style.color = '#FF0000';
+console.log(node.style); // Output: { ...<default node style props>, color: '#FF0000' }
 ```
 
 ### Edge
@@ -90,7 +90,7 @@ Edge object (interface `orb.IEdge`) is created on top of the edge data that is p
 * `end` - Readonly `end` provided on init (same as `.data.end`)
 * `startNode` - Reference to the start node (`orb.INode`) that edge connects
 * `endNode` - Reference to the end node (`orb.INode`) that edge connects
-* `properties` - Style properties like color, border, size (check more on [Styling guide](./styles.md)).
+* `style` - Style properties like color, border, size (check more on [Styling guide](./styles.md)).
 * `state` - Edge state which can be selected (`GraphObjectState.SELECTED`), hovered
   (`GraphObjectState.HOVERED`), or none (`GraphObjectState.NONE` - default)
 * `type` - Edge line type which can be:
@@ -104,7 +104,7 @@ Edge object (interface `orb.IEdge`) is created on top of the edge data that is p
 There are some useful node functions that you can use such as:
 
 * `getCenter()` - Gets the center edge position calculated by edge type and connected node positions 
-* `getWidth()` - Alias for `.properties.width`
+* `getWidth()` - Alias for `.style.width`
 * `isLoopback()` - Checks if edge is a loopback type: connects a node to itself.
 * `isStraight()` - Checks if edge is a straight line edge
 * `isCurved()` - Checks if edge is a curved line edge.
@@ -131,8 +131,8 @@ console.log(edge.startNode.data); // Output: { id: 0, text: "Node A", myField: 1
 console.log(edge.endNode.data);   // Output: { id: 1, text: "Node B", myField: 77 }
 
 // Set edge line color to red
-edge.properties.color = '#FF0000';
-console.log(edge.properties); // Output: { ...<default edge props>, color: '#FF0000' }
+edge.style.color = '#FF0000';
+console.log(edge.style); // Output: { ...<default edge style props>, color: '#FF0000' }
 ```
 
 ## Merge nodes and edges
