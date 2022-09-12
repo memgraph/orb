@@ -49,7 +49,7 @@ the following properties:
 
 ## Shape enumeration
 
-The enum `orb.NodeShapeType` which is used for the node `shape` property is defined as:
+The enum `NodeShapeType` which is used for the node `shape` property is defined as:
 
 ```typescript
 export enum NodeShapeType {
@@ -84,12 +84,12 @@ const DEFAULT_NODE_STYLE: INodeStyle = {
 > below:
 
 ```typescript
-const nodes = [
+const nodes: MyNode[] = [
   { id: 1, name: "First" },
   { id: 1, name: "Second" },
 ];
 
-const orb = new Orb('container');
+const orb = new Orb<MyNode, MyEdge>(container);
 orb.setDefaultStyle({
   getNodeStyle: (node) => {
     return {
@@ -161,7 +161,7 @@ Orb exports a utility class `Color` which you can use to define colors too. It c
 functions for easier color handling:
 
 ```typescript
-import { Color } from 'orb';
+import { Color } from '@memgraph/orb';
 
 // Constructor always receives a color HEX code
 const red = new Color('#FF0000');
@@ -269,6 +269,9 @@ node (`INode`) or edge (`IEdge`) object. Using those objects, you can change the
 any time:
 
 ```typescript
+import { OrbEventType } from '@memgraph/orb';
+
+const orb = new Orb<MyNode, MyEdge>(container);
 orb.data.setup({ nodes, edges });
 
 const node = orb.data.getNodeById(0);
@@ -282,10 +285,10 @@ node.style = {
 
 // Change the width of all the edges to 1, but keep other style properties
 orb.data.getEdges().forEach((edge) => {
-  edge.style.width = 1; 
+  edge.style.width = 1;
 });
 
-orb.events.on('node-click', ({ node }) => {
+orb.events.on(OrbEventType.NODE_CLICK, ({ node }) => {
   // If a node is clicked, set its size to be 10
   node.style.size = 10;
 });

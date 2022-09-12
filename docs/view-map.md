@@ -14,20 +14,21 @@ Here is a simple example of `MapView` usage:
 ![](./assets/view-map-example.png)
 
 ```typescript
+import { MapView } from '@memgraph/orb'; 
 const container = document.getElementById('<your-div-id>');
 
-const nodes = [
+const nodes: MyNode[] = [
   { id: 'miami', label: 'Miami', lat: 25.789106, lng: -80.226529 },
   { id: 'sanjuan', label: 'San Juan', lat: 18.4663188, lng: -66.1057427 },
   { id: 'hamilton', label: 'Hamilton', lat: 32.294887, lng: -64.781380 },
 ];
-const edges = [
+const edges: MyEdge[] = [
   { id: 0, start: 'miami', end: 'sanjuan' },
   { id: 1, start: 'sanjuan', end: 'hamilton' },
   { id: 2, start: 'hamilton', end: 'miami' },
 ]
 
-const orb = new Orb(container);
+const orb = new Orb<MyNode, MyEdge>(container);
 orb.setView((context) => new MapView(context, {
   getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng, }),
 }));
@@ -70,6 +71,7 @@ initialized on the new `MapView`:
 
 ```typescript
 import * as L from 'leaflet';
+import { MapView } from '@memgraph/orb';
 
 const mapAttribution =
   '<a href="https://leafletjs.com/" target="_blank" >Leaflet</a> | ' +
@@ -157,6 +159,8 @@ If you need a reference to the internal map reference from `leaflet` library, ju
 following example:
 
 ```typescript
+import { MapView } from '@memgraph/orb';
+
 // It will only work on MapView
-const leaflet = orb.view.leaflet;
+const leaflet = (orb.view as MapView).leaflet;
 ```

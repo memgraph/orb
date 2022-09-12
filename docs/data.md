@@ -15,12 +15,14 @@ To initialize graph data structure use `orb.data.setup` function that receives `
 `edges`. Here is a simple example of it:
 
 ```typescript
-const nodes = [
+const orb = new Orb<MyNode, MyEdge>(container);
+
+const nodes: MyNode[] = [
   { id: 0, text: "Node A", myField: 12 },
   { id: 1, text: "Node B", myField: 77 },
 ];
 
-const edges = [
+const edges: MyEdge[] = [
   { id: 0, start: 0, end: 1, connects: 'A -> B' },
   { id: 1, start: 0, end: 0, connects: 'A -> A' },
 ];
@@ -40,7 +42,7 @@ Whenever `orb.data.setup` is called, any previous graph structure will be remove
 
 ### Node
 
-Node object (interface `orb.INode`) is created on top of the node data that is provided via
+Node object (interface `INode`) is created on top of the node data that is provided via
 `orb.data.setup` or `orb.data.merge` functions. The Node object contains the information:
 
 * `id` - Readonly unique `id` provided on init (same as `.data.id`)
@@ -63,7 +65,9 @@ There are some useful node functions that you can use such as:
 Check the example to get to know node handling better:
 
 ```typescript
-const nodes = [
+const orb = new Orb<MyNode, MyEdge>(container);
+
+const nodes: MyNode[] = [
   { id: 0, text: "Node A", myField: 12 },
   { id: 1, text: "Node B", myField: 77 },
 ];
@@ -81,15 +85,15 @@ console.log(node.style); // Output: { ...<default node style props>, color: '#FF
 
 ### Edge
 
-Edge object (interface `orb.IEdge`) is created on top of the edge data that is provided via
+Edge object (interface `IEdge`) is created on top of the edge data that is provided via
 `orb.data.setup` or `orb.data.merge` functions. The Edge object contains the information:
 
 * `id` - Readonly unique `id` provided on init (same as `.data.id`)
 * `data` - User provided information on `orb.data.setup` or `orb.data.merge`
 * `start` - Readonly `start` provided on init (same as `.data.start`)
 * `end` - Readonly `end` provided on init (same as `.data.end`)
-* `startNode` - Reference to the start node (`orb.INode`) that edge connects
-* `endNode` - Reference to the end node (`orb.INode`) that edge connects
+* `startNode` - Reference to the start node (`INode`) that edge connects
+* `endNode` - Reference to the end node (`INode`) that edge connects
 * `style` - Style properties like color, border, size (check more on [Styling guide](./styles.md)).
 * `state` - Edge state which can be selected (`GraphObjectState.SELECTED`), hovered
   (`GraphObjectState.HOVERED`), or none (`GraphObjectState.NONE` - default)
@@ -112,12 +116,14 @@ There are some useful node functions that you can use such as:
 Check the example to get to know edge handling better:
 
 ```typescript
-const nodes = [
+const orb = new Orb<MyNode, MyEdge>(container);
+
+const nodes: MyNode[] = [
   { id: 0, text: "Node A", myField: 12 },
   { id: 1, text: "Node B", myField: 77 },
 ];
 
-const edges = [
+const edges: MyEdge[] = [
   { id: 0, start: 0, end: 1, connects: 'A -> B' },
   { id: 1, start: 0, end: 0, connects: 'A -> A' },
 ];
@@ -142,12 +148,14 @@ ones. An update of a node or edge will happen if a node or edge with the same un
 exists in the graph structure. Check the example below:
 
 ```typescript
-const nodes = [
+const orb = new Orb<MyNode, MyEdge>(container);
+
+const nodes: MyNode[] = [
   { id: 0, text: "Node A", myField: 12 },
   { id: 1, text: "Node B", myField: 77 },
 ];
 
-const edges = [
+const edges: MyEdge[] = [
   { id: 0, start: 0, end: 1, connects: 'A -> B' },
   { id: 1, start: 0, end: 0, connects: 'A -> A' },
 ];
@@ -183,12 +191,14 @@ To remove nodes or edges from a graph, you just need the `id`. Removing a node w
 remove all inbound and outbound edges to that node. Removing an edge will just remove that edge.
 
 ```typescript
-const nodes = [
+const orb = new Orb<MyNode, MyEdge>(container);
+
+const nodes: MyNode[] = [
   { id: 0, text: "Node A" },
   { id: 1, text: "Node B" },
 ];
 
-const edges = [
+const edges: MyEdge[] = [
   { id: 0, start: 0, end: 1, text: 'A -> B' },
   { id: 1, start: 0, end: 0, text: 'A -> A' },
 ];

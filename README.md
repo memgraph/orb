@@ -1,10 +1,19 @@
-# Orb
+
+![](./docs/assets/logo.png)
 
 <p>
-    <a href="https://github.com/memgraph/orb/actions"><img src="https://github.com/memgraph/orb/workflows/Build%20and%20test/badge.svg" /></a>
-    <a href="https://github.com/memgraph/orb/blob/main/LICENSE"><img src="https://img.shields.io/github/license/memgraph/orb" /></a>
-    <a href="https://www.npmjs.com/package/@memgraph/orb"><img src="https://img.shields.io/npm/v/@memgraph/orb" /></a>
-    <a href="https://github.com/memgraph/orb/stargazers" alt="Stargazers"><img src="https://img.shields.io/github/stars/memgraph/orb?style=social" /></a>
+  <a href="https://github.com/memgraph/orb/actions">
+    <img src="https://github.com/memgraph/orb/workflows/Build%20and%20test/badge.svg" />
+  </a>
+  <a href="https://github.com/memgraph/orb/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/memgraph/orb" />
+  </a>
+  <a href="https://www.npmjs.com/package/@memgraph/orb">
+    <img src="https://img.shields.io/npm/v/@memgraph/orb" />
+  </a>
+  <a href="https://github.com/memgraph/orb/stargazers" alt="Stargazers">
+    <img src="https://img.shields.io/github/stars/memgraph/orb?style=social" />
+  </a>
 </p>
 
 ![](./docs/assets/graph-example.png)

@@ -11,8 +11,11 @@ You can, however, explicitly provide it in the factory function as you would any
 This will be necessary if you want to assign fixed node coordinates, which you can read about further below.
 
 ```typescript
-const orb = new Orb.Orb(container);
-orb.setView((context) => new Orb.DefaultView(context));
+import { DefaultView } from '@memgraph/orb';
+
+const orb = new Orb<MyNode, MyEdge>(container);
+
+orb.setView((context) => new DefaultView(context));
 ```
 
 There are two basic ways to use the `DefaultView` API based on the node positions:
@@ -28,12 +31,12 @@ This method is applied by default - you don't need to initialize Orb with any ad
 ![](./assets/view-default-simulated.png)
 
 ```typescript
-const nodes = [
+const nodes: MyNode[] = [
   { id: 0, label: "Node A" },
   { id: 1, label: "Node B" },
   { id: 2, label: "Node C" },
 ];
-const edges = [
+const edges: MyEdge[] = [
   { id: 0, start: 0, end: 0, label: "Edge Q" },
   { id: 1, start: 0, end: 1, label: "Edge W" },
   { id: 2, start: 0, end: 2, label: "Edge E" },
@@ -42,7 +45,7 @@ const edges = [
   { id: 5, start: 0, end: 1, label: "Edge V" },
 ];
 
-const orb = new Orb.Orb(container);
+const orb = new Orb<MyNode, MyEdge>(container);
 
 // Initialize nodes and edges
 orb.data.setup({ nodes, edges });
@@ -61,14 +64,15 @@ You can use this function to indicate which properties of your original nodes wi
 ![](./assets/view-default-fixed.png)
 
 ```typescript
+import { DefaultView } from '@memgraph/orb';
 const container = document.getElementById("graph");
 
-const nodes = [
+const nodes: MyNode[] = [
   { id: 0, label: "Node A", posX: -100, posY: 0 },
   { id: 1, label: "Node B", posX: 100, posY: 0 },
   { id: 2, label: "Node C", posX: 0, posY: 100 },
 ];
-const edges = [
+const edges: MyEdge[] = [
   { id: 0, start: 0, end: 0, label: "Edge Q" },
   { id: 1, start: 0, end: 1, label: "Edge W" },
   { id: 2, start: 0, end: 2, label: "Edge E" },
@@ -77,10 +81,10 @@ const edges = [
   { id: 5, start: 0, end: 1, label: "Edge V" },
 ];
 
-const orb = new Orb.Orb(container);
+const orb = new Orb<MyNode, MyEdge>(container);
 orb.setView(
   (context) =>
-    new Orb.DefaultView(context, {
+    new DefaultView(context, {
       getPosition: (node) => ({ x: node.data.posX, y: node.data.posY }),
     })
 );
