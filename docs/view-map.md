@@ -97,6 +97,59 @@ orb.setView((context) => new MapView(context, {
 }));
 ```
 
+You can set settings on view initialization or afterward with `orb.view.setSettings`. Below
+you can see the list of all settings' parameters:
+
+```typescript
+import * as L from 'leaflet';
+
+interface IMapViewSettings {
+  // For map node positions
+  getGeoPosition(node: INode): { lat: number; lng: number; } | undefined;
+  // For canvas rendering and events
+  render: {
+    minZoom: number;
+    maxZoom: number;
+    fitZoomMargin: number;
+    labelsIsEnabled: boolean;
+    labelsOnEventIsEnabled: boolean;
+    shadowIsEnabled: boolean;
+    shadowOnEventIsEnabled: boolean;
+    contextAlphaOnEvent: number;
+    contextAlphaOnEventIsEnabled: boolean;
+  };
+  // Other map view parameters
+  map: {
+    zoomLevel: number;
+    tile: L.TileLayer;
+  };
+}
+```
+
+The default settings that `MapView` uses is:
+
+```typescript
+const defaultSettings = {
+  render: {
+    minZoom: 0.25,
+    maxZoom: 8,
+    fitZoomMargin: 0.2,
+    labelsIsEnabled: true,
+    labelsOnEventIsEnabled: true,
+    shadowIsEnabled: true,
+    shadowOnEventIsEnabled: true,
+    contextAlphaOnEvent: 0.3,
+    contextAlphaOnEventIsEnabled: true,
+  },
+  map: {
+    zoomLevel: 2, // Default map zoom level
+    tile: new L.TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png') // OpenStreetMaps
+  }
+}
+```
+
+You can read more about each property down below and on [Styles guide](./styles.md).
+
 ### Property `getGeoPosition`
 
 Property `getGeoPosition` is the only required one. It is a callback function that has a node (`INode`)
