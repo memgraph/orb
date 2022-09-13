@@ -26,9 +26,9 @@ export interface IEdgePosition {
 }
 
 /**
- * Edge properties used to style the edge (color, width, label, etc.).
+ * Edge style properties used to style the edge (color, width, label, etc.).
  */
-export interface IEdgeProperties {
+export type IEdgeStyle = Partial<{
   arrowSize: number;
   color: Color | string;
   colorHover: Color | string;
@@ -45,7 +45,7 @@ export interface IEdgeProperties {
   width: number;
   widthHover: number;
   widthSelected: number;
-}
+}>;
 
 export interface IEdgeData<N extends INodeBase, E extends IEdgeBase> {
   data: E;
@@ -66,16 +66,16 @@ export enum EdgeType {
 export interface IEdge<N extends INodeBase, E extends IEdgeBase> {
   data: E;
   position: IEdgePosition;
-  properties: Partial<IEdgeProperties>;
+  style: IEdgeStyle;
   state: number;
-  get id(): any;
-  get offset(): number;
-  get start(): any;
-  get startNode(): INode<N, E>;
-  get end(): any;
-  get endNode(): INode<N, E>;
-  get type(): EdgeType;
-  hasProperties(): boolean;
+  readonly id: any;
+  readonly offset: number;
+  readonly start: any;
+  readonly startNode: INode<N, E>;
+  readonly end: any;
+  readonly endNode: INode<N, E>;
+  readonly type: EdgeType;
+  hasStyle(): boolean;
   isSelected(): boolean;
   isHovered(): boolean;
   clearState(): void;
@@ -116,7 +116,7 @@ export class EdgeFactory {
       endNode: edge.endNode,
     });
     newEdge.state = edge.state;
-    newEdge.properties = edge.properties;
+    newEdge.style = edge.style;
 
     return newEdge;
   }
@@ -134,7 +134,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   public readonly startNode: INode<N, E>;
   public readonly endNode: INode<N, E>;
 
-  public properties: Partial<IEdgeProperties> = {};
+  public style: IEdgeStyle = {};
   public state = GraphObjectState.NONE;
   public position: IEdgePosition;
 
@@ -165,8 +165,8 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
     return this.data.end;
   }
 
-  hasProperties(): boolean {
-    return this.properties && Object.keys(this.properties).length > 0;
+  hasStyle(): boolean {
+    return this.style && Object.keys(this.style).length > 0;
   }
 
   isSelected(): boolean {
@@ -217,27 +217,25 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   }
 
   getLabel(): string | undefined {
-    return this.properties.label;
+    return this.style.label;
   }
 
   hasShadow(): boolean {
     return (
-      (this.properties.shadowSize ?? 0) > 0 ||
-      (this.properties.shadowOffsetX ?? 0) > 0 ||
-      (this.properties.shadowOffsetY ?? 0) > 0
+      (this.style.shadowSize ?? 0) > 0 || (this.style.shadowOffsetX ?? 0) > 0 || (this.style.shadowOffsetY ?? 0) > 0
     );
   }
 
   getWidth(): number {
     let width = 0;
-    if (this.properties.width !== undefined) {
-      width = this.properties.width;
+    if (this.style.width !== undefined) {
+      width = this.style.width;
     }
-    if (this.isHovered() && this.properties.widthHover !== undefined) {
-      width = this.properties.widthHover;
+    if (this.isHovered() && this.style.widthHover !== undefined) {
+      width = this.style.widthHover;
     }
-    if (this.isSelected() && this.properties.widthSelected !== undefined) {
-      width = this.properties.widthSelected;
+    if (this.isSelected() && this.style.widthSelected !== undefined) {
+      width = this.style.widthSelected;
     }
     return width;
   }
@@ -245,14 +243,14 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   getColor(): Color | string | undefined {
     let color: Color | string | undefined = undefined;
 
-    if (this.properties.color) {
-      color = this.properties.color;
+    if (this.style.color) {
+      color = this.style.color;
     }
-    if (this.isHovered() && this.properties.colorHover) {
-      color = this.properties.colorHover;
+    if (this.isHovered() && this.style.colorHover) {
+      color = this.style.colorHover;
     }
-    if (this.isSelected() && this.properties.colorSelected) {
-      color = this.properties.colorSelected;
+    if (this.isSelected() && this.style.colorSelected) {
+      color = this.style.colorSelected;
     }
 
     return color;

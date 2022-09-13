@@ -25,7 +25,7 @@ export const drawLoopbackLine = <N extends INodeBase, E extends IEdgeBase>(
 export const getLoopbackArrowShape = <N extends INodeBase, E extends IEdgeBase>(
   edge: EdgeLoopback<N, E>,
 ): IEdgeArrow => {
-  const scaleFactor = edge.properties.arrowSize ?? 1;
+  const scaleFactor = edge.style.arrowSize ?? 1;
   const lineWidth = edge.getWidth() ?? 1;
   const source = edge.startNode;
   // const target = this.data.target;

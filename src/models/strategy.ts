@@ -15,53 +15,111 @@ export interface IEventStrategy<N extends INodeBase, E extends IEdgeBase> {
 }
 
 export const getDefaultEventStrategy = <N extends INodeBase, E extends IEdgeBase>(): IEventStrategy<N, E> => {
-  return {
-    onMouseClick: (graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> => {
-      const node = graph.getNearestNode(point);
-      if (node) {
-        selectNode(graph, node);
+  return new DefaultEventStrategy<N, E>();
+  // return {
+  //   onMouseClick: (graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> => {
+  //     const node = graph.getNearestNode(point);
+  //     if (node) {
+  //       selectNode(graph, node);
+  //       return {
+  //         isStateChanged: true,
+  //         changedSubject: node,
+  //       };
+  //     }
+  //
+  //     const edge = graph.getNearestEdge(point);
+  //     if (edge) {
+  //       selectEdge(graph, edge);
+  //       return {
+  //         isStateChanged: true,
+  //         changedSubject: edge,
+  //       };
+  //     }
+  //
+  //     const { changedCount } = unselectAll(graph);
+  //     return {
+  //       isStateChanged: changedCount > 0,
+  //     };
+  //   },
+  //   onMouseMove: (graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> => {
+  //     // From map view
+  //     const node = graph.getNearestNode(point);
+  //     if (node && !node.isSelected()) {
+  //       hoverNode(graph, node);
+  //       return {
+  //         isStateChanged: true,
+  //         changedSubject: node,
+  //       };
+  //     }
+  //
+  //     if (!node) {
+  //       const { changedCount } = unhoverAll(graph);
+  //       return {
+  //         isStateChanged: changedCount > 0,
+  //       };
+  //     }
+  //
+  //     return { isStateChanged: false };
+  //   },
+  // };
+};
+
+class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> implements IEventStrategy<N, E> {
+  lastHoveredNode?: INode<N, E>;
+
+  onMouseClick(graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> {
+    const node = graph.getNearestNode(point);
+    if (node) {
+      selectNode(graph, node);
+      return {
+        isStateChanged: true,
+        changedSubject: node,
+      };
+    }
+
+    const edge = graph.getNearestEdge(point);
+    if (edge) {
+      selectEdge(graph, edge);
+      return {
+        isStateChanged: true,
+        changedSubject: edge,
+      };
+    }
+
+    const { changedCount } = unselectAll(graph);
+    return {
+      isStateChanged: changedCount > 0,
+    };
+  }
+
+  onMouseMove(graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> {
+    const node = graph.getNearestNode(point);
+    if (node && !node.isSelected()) {
+      if (node === this.lastHoveredNode) {
         return {
-          isStateChanged: true,
-          changedSubject: node,
+          isStateChanged: false,
         };
       }
 
-      const edge = graph.getNearestEdge(point);
-      if (edge) {
-        selectEdge(graph, edge);
-        return {
-          isStateChanged: true,
-          changedSubject: edge,
-        };
-      }
+      hoverNode(graph, node);
+      this.lastHoveredNode = node;
+      return {
+        isStateChanged: true,
+        changedSubject: node,
+      };
+    }
 
-      const { changedCount } = unselectAll(graph);
+    this.lastHoveredNode = undefined;
+    if (!node) {
+      const { changedCount } = unhoverAll(graph);
       return {
         isStateChanged: changedCount > 0,
       };
-    },
-    onMouseMove: (graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> => {
-      // From map view
-      const node = graph.getNearestNode(point);
-      if (node && !node.isSelected()) {
-        hoverNode(graph, node);
-        return {
-          isStateChanged: true,
-          changedSubject: node,
-        };
-      }
+    }
 
-      if (!node) {
-        const { changedCount } = unhoverAll(graph);
-        return {
-          isStateChanged: changedCount > 0,
-        };
-      }
-
-      return { isStateChanged: false };
-    },
-  };
-};
+    return { isStateChanged: false };
+  }
+}
 
 const selectNode = <N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>, node: INode<N, E>) => {
   unselectAll(graph);

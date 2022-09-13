@@ -2,25 +2,25 @@ Styling nodes and edges in Orb
 ===
 
 Styling nodes and edges in Orb refers to the configuration of colors, size, width, and other visual
-properties. In the following section, you can find all the details and available properties to set
-up for nodes and edges.
+properties. In the following section, you can find all the details and available style properties to
+set up for nodes and edges.
 
 # Node style properties
 
 Once graph structure is created with `orb.data.setup` or update with `orb.data.merge`, a node
-(`orb.INode`) object will be created upon your input data. Node object contains a property `properties`
+(`INode`) object will be created upon your input data. Node object contains a property `style`
 through which you can get and set style properties.
 
 ```typescript
 const node = orb.data.getNodeById(0);
 // Set node size to 10
-node.properties.size = 10;
+node.style.size = 10;
 ```
 
 ## Properties
 
-The interface that defines all the node properties is `orb.INodeProperties`. It contains the following
-properties:
+The interface that defines all the node style properties is `INodeStyle`. It contains
+the following properties:
 
 | Property name         | Type                | Description                                     |
 | --------------------- | ------------------- | ----------------------------------------------- |
@@ -49,7 +49,7 @@ properties:
 
 ## Shape enumeration
 
-The enum `orb.NodeShapeType` which is used for the node `shape` property is defined as:
+The enum `NodeShapeType` which is used for the node `shape` property is defined as:
 
 ```typescript
 export enum NodeShapeType {
@@ -64,12 +64,12 @@ export enum NodeShapeType {
 }
 ```
 
-## Default property values
+## Default style values
 
-Default node property values are defined as follows:
+Default node style values are defined as follows:
 
 ```typescript
-const DEFAULT_NODE_PROPERTIES: Partial<INodeProperties> = {
+const DEFAULT_NODE_STYLE: INodeStyle = {
   size: 5,
   color: new Color('#1d87c9'),
   fontSize: 4,
@@ -84,16 +84,16 @@ const DEFAULT_NODE_PROPERTIES: Partial<INodeProperties> = {
 > below:
 
 ```typescript
-const nodes = [
+const nodes: MyNode[] = [
   { id: 1, name: "First" },
   { id: 1, name: "Second" },
 ];
 
-const orb = new Orb('container');
+const orb = new Orb<MyNode, MyEdge>(container);
 orb.setDefaultStyle({
   getNodeStyle: (node) => {
     return {
-      ...node.properties,
+      ...node.style,
       label: node.data.name,
     };
   },
@@ -104,19 +104,19 @@ orb.data.setup({ nodes });
 # Edge style properties
 
 Once graph structure is created with `orb.data.setup` or update with `orb.data.merge`, an edge
-(`orb.IEdge`) object will be created upon your input data. Edge object contains a property `properties`
+(`IEdge`) object will be created upon your input data. Edge object contains a property `style`
 through which you can get and set style properties.
 
 ```typescript
 const edge = orb.data.getEdgebyId(0);
 // Set edge width to 1
-edge.properties.width = 1;
+edge.style.width = 1;
 ```
 
 ## Properties
 
-The interface that defines all the node properties is `orb.IEdgeProperties`. It contains the following
-properties:
+The interface that defines all the node properties is `IEdgeStyle`. It contains the following
+style properties:
 
 | Property name         | Type                | Description                                         |
 | --------------------- | ------------------- | --------------------------------------------------- |
@@ -137,12 +137,12 @@ properties:
 | `widthHover`          | number              | Edge line width on mouse hover event. If not defined `width` is used. |
 | `widthSelected`       | number              | Edge line width on mouse click event. If not defined `width` is used. |
 
-## Default property values
+## Default style values
 
-Default edge property values are defined as follows:
+Default edge style values are defined as follows:
 
 ```typescript
-const DEFAULT_EDGE_PROPERTIES: Partial<IEdgeProperties> = {
+const DEFAULT_EDGE_STYLE: IEdgeStyle = {
   color: new Color('#ababab'),
   width: 0.3,
   fontSize: 4,
@@ -154,14 +154,14 @@ const DEFAULT_EDGE_PROPERTIES: Partial<IEdgeProperties> = {
 
 # Utility class `Color`
 
-As you might have seen, all color-based properties accept `Color` or `string`. A string value should always
-be a Color HEX code (e.g. `#FFFFFF` for white).
+As you might have seen, all color-based style properties accept `Color` or `string`. A string value
+should always be a Color HEX code (e.g. `#FFFFFF` for white).
 
 Orb exports a utility class `Color` which you can use to define colors too. It comes with several utility
 functions for easier color handling:
 
 ```typescript
-import { Color } from 'orb';
+import { Color } from '@memgraph/orb';
 
 // Constructor always receives a color HEX code
 const red = new Color('#FF0000');
@@ -186,9 +186,9 @@ that with `getLigherColor` or `getDarkerColor` functions:
 ```typescript
 const nodeBaseColor = new Color('#FF0000');
 
-node.properties.color = nodeBaseColor;
-node.properties.colorSelected = nodeBaseColor.getDarkerColor();
-node.properties.colorHover = nodeBaseColor.getLighterColor();
+node.style.color = nodeBaseColor;
+node.style.colorSelected = nodeBaseColor.getDarkerColor();
+node.style.colorHover = nodeBaseColor.getLighterColor();
 ```
 
 # Setting up styles
@@ -243,7 +243,7 @@ or `orb.data.merge` where new nodes/edges are created:
 // Without default style, after each call of `orb.data.setup` or `orb.data.merge`
 // you need to call the following code
 orb.data.getNodes().forEach((node) => {
-  node.properties = {
+  node.style = {
     color: '#FF0000',
     fontSize: 10,
     size: 10,
@@ -251,7 +251,7 @@ orb.data.getNodes().forEach((node) => {
   };
 });
 orb.data.getEdges().forEach((edge) => {
-  edge.properties = {
+  edge.style = {
     color: '#000000',
     width: 3,
   };
@@ -269,11 +269,14 @@ node (`INode`) or edge (`IEdge`) object. Using those objects, you can change the
 any time:
 
 ```typescript
+import { OrbEventType } from '@memgraph/orb';
+
+const orb = new Orb<MyNode, MyEdge>(container);
 orb.data.setup({ nodes, edges });
 
 const node = orb.data.getNodeById(0);
 // Override existing node style properties with the new ones
-node.properties = {
+node.style = {
   color: '#FF0000',
   fontSize: 10,
   size: 10,
@@ -282,12 +285,12 @@ node.properties = {
 
 // Change the width of all the edges to 1, but keep other style properties
 orb.data.getEdges().forEach((edge) => {
-  edge.properties.width = 1; 
+  edge.style.width = 1;
 });
 
-orb.events.on('node-click', ({ node }) => {
+orb.events.on(OrbEventType.NODE_CLICK, ({ node }) => {
   // If a node is clicked, set its size to be 10
-  node.properties.size = 10;
+  node.style.size = 10;
 });
 ```
 
@@ -301,7 +304,7 @@ use them in the following section:
 
 Having labels (text) on nodes and edges will degrade the performance of the rendering for the large
 number of nodes/edges. To simplify the way to disable/enable labels for the whole graph
-without setting `(node|edge).properties.label = ""` or `(node|edge).properties.fontSize = 0` for
+without setting `(node|edge).style.label = ""` or `(node|edge).style.fontSize = 0` for
 each node/edge, you can use the view settings to enable/disable labels globally:
 
 ```typescript

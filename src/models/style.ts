@@ -1,22 +1,18 @@
-import { IEdge, IEdgeBase, IEdgeProperties } from './edge';
-import { INode, INodeBase, INodeProperties } from './node';
+import { IEdge, IEdgeBase, IEdgeStyle } from './edge';
+import { INode, INodeBase, INodeStyle } from './node';
 import { Color } from '../common';
 
 const LABEL_PROPERTY_NAMES = ['label', 'name'];
 
-export const DEFAULT_NODE_PROPERTIES: Partial<INodeProperties> = {
+export const DEFAULT_NODE_STYLE: INodeStyle = {
   size: 5,
   color: new Color('#1d87c9'),
 };
 
-export const DEFAULT_EDGE_PROPERTIES: Partial<IEdgeProperties> = {
+export const DEFAULT_EDGE_STYLE: IEdgeStyle = {
   color: new Color('#ababab'),
   width: 0.3,
 };
-
-export type IEdgeStyle = Partial<IEdgeProperties>;
-
-export type INodeStyle = Partial<INodeProperties>;
 
 export interface IGraphStyle<N extends INodeBase, E extends IEdgeBase> {
   getNodeStyle(node: INode<N, E>): INodeStyle | undefined;
@@ -26,10 +22,10 @@ export interface IGraphStyle<N extends INodeBase, E extends IEdgeBase> {
 export const getDefaultGraphStyle = <N extends INodeBase, E extends IEdgeBase>(): IGraphStyle<N, E> => {
   return {
     getNodeStyle(node: INode<N, E>): INodeStyle {
-      return { ...DEFAULT_NODE_PROPERTIES, label: getPredefinedLabel(node) };
+      return { ...DEFAULT_NODE_STYLE, label: getPredefinedLabel(node) };
     },
     getEdgeStyle(edge: IEdge<N, E>): IEdgeStyle {
-      return { ...DEFAULT_EDGE_PROPERTIES, label: getPredefinedLabel(edge) };
+      return { ...DEFAULT_EDGE_STYLE, label: getPredefinedLabel(edge) };
     },
   };
 };

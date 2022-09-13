@@ -53,7 +53,7 @@ const drawShape = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRend
   const center = node.getCenter();
   const radius = node.getRadius();
 
-  switch (node.properties.shape) {
+  switch (node.style.shape) {
     case NodeShapeType.SQUARE: {
       drawSquare(context, center.x, center.y, radius);
       break;
@@ -101,10 +101,10 @@ const drawNodeLabel = <N extends INodeBase, E extends IEdgeBase>(
     position: { x: center.x, y: center.y + distance },
     textBaseline: LabelTextBaseline.TOP,
     properties: {
-      fontBackgroundColor: node.properties.fontBackgroundColor,
-      fontColor: node.properties.fontColor,
-      fontFamily: node.properties.fontFamily,
-      fontSize: node.properties.fontSize,
+      fontBackgroundColor: node.style.fontBackgroundColor,
+      fontColor: node.style.fontColor,
+      fontFamily: node.style.fontFamily,
+      fontSize: node.style.fontSize,
     },
   });
   drawLabel(context, label);
@@ -156,17 +156,17 @@ const setupShadow = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
   node: INode<N, E>,
 ) => {
-  if (node.properties.shadowColor) {
-    context.shadowColor = node.properties.shadowColor.toString();
+  if (node.style.shadowColor) {
+    context.shadowColor = node.style.shadowColor.toString();
   }
-  if (node.properties.shadowSize) {
-    context.shadowBlur = node.properties.shadowSize;
+  if (node.style.shadowSize) {
+    context.shadowBlur = node.style.shadowSize;
   }
-  if (node.properties.shadowOffsetX) {
-    context.shadowOffsetX = node.properties.shadowOffsetX;
+  if (node.style.shadowOffsetX) {
+    context.shadowOffsetX = node.style.shadowOffsetX;
   }
-  if (node.properties.shadowOffsetY) {
-    context.shadowOffsetY = node.properties.shadowOffsetY;
+  if (node.style.shadowOffsetY) {
+    context.shadowOffsetY = node.style.shadowOffsetY;
   }
 };
 
@@ -174,16 +174,16 @@ const clearShadow = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
   node: INode<N, E>,
 ) => {
-  if (node.properties.shadowColor) {
+  if (node.style.shadowColor) {
     context.shadowColor = 'rgba(0,0,0,0)';
   }
-  if (node.properties.shadowSize) {
+  if (node.style.shadowSize) {
     context.shadowBlur = 0;
   }
-  if (node.properties.shadowOffsetX) {
+  if (node.style.shadowOffsetX) {
     context.shadowOffsetX = 0;
   }
-  if (node.properties.shadowOffsetY) {
+  if (node.style.shadowOffsetY) {
     context.shadowOffsetY = 0;
   }
 };

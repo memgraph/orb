@@ -28,7 +28,7 @@ export const drawCurvedLine = <N extends INodeBase, E extends IEdgeBase>(
  * @return {IEdgeArrow} Arrow shape
  */
 export const getCurvedArrowShape = <N extends INodeBase, E extends IEdgeBase>(edge: EdgeCurved<N, E>): IEdgeArrow => {
-  const scaleFactor = edge.properties.arrowSize ?? 1;
+  const scaleFactor = edge.style.arrowSize ?? 1;
   const lineWidth = edge.getWidth() ?? 1;
   const guideOffset = -0.1;
   // const source = this.data.source;
