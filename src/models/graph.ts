@@ -48,10 +48,10 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
   private _onLoadedImages?: () => void;
 
   constructor(data?: Partial<IGraphData<N, E>>, settings?: Partial<IGraphSettings>) {
+    this._onLoadedImages = settings?.onLoadedImages;
     const nodes = data?.nodes ?? [];
     const edges = data?.edges ?? [];
     this.setup({ nodes, edges });
-    this._onLoadedImages = settings?.onLoadedImages;
   }
 
   /**
@@ -328,7 +328,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
 
   private _insertNodes(nodes: N[]) {
     for (let i = 0; i < nodes.length; i++) {
-      const node = NodeFactory.create<N, E>({ data: nodes[i] });
+      const node = NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._onLoadedImages?.() });
       this._nodeById[node.id] = node;
     }
   }
@@ -357,7 +357,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
         continue;
       }
 
-      const node = NodeFactory.create<N, E>({ data: nodes[i] });
+      const node = NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._onLoadedImages?.() });
       this._nodeById[node.id] = node;
     }
   }

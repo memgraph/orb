@@ -96,9 +96,18 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> {
   getBackgroundImage(): HTMLImageElement | undefined;
 }
 
+// TODO: Dirty solution: Find another way to listen for global images, maybe through
+//  events that user can listen for: images-load-start, images-load-end
+export interface INodeSettings {
+  onLoadedImage: () => void;
+}
+
 export class NodeFactory {
-  static create<N extends INodeBase, E extends IEdgeBase>(data: INodeData<N>): INode<N, E> {
-    return new Node<N, E>(data);
+  static create<N extends INodeBase, E extends IEdgeBase>(
+    data: INodeData<N>,
+    settings?: Partial<INodeSettings>,
+  ): INode<N, E> {
+    return new Node<N, E>(data, settings);
   }
 }
 
@@ -115,11 +124,13 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
 
   private readonly _inEdgesById: { [id: number]: IEdge<N, E> } = {};
   private readonly _outEdgesById: { [id: number]: IEdge<N, E> } = {};
+  private readonly _onLoadedImage?: () => void;
 
-  constructor(data: INodeData<N>) {
+  constructor(data: INodeData<N>, settings?: Partial<INodeSettings>) {
     this.id = data.data.id;
     this.data = data.data;
     this.position = { id: this.id };
+    this._onLoadedImage = settings?.onLoadedImage;
   }
 
   clearPosition() {
@@ -341,7 +352,16 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
       return;
     }
 
-    return ImageHandler.getInstance().getImage(imageUrl);
+    const image = ImageHandler.getInstance().getImage(imageUrl);
+    if (image) {
+      return image;
+    }
+
+    return ImageHandler.getInstance().loadImage(imageUrl, (error) => {
+      if (!error) {
+        this._onLoadedImage?.();
+      }
+    });
   }
 
   protected _isPointInBoundingBox(point: IPosition): boolean {
