@@ -1,0 +1,29 @@
+{
+  "extends": ["@commitlint/config-conventional"],
+  "rules": {
+    "subject-case": [0, "never"],
+    "type-case": [
+      2,
+      "always",
+      "pascal-case"
+    ],
+    "type-empty": [
+      2,
+      "never"
+    ],
+    "type-enum": [
+      2,
+      "always",
+      [
+        "Fix",
+        "Update",
+        "New",
+        "Breaking",
+        "Docs",
+        "Build",
+        "Upgrade",
+        "Chore"
+      ]
+    ]
+  }
+}
