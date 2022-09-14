@@ -3,7 +3,7 @@
 <head>
   <base href=".">
   <meta charset='UTF-8'>
-  <title>Orb | 4</title>
+  <title>Orb | Handling graph events and callbacks</title>
   <script type="text/javascript" src="./orb.js"></script>
 </head>
 <style>
@@ -19,8 +19,13 @@
 <body>
   <div style="display: flex; flex-direction: column; align-items: center; height: 100%;">
     <h1>Example 4 - Events</h1>
-    <p>Rendering a simple graph on default canvas with events and callbacks.</p>
-
+    <p style="width: 70%">
+      Renders a simple graph with few event listeners: Each graph simulation step
+      is shown with progress indicator. On node click, node hover, and edge click,
+      an event will be logged in the console with a message showing clicked/hovered
+      node or edge.
+    </p>
+    <div id='graph-event-output'>< Click on any of the nodes or edges ></div>
     <div id="progressBar" class="progress-bar"></div>
 
     <!--
@@ -30,6 +35,7 @@
     <div id='graph' style="flex: 1; width: 100%;"></div>
   </div>
   <script type="text/javascript">
+    const output = document.getElementById('graph-event-output');
     const container = document.getElementById('graph');
 
     const n = 300;
@@ -82,27 +88,31 @@
 
     // Render and recenter the view
     orb.view.render(() => {
-      orb.view.recenter();
+      orb.view.recenter(() => {
+        output.innerHTML = '< Click on any of the nodes or edges >';
+      });
     });
 
-    orb.events.on('simulation-step', (event) => {
+    orb.events.on(Orb.OrbEventType.SIMULATION_STEP, (event) => {
       const progressBar = document.getElementById('progressBar');
       progressBar.style.width = `${event.progress * 100}%`;
       if (event.progress === 1) {
         progressBar.style.width = 0;
       }
-    })
+    });
 
-    orb.events.on('node-click', (event) => {
+    orb.events.on(Orb.OrbEventType.NODE_CLICK, (event) => {
       console.log('Event: node-click', event);
-    })
-    orb.events.on('node-hover', (event) => {
+      output.innerHTML = `<b>${event.node.data.label}</b> clicked!`;
+    });
+    orb.events.on(Orb.OrbEventType.NODE_HOVER, (event) => {
       console.log('Event: node-hover', event);
+      output.innerHTML = `<b>${event.node.data.label}</b> hovered!`;
     });
-    orb.events.on('edge-click', (event) => {
+    orb.events.on(Orb.OrbEventType.EDGE_CLICK, (event) => {
       console.log('Event: edge-click', event);
+      output.innerHTML = `Edge with id <b>${event.edge.data.id}</b> clicked!`;
     });
-
   </script>
 </body>
 </html>

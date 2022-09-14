@@ -12,7 +12,7 @@ export {
 } from './views';
 export { IGraph, IGraphData, INodeFilter, IEdgeFilter } from './models/graph';
 export { GraphObjectState } from './models/state';
-export { INode, INodeBase, INodePosition, INodeProperties, isNode } from './models/node';
-export { IEdge, IEdgeBase, IEdgePosition, IEdgeProperties, isEdge, EdgeType } from './models/edge';
-export { IGraphStyle, IEdgeStyle, INodeStyle, getDefaultGraphStyle } from './models/style';
+export { INode, INodeBase, INodePosition, INodeStyle, isNode, NodeShapeType } from './models/node';
+export { IEdge, IEdgeBase, IEdgePosition, IEdgeStyle, isEdge, EdgeType } from './models/edge';
+export { IGraphStyle, getDefaultGraphStyle } from './models/style';
 export { ICircle, IPosition, IRectangle, Color, IColorRGB } from './common';

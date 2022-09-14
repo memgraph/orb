@@ -3,7 +3,7 @@
 <head>
   <base href=".">
   <meta charset='UTF-8'>
-  <title>Orb | 1</title>
+  <title>Orb | Simple graph on default canvas</title>
   <script type="text/javascript" src="./orb.js"></script>
 </head>
 <style>
@@ -15,7 +15,7 @@
 <body>
   <div style="display: flex; flex-direction: column; align-items: center; height: 100%;">
     <h1>Example 1 - Basic</h1>
-    <p>Rendering a simple simulated graph on the default canvas.</p>
+    <p style="width: 70%">Renders a simple graph on the default canvas.</p>
 
     <!--
       Make sure that your graph container has a defined width and height.
@@ -32,13 +32,13 @@
       { id: 2, label: 'Node C' },
     ];
     const edges = [
-      { id: 0, start: 0, end: 0, label: 'Edge Q' },
-      { id: 1, start: 0, end: 1, label: 'Edge W' },
-      { id: 2, start: 0, end: 2, label: 'Edge E' },
-      { id: 3, start: 1, end: 2, label: 'Edge T' },
-      { id: 4, start: 2, end: 2, label: 'Edge Y' },
-      { id: 5, start: 0, end: 1, label: 'Edge V' },
-    ]
+      { id: 0, start: 0, end: 0, label: 'A -> A' },
+      { id: 1, start: 0, end: 1, label: 'A -> B' },
+      { id: 2, start: 0, end: 2, label: 'A -> C' },
+      { id: 3, start: 1, end: 2, label: 'B -> C' },
+      { id: 4, start: 2, end: 2, label: 'C -> C' },
+      { id: 5, start: 0, end: 1, label: 'A -> B' },
+    ];
 
     const orb = new Orb.Orb(container);
 
@@ -48,7 +48,6 @@
     orb.view.render(() => {
       orb.view.recenter();
     });
-
   </script>
 </body>
 </html>

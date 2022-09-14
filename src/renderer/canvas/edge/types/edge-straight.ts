@@ -29,7 +29,7 @@ export const drawStraightLine = <N extends INodeBase, E extends IEdgeBase>(
 export const getStraightArrowShape = <N extends INodeBase, E extends IEdgeBase>(
   edge: EdgeStraight<N, E>,
 ): IEdgeArrow => {
-  const scaleFactor = edge.properties.arrowSize ?? 1;
+  const scaleFactor = edge.style.arrowSize ?? 1;
   const lineWidth = edge.getWidth() ?? 1;
   const sourcePoint = edge.startNode.getCenter();
   const targetPoint = edge.endNode.getCenter();

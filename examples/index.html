@@ -21,28 +21,46 @@
 <body>
   <h1>Orb Examples</h1>
   <div>
-    <a href="./example-1.html"><h3><li>Example 1 - Basic</li></h3></a>
-    <p>Rendering a simple simulated graph on the default canvas.</p>
+    <a href="./example-simple-graph.html"><h3><li>Example 1 - Basic</li></h3></a>
+    <p>Renders a simple graph on the default canvas.</p>
   </div>
   <div>
-    <a href="./example-2.html"><h3><li>Example 2 - Basic + Style</li></h3></a>
-    <p>Rendering a simple simulated graph on default canvas with custom style.</p>
+    <a href="./example-custom-styled-graph.html"><h3><li>Example 2 - Basic + Custom default style</li></h3></a>
+    <p>
+      Renders a simple graph with a custom default style (color, size, border,
+      text) for nodes and edges.
+    </p>
   </div>
   <div>
-    <a href="./example-3.html"><h3><li>Example 3 - Fixed</li></h3></a>
-    <p>Rendering a simple graph with fixed coordinates on the default canvas.</p>
+    <a href="./example-fixed-coordinates-graph.html"><h3><li>Example 3 - Fixed coordinates</li></h3></a>
+    <p>
+      Renders a simple graph with fixed node coordinates where Orb won't
+      simulate and position the nodes.
+    </p>
   </div>
   <div>
-    <a href="./example-4.html"><h3><li>Example 4 - Events</li></h3></a>
-    <p>Rendering a simple graph on default canvas with events and callbacks.</p>
+    <a href="./example-graph-events.html"><h3><li>Example 4 - Events</li></h3></a>
+    <p>
+      Renders a simple graph with few event listeners: Each graph simulation step
+      is shown with progress indicator. On node click, node hover, and edge click,
+      an event will be logged in the console with a message showing clicked/hovered
+      node or edge.
+    </p>
   </div>
   <div>
-    <a href="./example-5.html"><h3><li>Example 5 - Dynamics</li></h3></a>
-    <p>Rendering a simple graph with graph dynamics - node expantion, deletion, etc.</p>
+    <a href="./example-graph-data-changes.html"><h3><li>Example 5 - Dynamics</li></h3></a>
+    <p>
+      Renders a simple graph to show graph dynamics: adding, updating, and removing
+      nodes and edges. In intervals of 3 seconds, 1 new node and 1 new edge will be
+      added to the graph. Node will be removed from the graph on node click event.
+    </p>
   </div>
   <div>
-    <a href="./example-6.html"><h3><li>Example 6 - Map</li></h3></a>
-    <p>Rendering a simple graph on the map canvas.</p>
+    <a href="./example-graph-on-map.html"><h3><li>Example 6 - Map</li></h3></a>
+    <p>
+      Renders a graph with map background. Each node needs to provide latitude and
+      longitude values.
+    </p>
   </div>
 </body>
 </html>

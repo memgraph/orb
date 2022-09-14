@@ -14,20 +14,21 @@ Here is a simple example of `MapView` usage:
 ![](./assets/view-map-example.png)
 
 ```typescript
+import { MapView } from '@memgraph/orb'; 
 const container = document.getElementById('<your-div-id>');
 
-const nodes = [
+const nodes: MyNode[] = [
   { id: 'miami', label: 'Miami', lat: 25.789106, lng: -80.226529 },
   { id: 'sanjuan', label: 'San Juan', lat: 18.4663188, lng: -66.1057427 },
   { id: 'hamilton', label: 'Hamilton', lat: 32.294887, lng: -64.781380 },
 ];
-const edges = [
+const edges: MyEdge[] = [
   { id: 0, start: 'miami', end: 'sanjuan' },
   { id: 1, start: 'sanjuan', end: 'hamilton' },
   { id: 2, start: 'hamilton', end: 'miami' },
 ]
 
-const orb = new Orb(container);
+const orb = new Orb<MyNode, MyEdge>(container);
 orb.setView((context) => new MapView(context, {
   getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng, }),
 }));
@@ -70,6 +71,7 @@ initialized on the new `MapView`:
 
 ```typescript
 import * as L from 'leaflet';
+import { MapView } from '@memgraph/orb';
 
 const mapAttribution =
   '<a href="https://leafletjs.com/" target="_blank" >Leaflet</a> | ' +
@@ -94,6 +96,59 @@ orb.setView((context) => new MapView(context, {
   },
 }));
 ```
+
+You can set settings on view initialization or afterward with `orb.view.setSettings`. Below
+you can see the list of all settings' parameters:
+
+```typescript
+import * as L from 'leaflet';
+
+interface IMapViewSettings {
+  // For map node positions
+  getGeoPosition(node: INode): { lat: number; lng: number; } | undefined;
+  // For canvas rendering and events
+  render: {
+    minZoom: number;
+    maxZoom: number;
+    fitZoomMargin: number;
+    labelsIsEnabled: boolean;
+    labelsOnEventIsEnabled: boolean;
+    shadowIsEnabled: boolean;
+    shadowOnEventIsEnabled: boolean;
+    contextAlphaOnEvent: number;
+    contextAlphaOnEventIsEnabled: boolean;
+  };
+  // Other map view parameters
+  map: {
+    zoomLevel: number;
+    tile: L.TileLayer;
+  };
+}
+```
+
+The default settings that `MapView` uses is:
+
+```typescript
+const defaultSettings = {
+  render: {
+    minZoom: 0.25,
+    maxZoom: 8,
+    fitZoomMargin: 0.2,
+    labelsIsEnabled: true,
+    labelsOnEventIsEnabled: true,
+    shadowIsEnabled: true,
+    shadowOnEventIsEnabled: true,
+    contextAlphaOnEvent: 0.3,
+    contextAlphaOnEventIsEnabled: true,
+  },
+  map: {
+    zoomLevel: 2, // Default map zoom level
+    tile: new L.TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png') // OpenStreetMaps
+  }
+}
+```
+
+You can read more about each property down below and on [Styles guide](./styles.md).
 
 ### Property `getGeoPosition`
 
@@ -157,6 +212,8 @@ If you need a reference to the internal map reference from `leaflet` library, ju
 following example:
 
 ```typescript
+import { MapView } from '@memgraph/orb';
+
 // It will only work on MapView
-const leaflet = orb.view.leaflet;
+const leaflet = (orb.view as MapView).leaflet;
 ```

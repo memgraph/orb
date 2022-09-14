@@ -48,10 +48,10 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
   private _onLoadedImages?: () => void;
 
   constructor(data?: Partial<IGraphData<N, E>>, settings?: Partial<IGraphSettings>) {
+    this._onLoadedImages = settings?.onLoadedImages;
     const nodes = data?.nodes ?? [];
     const edges = data?.edges ?? [];
     this.setup({ nodes, edges });
-    this._onLoadedImages = settings?.onLoadedImages;
   }
 
   /**
@@ -328,7 +328,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
 
   private _insertNodes(nodes: N[]) {
     for (let i = 0; i < nodes.length; i++) {
-      const node = NodeFactory.create<N, E>({ data: nodes[i] });
+      const node = NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._onLoadedImages?.() });
       this._nodeById[node.id] = node;
     }
   }
@@ -357,7 +357,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
         continue;
       }
 
-      const node = NodeFactory.create<N, E>({ data: nodes[i] });
+      const node = NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._onLoadedImages?.() });
       this._nodeById[node.id] = node;
     }
   }
@@ -405,7 +405,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
           endNode,
         });
         edge.state = existingEdge.state;
-        edge.properties = existingEdge.properties;
+        edge.style = existingEdge.style;
         this._edgeById[existingEdge.id] = edge;
       }
     }
@@ -459,19 +459,19 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     if (this._defaultStyle?.getNodeStyle) {
       const newNodes = this.getNodes();
       for (let i = 0; i < newNodes.length; i++) {
-        if (newNodes[i].hasProperties()) {
+        if (newNodes[i].hasStyle()) {
           continue;
         }
 
-        const properties = this._defaultStyle.getNodeStyle(newNodes[i]);
-        if (properties) {
-          newNodes[i].properties = properties;
+        const style = this._defaultStyle.getNodeStyle(newNodes[i]);
+        if (style) {
+          newNodes[i].style = style;
           // TODO Add these checks to node property setup
-          if (properties.imageUrl) {
-            styleImageUrls.add(properties.imageUrl);
+          if (style.imageUrl) {
+            styleImageUrls.add(style.imageUrl);
           }
-          if (properties.imageUrlSelected) {
-            styleImageUrls.add(properties.imageUrlSelected);
+          if (style.imageUrlSelected) {
+            styleImageUrls.add(style.imageUrlSelected);
           }
         }
       }
@@ -480,13 +480,13 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     if (this._defaultStyle?.getEdgeStyle) {
       const newEdges = this.getEdges();
       for (let i = 0; i < newEdges.length; i++) {
-        if (newEdges[i].hasProperties()) {
+        if (newEdges[i].hasStyle()) {
           continue;
         }
 
-        const properties = this._defaultStyle.getEdgeStyle(newEdges[i]);
-        if (properties) {
-          newEdges[i].properties = properties;
+        const style = this._defaultStyle.getEdgeStyle(newEdges[i]);
+        if (style) {
+          newEdges[i].style = style;
         }
       }
     }
