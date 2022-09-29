@@ -316,7 +316,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       const response = this._strategy.onMouseMove(this._graph, simulationPoint);
       const subject = response.changedSubject;
 
-      if (subject) {
+      if (subject && response.isStateChanged) {
         if (isNode(subject)) {
           this._events.emit(OrbEventType.NODE_HOVER, {
             node: subject,
@@ -342,7 +342,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
         globalPoint: mousePoint,
       });
 
-      if (response.isStateChanged || response.changedSubject) {
+      if (response.isStateChanged) {
         // TODO: Add throttle render
         this._renderer.render(this._graph);
       }
