@@ -1,3 +1,9 @@
+## 0.1.1
+
+### Fix
+
+* Fix undefined subject on mouse hover event  (#20)
+
 ## 0.1.0 (2022-09-14)
 
 ### Fix
