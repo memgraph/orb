@@ -16,52 +16,6 @@ export interface IEventStrategy<N extends INodeBase, E extends IEdgeBase> {
 
 export const getDefaultEventStrategy = <N extends INodeBase, E extends IEdgeBase>(): IEventStrategy<N, E> => {
   return new DefaultEventStrategy<N, E>();
-  // return {
-  //   onMouseClick: (graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> => {
-  //     const node = graph.getNearestNode(point);
-  //     if (node) {
-  //       selectNode(graph, node);
-  //       return {
-  //         isStateChanged: true,
-  //         changedSubject: node,
-  //       };
-  //     }
-  //
-  //     const edge = graph.getNearestEdge(point);
-  //     if (edge) {
-  //       selectEdge(graph, edge);
-  //       return {
-  //         isStateChanged: true,
-  //         changedSubject: edge,
-  //       };
-  //     }
-  //
-  //     const { changedCount } = unselectAll(graph);
-  //     return {
-  //       isStateChanged: changedCount > 0,
-  //     };
-  //   },
-  //   onMouseMove: (graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> => {
-  //     // From map view
-  //     const node = graph.getNearestNode(point);
-  //     if (node && !node.isSelected()) {
-  //       hoverNode(graph, node);
-  //       return {
-  //         isStateChanged: true,
-  //         changedSubject: node,
-  //       };
-  //     }
-  //
-  //     if (!node) {
-  //       const { changedCount } = unhoverAll(graph);
-  //       return {
-  //         isStateChanged: changedCount > 0,
-  //       };
-  //     }
-  //
-  //     return { isStateChanged: false };
-  //   },
-  // };
 };
 
 class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> implements IEventStrategy<N, E> {
@@ -97,6 +51,7 @@ class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> implements 
     if (node && !node.isSelected()) {
       if (node === this.lastHoveredNode) {
         return {
+          changedSubject: node,
           isStateChanged: false,
         };
       }
