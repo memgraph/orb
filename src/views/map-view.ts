@@ -221,7 +221,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         const response = this._strategy.onMouseMove(this._graph, point);
         const subject = response.changedSubject;
 
-        if (subject) {
+        if (subject && response.isStateChanged) {
           if (isNode(subject)) {
             this._events.emit(OrbEventType.NODE_HOVER, {
               node: subject,
@@ -247,7 +247,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
           globalPoint: containerPoint,
         });
 
-        if (response.isStateChanged || response.changedSubject) {
+        if (response.isStateChanged) {
           this._renderer.render(this._graph);
         }
       }
