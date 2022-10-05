@@ -1,11 +1,30 @@
 import { IPosition } from '../common';
-import { ID3SimulatorEngineSettings, ID3SimulatorEngineSettingsUpdate } from './engine/d3-simulator-engine';
 import { SimulationLinkDatum, SimulationNodeDatum } from 'd3-force';
+import { IEmitter } from '../../dist/utils/emitter.utils';
+import { ID3SimulatorEngineSettings, ID3SimulatorEngineSettingsUpdate } from './engine/d3-simulator-engine';
 
 export type ISimulationNode = SimulationNodeDatum & { id: number; mass?: number };
 export type ISimulationEdge = SimulationLinkDatum<ISimulationNode> & { id: number };
 
-export interface ISimulator {
+export enum SimulatorEventType {
+  STABILIZATION_STARTED = 'stabilizationStarted',
+  STABILIZATION_PROGRESS = 'stabilizationProgress',
+  STABILIZATION_ENDED = 'stabilizationEnded',
+  NODE_DRAGGED = 'nodeDragged',
+  NODE_DRAG_ENDED = 'nodeDragEnded',
+  SETTINGS_UPDATED = 'settingsUpdated',
+}
+
+export type SimulatorEvents = {
+  [SimulatorEventType.STABILIZATION_STARTED]: undefined;
+  [SimulatorEventType.STABILIZATION_PROGRESS]: ISimulatorEventGraph & ISimulatorEventProgress;
+  [SimulatorEventType.STABILIZATION_ENDED]: ISimulatorEventGraph;
+  [SimulatorEventType.NODE_DRAGGED]: ISimulatorEventGraph;
+  [SimulatorEventType.NODE_DRAG_ENDED]: ISimulatorEventGraph;
+  [SimulatorEventType.SETTINGS_UPDATED]: ISimulatorEventSettings;
+};
+
+export interface ISimulator extends IEmitter<SimulatorEvents> {
   // Sets nodes and edges without running simulation
   setData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
   addData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;

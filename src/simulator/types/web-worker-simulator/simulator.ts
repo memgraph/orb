@@ -1,13 +1,15 @@
 import { IPosition } from '../../../common';
-import { ISimulator, ISimulatorEvents, ISimulationNode, ISimulationEdge } from '../../shared';
+import { ISimulator, ISimulationNode, ISimulationEdge, SimulatorEventType, SimulatorEvents } from '../../shared';
 import { ID3SimulatorEngineSettingsUpdate } from '../../engine/d3-simulator-engine';
 import { IWorkerInputPayload, WorkerInputType } from './message/worker-input';
 import { IWorkerOutputPayload, WorkerOutputType } from './message/worker-output';
+import { Emitter } from '../../../utils/emitter.utils';
 
-export class WebWorkerSimulator implements ISimulator {
+export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISimulator {
   protected readonly worker: Worker;
 
-  constructor(events: Partial<ISimulatorEvents>) {
+  constructor() {
+    super();
     this.worker = new Worker(
       new URL(
         /* webpackChunkName: 'process.worker' */
@@ -19,27 +21,27 @@ export class WebWorkerSimulator implements ISimulator {
     this.worker.onmessage = ({ data }: MessageEvent<IWorkerOutputPayload>) => {
       switch (data.type) {
         case WorkerOutputType.StabilizationStarted: {
-          events.onStabilizationStart?.();
+          this.emit(SimulatorEventType.STABILIZATION_STARTED, undefined);
           break;
         }
         case WorkerOutputType.StabilizationProgress: {
-          events.onStabilizationProgress?.(data.data);
+          this.emit(SimulatorEventType.STABILIZATION_PROGRESS, data.data);
           break;
         }
         case WorkerOutputType.StabilizationEnded: {
-          events.onStabilizationEnd?.(data.data);
+          this.emit(SimulatorEventType.STABILIZATION_ENDED, data.data);
           break;
         }
         case WorkerOutputType.NodeDragged: {
-          events.onNodeDrag?.(data.data);
+          this.emit(SimulatorEventType.NODE_DRAGGED, data.data);
           break;
         }
         case WorkerOutputType.NodeDragEnded: {
-          events.onNodeDragEnd?.(data.data);
+          this.emit(SimulatorEventType.NODE_DRAG_ENDED, data.data);
           break;
         }
         case WorkerOutputType.SettingsUpdated: {
-          events.onSettingsUpdate?.(data.data);
+          this.emit(SimulatorEventType.SETTINGS_UPDATED, data.data);
           break;
         }
       }
@@ -108,6 +110,7 @@ export class WebWorkerSimulator implements ISimulator {
 
   terminate() {
     this.worker.terminate();
+    this.removeAllListeners();
   }
 
   protected emitToWorker(message: IWorkerInputPayload) {

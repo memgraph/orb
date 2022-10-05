@@ -19,6 +19,7 @@ import { OrbEmitter, OrbEventType } from '../events';
 import { IRenderer, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
 import { setupContainer } from '../utils/html.utils';
+import { SimulatorEventType } from '../simulator/shared';
 
 export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
@@ -114,34 +115,33 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       .on('click', this.mouseClicked)
       .on('mousemove', this.mouseMoved);
 
-    this._simulator = SimulatorFactory.getSimulator({
-      onStabilizationStart: () => {
-        this._isSimulating = true;
-        this._simulationStartedAt = Date.now();
-        this._events.emit(OrbEventType.SIMULATION_START, undefined);
-      },
-      onStabilizationProgress: (data) => {
-        this._graph.setNodePositions(data.nodes);
-        this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
-        if (this._settings.isSimulationAnimated) {
-          this._renderer.render(this._graph);
-        }
-      },
-      onStabilizationEnd: (data) => {
-        this._graph.setNodePositions(data.nodes);
+    this._simulator = SimulatorFactory.getSimulator();
+    this._simulator.on(SimulatorEventType.STABILIZATION_STARTED, () => {
+      this._isSimulating = true;
+      this._simulationStartedAt = Date.now();
+      this._events.emit(OrbEventType.SIMULATION_START, undefined);
+    });
+    this._simulator.on(SimulatorEventType.STABILIZATION_PROGRESS, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
+      if (this._settings.isSimulationAnimated) {
         this._renderer.render(this._graph);
-        this._isSimulating = false;
-        this._onSimulationEnd?.();
-        this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
-      },
-      onNodeDrag: (data) => {
-        // TODO: Add throttle render (for larger graphs)
-        this._graph.setNodePositions(data.nodes);
-        this._renderer.render(this._graph);
-      },
-      onSettingsUpdate: (data) => {
-        this._settings.simulation = data.settings;
-      },
+      }
+    });
+    this._simulator.on(SimulatorEventType.STABILIZATION_ENDED, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this._renderer.render(this._graph);
+      this._isSimulating = false;
+      this._onSimulationEnd?.();
+      this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
+    });
+    this._simulator.on(SimulatorEventType.NODE_DRAGGED, (data) => {
+      // TODO: Add throttle render (for larger graphs)
+      this._graph.setNodePositions(data.nodes);
+      this._renderer.render(this._graph);
+    });
+    this._simulator.on(SimulatorEventType.SETTINGS_UPDATED, (data) => {
+      this._settings.simulation = data.settings;
     });
 
     this._simulator.setSettings(this._settings.simulation);
@@ -215,6 +215,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
 
   destroy() {
     this._renderer.removeAllListeners();
+    this._simulator.terminate();
     this._canvas.outerHTML = '';
   }
 

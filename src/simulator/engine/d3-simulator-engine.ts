@@ -129,24 +129,24 @@ export const DEFAULT_SETTINGS: ID3SimulatorEngineSettings = {
   },
 };
 
-interface ID3SimulatorProgress {
+export interface ID3SimulatorProgress {
   progress: number;
 }
 
-interface ID3SimulatorGraph {
+export interface ID3SimulatorGraph {
   nodes: ISimulationNode[];
   edges: ISimulationEdge[];
 }
 
-interface ID3SimulatorNodeId {
+export interface ID3SimulatorNodeId {
   id: number;
 }
 
-interface ID3SimulatorSettings {
+export interface ID3SimulatorSettings {
   settings: ID3SimulatorEngineSettings;
 }
 
-export class D3SimulatorEngine extends Emitter<{
+export type D3SimulatorEvents = {
   [D3SimulatorEngineEventType.TICK]: ID3SimulatorGraph;
   [D3SimulatorEngineEventType.END]: ID3SimulatorGraph;
   [D3SimulatorEngineEventType.STABILIZATION_STARTED]: undefined;
@@ -154,7 +154,9 @@ export class D3SimulatorEngine extends Emitter<{
   [D3SimulatorEngineEventType.STABILIZATION_ENDED]: ID3SimulatorGraph;
   [D3SimulatorEngineEventType.NODE_DRAGGED]: ID3SimulatorGraph;
   [D3SimulatorEngineEventType.SETTINGS_UPDATED]: ID3SimulatorSettings;
-}> {
+};
+
+export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   protected readonly linkForce: ForceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>;
   protected readonly simulation: Simulation<ISimulationNode, undefined>;
   protected readonly settings: ID3SimulatorEngineSettings;
