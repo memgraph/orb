@@ -215,11 +215,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
 
   destroy() {
     this._renderer.removeAllListeners();
-<<<<<<< Updated upstream
     this._simulator.terminate();
-=======
-    this._simulator.removeAllListeners();
->>>>>>> Stashed changes
     this._canvas.outerHTML = '';
   }
 
