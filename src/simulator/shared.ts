@@ -1,7 +1,7 @@
 import { IPosition } from '../common';
 import { SimulationLinkDatum, SimulationNodeDatum } from 'd3-force';
-import { IEmitter } from '../../dist/utils/emitter.utils';
 import { ID3SimulatorEngineSettings, ID3SimulatorEngineSettingsUpdate } from './engine/d3-simulator-engine';
+import { IEmitter } from '../utils/emitter.utils';
 
 export type ISimulationNode = SimulationNodeDatum & { id: number; mass?: number };
 export type ISimulationEdge = SimulationLinkDatum<ISimulationNode> & { id: number };
