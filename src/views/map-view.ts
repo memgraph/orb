@@ -179,7 +179,6 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
   private _initCanvas() {
     const canvas = document.createElement('canvas');
-    canvas.id = 'orbCanvas';
     canvas.style.position = 'absolute';
     canvas.style.width = '100%';
     canvas.style.zIndex = '2';

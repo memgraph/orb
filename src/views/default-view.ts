@@ -390,7 +390,6 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
 
   private _initCanvas(): HTMLCanvasElement {
     const canvas = document.createElement('canvas');
-    canvas.id = 'orbCanvas';
     canvas.style.position = 'absolute';
     canvas.style.top = '0';
     canvas.style.left = '0';
