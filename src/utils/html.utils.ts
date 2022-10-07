@@ -1,13 +1,17 @@
-export const setupContainer = (container: HTMLElement) => {
+export const setupContainer = (container: HTMLElement, areCollapsedDimensionsAllowed = false) => {
   container.style.position = 'relative';
   const style = getComputedStyle(container);
   if (!style.display) {
     container.style.display = 'block';
     console.warn("[Orb] Graph container doesn't have defined 'display' property. Setting 'display' to 'block'...");
   }
-  if (!style.width || style.width === '0px') {
+  if (!areCollapsedDimensionsAllowed && isCollapsedDimension(style.width)) {
     container.style.width = '100%';
-    if (getComputedStyle(container).width === '0px') {
+
+    // Check if the dimension is still collapsed.
+    // This means that a percentage value has no effect
+    // since the container parent also doesn't have defined height/position.
+    if (isCollapsedDimension(getComputedStyle(container).width)) {
       container.style.width = '400px';
       console.warn(
         "[Orb] The graph container element and its parent don't have defined width properties.",
@@ -19,9 +23,9 @@ export const setupContainer = (container: HTMLElement) => {
       console.warn("[Orb] The graph container element doesn't have defined width. Setting width to 100%...");
     }
   }
-  if (!style.height || style.height === '0px') {
+  if (!areCollapsedDimensionsAllowed && isCollapsedDimension(style.height)) {
     container.style.height = '100%';
-    if (getComputedStyle(container).height === '0px') {
+    if (isCollapsedDimension(getComputedStyle(container).height)) {
       container.style.height = '400px';
       console.warn(
         "[Orb] The graph container element and its parent don't have defined height properties.",
@@ -33,4 +37,14 @@ export const setupContainer = (container: HTMLElement) => {
       console.warn("[Orb] Graph container doesn't have defined height. Setting height to 100%...");
     }
   }
+};
+
+export const collapsedDimensionRegex = /^\s*0+\s*(?:px|rem|em|vh|vw)?\s*$/;
+
+export const isCollapsedDimension = (dimension: string | null | undefined) => {
+  if (dimension === null || dimension === undefined || dimension === '') {
+    return true;
+  }
+
+  return collapsedDimensionRegex.test(dimension);
 };

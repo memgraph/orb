@@ -46,6 +46,7 @@ export interface IMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
   map: IMapSettings;
   render: Partial<IRendererSettings>;
+  areCollapsedContainerDimensionsAllowed: boolean;
 }
 
 export interface IMapViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
@@ -77,6 +78,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._strategy = context.strategy;
 
     this._settings = {
+      areCollapsedContainerDimensionsAllowed: false,
       ...settings,
       map: {
         zoomLevel: settings.map?.zoomLevel ?? DEFAULT_ZOOM_LEVEL,
@@ -179,7 +181,6 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
   private _initCanvas() {
     const canvas = document.createElement('canvas');
-    canvas.id = 'orbCanvas';
     canvas.style.position = 'absolute';
     canvas.style.width = '100%';
     canvas.style.zIndex = '2';
