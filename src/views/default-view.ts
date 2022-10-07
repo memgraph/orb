@@ -28,6 +28,7 @@ export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> 
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
   isSimulationAnimated: boolean;
+  areCollapsedContainerDimensionsAllowed: boolean;
 }
 
 export type IDefaultViewSettingsInit<N extends INodeBase, E extends IEdgeBase> = Omit<
@@ -64,6 +65,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       isOutOfBoundsDragEnabled: false,
       areCoordinatesRounded: true,
       isSimulationAnimated: true,
+      areCollapsedContainerDimensionsAllowed: false,
       ...settings,
       simulation: {
         isPhysicsEnabled: false,
@@ -74,7 +76,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       },
     };
 
-    setupContainer(this._container);
+    setupContainer(this._container, this._settings.areCollapsedContainerDimensionsAllowed);
     this._canvas = this._initCanvas();
 
     try {
