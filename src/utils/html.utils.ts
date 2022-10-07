@@ -39,7 +39,7 @@ export const setupContainer = (container: HTMLElement, areCollapsedDimensionsAll
   }
 };
 
-export const collapsedDimensionRegex = /^\s*0+\s*(?:px|rem|em|vh|vw)?\s*$/;
+export const collapsedDimensionRegex = /^\s*0+\s*(?:px|rem|em|vh|vw)?\s*$/i;
 
 export const isCollapsedDimension = (dimension: string | null | undefined) => {
   if (dimension === null || dimension === undefined || dimension === '') {
