@@ -208,11 +208,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this.initSimulation(settings);
     this.emit(D3SimulatorEngineEventType.SETTINGS_UPDATED, { settings: this.settings });
 
-    if (settings.isPhysicsEnabled) {
-      this.activateSimulation();
-    } else {
-      this.fixNodes();
-    }
+    this.runStabilization();
   }
 
   startDragNode() {
@@ -450,6 +446,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     if (this._isStabilizing) {
       return;
     }
+    this.releaseNodes();
 
     this.emit(D3SimulatorEngineEventType.STABILIZATION_STARTED, undefined);
 
@@ -473,6 +470,10 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
         });
       }
       this.simulation.tick();
+    }
+
+    if (!this.settings.isPhysicsEnabled) {
+      this.fixNodes();
     }
 
     this._isStabilizing = false;
