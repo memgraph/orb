@@ -68,7 +68,7 @@ export interface ISimulatorEvents {
   onNodeDrag: (data: ISimulatorEventGraph) => void;
   onNodeDragEnd: (data: ISimulatorEventGraph) => void;
   onSimulationStart: () => void;
-  onSIMULATION_PROGRESS: (data: ISimulatorEventGraph & ISimulatorEventProgress) => void;
+  onSimulationProgress: (data: ISimulatorEventGraph & ISimulatorEventProgress) => void;
   onSimulationEnd: (data: ISimulatorEventGraph) => void;
   onSettingsUpdate: (data: ISimulatorEventSettings) => void;
 }
