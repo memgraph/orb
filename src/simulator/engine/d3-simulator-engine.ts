@@ -207,8 +207,11 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
     this.initSimulation(settings);
     this.emit(D3SimulatorEngineEventType.SETTINGS_UPDATE, { settings: this.settings });
+<<<<<<< HEAD
 
     this.runSimulation();
+=======
+>>>>>>> release/0.1.2
   }
 
   startDragNode() {
@@ -256,6 +259,11 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   // This does not count as "stabilization" and won't emit any progress.
   activateSimulation() {
     if (this.settings.isPhysicsEnabled) {
+<<<<<<< HEAD
+=======
+      // Re-heat simulation.
+      // This does not count as "simulation" and won't emit any progress.
+>>>>>>> release/0.1.2
       this.simulation.alphaTarget(this.settings.alpha.alphaTarget).restart();
       this.releaseNodes();
     }
