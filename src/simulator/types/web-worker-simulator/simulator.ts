@@ -20,28 +20,28 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
 
     this.worker.onmessage = ({ data }: MessageEvent<IWorkerOutputPayload>) => {
       switch (data.type) {
-        case WorkerOutputType.StabilizationStarted: {
-          this.emit(SimulatorEventType.STABILIZATION_STARTED, undefined);
+        case WorkerOutputType.SIMULATION_START: {
+          this.emit(SimulatorEventType.SIMULATION_START, undefined);
           break;
         }
-        case WorkerOutputType.StabilizationProgress: {
-          this.emit(SimulatorEventType.STABILIZATION_PROGRESS, data.data);
+        case WorkerOutputType.SIMULATION_PROGRESS: {
+          this.emit(SimulatorEventType.SIMULATION_PROGRESS, data.data);
           break;
         }
-        case WorkerOutputType.StabilizationEnded: {
-          this.emit(SimulatorEventType.STABILIZATION_ENDED, data.data);
+        case WorkerOutputType.SIMULATION_END: {
+          this.emit(SimulatorEventType.SIMULATION_END, data.data);
           break;
         }
-        case WorkerOutputType.NodeDragged: {
-          this.emit(SimulatorEventType.NODE_DRAGGED, data.data);
+        case WorkerOutputType.NODE_DRAG: {
+          this.emit(SimulatorEventType.NODE_DRAG, data.data);
           break;
         }
-        case WorkerOutputType.NodeDragEnded: {
-          this.emit(SimulatorEventType.NODE_DRAG_ENDED, data.data);
+        case WorkerOutputType.NODE_DRAG_END: {
+          this.emit(SimulatorEventType.NODE_DRAG_END, data.data);
           break;
         }
-        case WorkerOutputType.SettingsUpdated: {
-          this.emit(SimulatorEventType.SETTINGS_UPDATED, data.data);
+        case WorkerOutputType.SETTINGS_UPDATE: {
+          this.emit(SimulatorEventType.SETTINGS_UPDATE, data.data);
           break;
         }
       }

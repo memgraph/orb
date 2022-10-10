@@ -10,11 +10,11 @@ describe('html.utils', () => {
     expect(isCollapsedDimension('  0 ')).toBe(true);
     expect(isCollapsedDimension('0px')).toBe(true);
     expect(isCollapsedDimension('  00  px  ')).toBe(true);
-    expect(isCollapsedDimension('0rem')).toBe(true);
+    expect(isCollapsedDimension('0Rem')).toBe(true);
     expect(isCollapsedDimension('  0  rem  ')).toBe(true);
     expect(isCollapsedDimension('0em')).toBe(true);
     expect(isCollapsedDimension('  00  em  ')).toBe(true);
-    expect(isCollapsedDimension('0vh')).toBe(true);
+    expect(isCollapsedDimension('0vH')).toBe(true);
     expect(isCollapsedDimension('  0  vh  ')).toBe(true);
     expect(isCollapsedDimension('0vw')).toBe(true);
     expect(isCollapsedDimension('  00  vw  ')).toBe(true);

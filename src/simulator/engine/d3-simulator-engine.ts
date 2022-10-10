@@ -21,11 +21,11 @@ const DEFAULT_LINK_DISTANCE = 30;
 export enum D3SimulatorEngineEventType {
   TICK = 'tick',
   END = 'end',
-  STABILIZATION_STARTED = 'stabilizationStarted',
-  STABILIZATION_PROGRESS = 'stabilizationProgress',
-  STABILIZATION_ENDED = 'stabilizationEnded',
-  NODE_DRAGGED = 'nodeDragged',
-  SETTINGS_UPDATED = 'settingsUpdated',
+  SIMULATION_START = 'simulation-start',
+  SIMULATION_PROGRESS = 'simulation-progress',
+  SIMULATION_END = 'simulation-end',
+  NODE_DRAG = 'node-drag',
+  SETTINGS_UPDATE = 'settings-update',
 }
 
 export interface ID3SimulatorEngineSettingsAlpha {
@@ -149,11 +149,11 @@ export interface ID3SimulatorSettings {
 export type D3SimulatorEvents = {
   [D3SimulatorEngineEventType.TICK]: ID3SimulatorGraph;
   [D3SimulatorEngineEventType.END]: ID3SimulatorGraph;
-  [D3SimulatorEngineEventType.STABILIZATION_STARTED]: undefined;
-  [D3SimulatorEngineEventType.STABILIZATION_PROGRESS]: ID3SimulatorGraph & ID3SimulatorProgress;
-  [D3SimulatorEngineEventType.STABILIZATION_ENDED]: ID3SimulatorGraph;
-  [D3SimulatorEngineEventType.NODE_DRAGGED]: ID3SimulatorGraph;
-  [D3SimulatorEngineEventType.SETTINGS_UPDATED]: ID3SimulatorSettings;
+  [D3SimulatorEngineEventType.SIMULATION_START]: undefined;
+  [D3SimulatorEngineEventType.SIMULATION_PROGRESS]: ID3SimulatorGraph & ID3SimulatorProgress;
+  [D3SimulatorEngineEventType.SIMULATION_END]: ID3SimulatorGraph;
+  [D3SimulatorEngineEventType.NODE_DRAG]: ID3SimulatorGraph;
+  [D3SimulatorEngineEventType.SETTINGS_UPDATE]: ID3SimulatorSettings;
 };
 
 export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
@@ -206,9 +206,9 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     }
 
     this.initSimulation(settings);
-    this.emit(D3SimulatorEngineEventType.SETTINGS_UPDATED, { settings: this.settings });
+    this.emit(D3SimulatorEngineEventType.SETTINGS_UPDATE, { settings: this.settings });
 
-    this.runStabilization();
+    this.runSimulation();
   }
 
   startDragNode() {
@@ -238,7 +238,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
       // Notify the client that the node position changed.
       // This is otherwise handled by the simulation tick if physics is enabled.
-      this.emit(D3SimulatorEngineEventType.NODE_DRAGGED, { nodes: this._nodes, edges: this._edges });
+      this.emit(D3SimulatorEngineEventType.NODE_DRAG, { nodes: this._nodes, edges: this._edges });
     }
   }
 
@@ -319,8 +319,8 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this.simulation.nodes(this._nodes);
     this.linkForce.links(this._edges);
 
-    // Run stabilization "physics".
-    this.runStabilization();
+    // Run simulation "physics".
+    this.runSimulation();
 
     if (!this.settings.isPhysicsEnabled) {
       this.fixNodes();
@@ -334,8 +334,8 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this.simulation.nodes(this._nodes);
     this.linkForce.links(this._edges);
 
-    // Run stabilization "physics".
-    this.runStabilization();
+    // Run simulation "physics".
+    this.runSimulation();
   }
 
   updateSimulation(data: ID3SimulatorGraph) {
@@ -366,14 +366,14 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this.simulation.nodes(this._nodes);
     this.linkForce.links(this._edges);
 
-    // If there are no new nodes, there is no need for the stabilization
+    // If there are no new nodes, there is no need for the simulation
     if (!this.settings.isPhysicsEnabled && !newNodes.length) {
-      this.emit(D3SimulatorEngineEventType.STABILIZATION_ENDED, { nodes: this._nodes, edges: this._edges });
+      this.emit(D3SimulatorEngineEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
       return;
     }
 
-    // Run stabilization "physics".
-    this.runStabilization();
+    // Run simulation "physics".
+    this.runSimulation();
   }
 
   stopSimulation() {
@@ -441,14 +441,14 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   }
 
   // This is a blocking action - the user will not be able to interact with the graph
-  // during the stabilization process.
-  protected runStabilization() {
+  // during the simulation process.
+  protected runSimulation() {
     if (this._isStabilizing) {
       return;
     }
     this.releaseNodes();
 
-    this.emit(D3SimulatorEngineEventType.STABILIZATION_STARTED, undefined);
+    this.emit(D3SimulatorEngineEventType.SIMULATION_START, undefined);
 
     this._isStabilizing = true;
     this.simulation.alpha(this.settings.alpha.alpha).alphaTarget(this.settings.alpha.alphaTarget).stop();
@@ -463,7 +463,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
       // Emit progress maximum of 100 times (every percent)
       if (currentProgress > lastProgress) {
         lastProgress = currentProgress;
-        this.emit(D3SimulatorEngineEventType.STABILIZATION_PROGRESS, {
+        this.emit(D3SimulatorEngineEventType.SIMULATION_PROGRESS, {
           nodes: this._nodes,
           edges: this._edges,
           progress: currentProgress / 100,
@@ -477,7 +477,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     }
 
     this._isStabilizing = false;
-    this.emit(D3SimulatorEngineEventType.STABILIZATION_ENDED, { nodes: this._nodes, edges: this._edges });
+    this.emit(D3SimulatorEngineEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
   }
 
   protected setNodeIndexByNodeId() {

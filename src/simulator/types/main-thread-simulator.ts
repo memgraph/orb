@@ -13,26 +13,26 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
   constructor() {
     super();
     this.simulator = new D3SimulatorEngine();
-    this.simulator.on(D3SimulatorEngineEventType.STABILIZATION_STARTED, () => {
-      this.emit(SimulatorEventType.STABILIZATION_STARTED, undefined);
+    this.simulator.on(D3SimulatorEngineEventType.SIMULATION_START, () => {
+      this.emit(SimulatorEventType.SIMULATION_START, undefined);
     });
-    this.simulator.on(D3SimulatorEngineEventType.STABILIZATION_PROGRESS, (data) => {
-      this.emit(SimulatorEventType.STABILIZATION_PROGRESS, data);
+    this.simulator.on(D3SimulatorEngineEventType.SIMULATION_PROGRESS, (data) => {
+      this.emit(SimulatorEventType.SIMULATION_PROGRESS, data);
     });
-    this.simulator.on(D3SimulatorEngineEventType.STABILIZATION_ENDED, (data) => {
-      this.emit(SimulatorEventType.STABILIZATION_ENDED, data);
+    this.simulator.on(D3SimulatorEngineEventType.SIMULATION_END, (data) => {
+      this.emit(SimulatorEventType.SIMULATION_END, data);
     });
-    this.simulator.on(D3SimulatorEngineEventType.NODE_DRAGGED, (data) => {
-      this.emit(SimulatorEventType.NODE_DRAG_ENDED, data);
+    this.simulator.on(D3SimulatorEngineEventType.NODE_DRAG, (data) => {
+      this.emit(SimulatorEventType.NODE_DRAG_END, data);
     });
     this.simulator.on(D3SimulatorEngineEventType.TICK, (data) => {
-      this.emit(SimulatorEventType.NODE_DRAGGED, data);
+      this.emit(SimulatorEventType.NODE_DRAG, data);
     });
     this.simulator.on(D3SimulatorEngineEventType.END, (data) => {
-      this.emit(SimulatorEventType.NODE_DRAG_ENDED, data);
+      this.emit(SimulatorEventType.NODE_DRAG_END, data);
     });
-    this.simulator.on(D3SimulatorEngineEventType.SETTINGS_UPDATED, (data) => {
-      this.emit(SimulatorEventType.SETTINGS_UPDATED, data);
+    this.simulator.on(D3SimulatorEngineEventType.SETTINGS_UPDATE, (data) => {
+      this.emit(SimulatorEventType.SETTINGS_UPDATE, data);
     });
   }
 

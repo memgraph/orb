@@ -7,21 +7,21 @@ export type ISimulationNode = SimulationNodeDatum & { id: number; mass?: number 
 export type ISimulationEdge = SimulationLinkDatum<ISimulationNode> & { id: number };
 
 export enum SimulatorEventType {
-  STABILIZATION_STARTED = 'stabilizationStarted',
-  STABILIZATION_PROGRESS = 'stabilizationProgress',
-  STABILIZATION_ENDED = 'stabilizationEnded',
-  NODE_DRAGGED = 'nodeDragged',
-  NODE_DRAG_ENDED = 'nodeDragEnded',
-  SETTINGS_UPDATED = 'settingsUpdated',
+  SIMULATION_START = 'simulation-start',
+  SIMULATION_PROGRESS = 'simulation-progress',
+  SIMULATION_END = 'simulation-end',
+  NODE_DRAG = 'node-drag',
+  NODE_DRAG_END = 'node-drag-end',
+  SETTINGS_UPDATE = 'settings-update',
 }
 
 export type SimulatorEvents = {
-  [SimulatorEventType.STABILIZATION_STARTED]: undefined;
-  [SimulatorEventType.STABILIZATION_PROGRESS]: ISimulatorEventGraph & ISimulatorEventProgress;
-  [SimulatorEventType.STABILIZATION_ENDED]: ISimulatorEventGraph;
-  [SimulatorEventType.NODE_DRAGGED]: ISimulatorEventGraph;
-  [SimulatorEventType.NODE_DRAG_ENDED]: ISimulatorEventGraph;
-  [SimulatorEventType.SETTINGS_UPDATED]: ISimulatorEventSettings;
+  [SimulatorEventType.SIMULATION_START]: undefined;
+  [SimulatorEventType.SIMULATION_PROGRESS]: ISimulatorEventGraph & ISimulatorEventProgress;
+  [SimulatorEventType.SIMULATION_END]: ISimulatorEventGraph;
+  [SimulatorEventType.NODE_DRAG]: ISimulatorEventGraph;
+  [SimulatorEventType.NODE_DRAG_END]: ISimulatorEventGraph;
+  [SimulatorEventType.SETTINGS_UPDATE]: ISimulatorEventSettings;
 };
 
 export interface ISimulator extends IEmitter<SimulatorEvents> {
@@ -67,8 +67,8 @@ export interface ISimulatorEventSettings {
 export interface ISimulatorEvents {
   onNodeDrag: (data: ISimulatorEventGraph) => void;
   onNodeDragEnd: (data: ISimulatorEventGraph) => void;
-  onStabilizationStart: () => void;
-  onStabilizationProgress: (data: ISimulatorEventGraph & ISimulatorEventProgress) => void;
-  onStabilizationEnd: (data: ISimulatorEventGraph) => void;
+  onSimulationStart: () => void;
+  onSIMULATION_PROGRESS: (data: ISimulatorEventGraph & ISimulatorEventProgress) => void;
+  onSimulationEnd: (data: ISimulatorEventGraph) => void;
   onSettingsUpdate: (data: ISimulatorEventSettings) => void;
 }
