@@ -50,7 +50,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
 
   private _isSimulating = false;
   private _onSimulationEnd: (() => void) | undefined;
-  private _simulationStartAt = Date.now();
+  private _simulationStartedAtAt = Date.now();
   private _d3Zoom: ZoomBehavior<HTMLCanvasElement, any>;
   private _dragStartPosition: IPosition | undefined;
 
@@ -120,7 +120,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     this._simulator = SimulatorFactory.getSimulator();
     this._simulator.on(SimulatorEventType.SIMULATION_START, () => {
       this._isSimulating = true;
-      this._simulationStartAt = Date.now();
+      this._simulationStartedAtAt = Date.now();
       this._events.emit(OrbEventType.SIMULATION_START, undefined);
     });
     this._simulator.on(SimulatorEventType.SIMULATION_PROGRESS, (data) => {
@@ -135,7 +135,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       this._renderer.render(this._graph);
       this._isSimulating = false;
       this._onSimulationEnd?.();
-      this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartAt });
+      this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAtAt });
     });
     this._simulator.on(SimulatorEventType.NODE_DRAG, (data) => {
       // TODO: Add throttle render (for larger graphs)
