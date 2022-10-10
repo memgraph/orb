@@ -207,12 +207,14 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
     this.initSimulation(settings);
     this.emit(D3SimulatorEngineEventType.SETTINGS_UPDATE, { settings: this.settings });
+
+    this.runSimulation();
   }
 
   startDragNode() {
     this._isDragging = true;
 
-    if (!this._isStabilizing) {
+    if (!this._isStabilizing && this.settings.isPhysicsEnabled) {
       this.activateSimulation();
     }
   }
@@ -245,16 +247,17 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
     this.simulation.alphaTarget(0);
     const node = this._nodes[this._nodeIndexByNodeId[data.id]];
-    if (node) {
+    if (node && this.settings.isPhysicsEnabled) {
       releaseNode(node);
     }
   }
 
+  // Re-heat simulation.
+  // This does not count as "stabilization" and won't emit any progress.
   activateSimulation() {
     if (this.settings.isPhysicsEnabled) {
-      // Re-heat simulation.
-      // This does not count as "simulation" and won't emit any progress.
       this.simulation.alphaTarget(this.settings.alpha.alphaTarget).restart();
+      this.releaseNodes();
     }
   }
 
@@ -443,6 +446,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     if (this._isStabilizing) {
       return;
     }
+    this.releaseNodes();
 
     this.emit(D3SimulatorEngineEventType.SIMULATION_START, undefined);
 
@@ -466,6 +470,10 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
         });
       }
       this.simulation.tick();
+    }
+
+    if (!this.settings.isPhysicsEnabled) {
+      this.fixNodes();
     }
 
     this._isStabilizing = false;
