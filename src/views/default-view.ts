@@ -19,7 +19,10 @@ import { OrbEmitter, OrbEventType } from '../events';
 import { IRenderer, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
 import { setupContainer } from '../utils/html.utils';
+<<<<<<< HEAD
 import { SimulatorEventType } from '../simulator/shared';
+=======
+>>>>>>> release/0.1.2
 
 export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
@@ -217,7 +220,10 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
 
   destroy() {
     this._renderer.removeAllListeners();
+<<<<<<< HEAD
     this._simulator.terminate();
+=======
+>>>>>>> release/0.1.2
     this._canvas.outerHTML = '';
   }
 
