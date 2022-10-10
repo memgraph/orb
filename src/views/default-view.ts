@@ -50,7 +50,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
 
   private _isSimulating = false;
   private _onSimulationEnd: (() => void) | undefined;
-  private _simulationStartedAt = Date.now();
+  private _simulationStartAt = Date.now();
   private _d3Zoom: ZoomBehavior<HTMLCanvasElement, any>;
   private _dragStartPosition: IPosition | undefined;
 
@@ -118,31 +118,31 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       .on('mousemove', this.mouseMoved);
 
     this._simulator = SimulatorFactory.getSimulator();
-    this._simulator.on(SimulatorEventType.STABILIZATION_STARTED, () => {
+    this._simulator.on(SimulatorEventType.SIMULATION_START, () => {
       this._isSimulating = true;
-      this._simulationStartedAt = Date.now();
+      this._simulationStartAt = Date.now();
       this._events.emit(OrbEventType.SIMULATION_START, undefined);
     });
-    this._simulator.on(SimulatorEventType.STABILIZATION_PROGRESS, (data) => {
+    this._simulator.on(SimulatorEventType.SIMULATION_PROGRESS, (data) => {
       this._graph.setNodePositions(data.nodes);
       this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
       if (this._settings.isSimulationAnimated) {
         this._renderer.render(this._graph);
       }
     });
-    this._simulator.on(SimulatorEventType.STABILIZATION_ENDED, (data) => {
+    this._simulator.on(SimulatorEventType.SIMULATION_END, (data) => {
       this._graph.setNodePositions(data.nodes);
       this._renderer.render(this._graph);
       this._isSimulating = false;
       this._onSimulationEnd?.();
-      this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
+      this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartAt });
     });
-    this._simulator.on(SimulatorEventType.NODE_DRAGGED, (data) => {
+    this._simulator.on(SimulatorEventType.NODE_DRAG, (data) => {
       // TODO: Add throttle render (for larger graphs)
       this._graph.setNodePositions(data.nodes);
       this._renderer.render(this._graph);
     });
-    this._simulator.on(SimulatorEventType.SETTINGS_UPDATED, (data) => {
+    this._simulator.on(SimulatorEventType.SETTINGS_UPDATE, (data) => {
       this._settings.simulation = data.settings;
     });
 
