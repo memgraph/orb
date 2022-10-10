@@ -106,6 +106,7 @@ orb.setView(
           contextAlphaOnEventIsEnabled: true,
         },
       },
+      areCollapsedContainerDimensionsAllowed: false;
     })
 );
 ```
@@ -136,6 +137,7 @@ interface IMapViewSettings {
     zoomLevel: number;
     tile: L.TileLayer;
   };
+  areCollapsedContainerDimensionsAllowed: boolean;
 }
 ```
 
