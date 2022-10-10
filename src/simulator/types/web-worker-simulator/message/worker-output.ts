@@ -3,18 +3,18 @@ import { IWorkerPayload } from './worker-payload';
 import { ID3SimulatorEngineSettings } from '../../../engine/d3-simulator-engine';
 
 export enum WorkerOutputType {
-  StabilizationStarted = 'Stabilization Started',
-  StabilizationProgress = 'Stabilization Progress',
-  StabilizationEnded = 'Stabilization Ended',
-  NodeDragged = 'Node Dragged',
-  NodeDragEnded = 'Node Drag Ended',
-  SettingsUpdated = 'Settings Updated',
+  SIMULATION_START = 'simulation-start',
+  SIMULATION_PROGRESS = 'simulation-progress',
+  SIMULATION_END = 'simulation-end',
+  NODE_DRAG = 'node-drag',
+  NODE_DRAG_END = 'node-drag-end',
+  SETTINGS_UPDATE = 'settings-update',
 }
 
-type IWorkerOutputStabilizationStartedPayload = IWorkerPayload<WorkerOutputType.StabilizationStarted>;
+type IWorkerOutputSimulationStartPayload = IWorkerPayload<WorkerOutputType.SIMULATION_START>;
 
-type IWorkerOutputStabilizationProgressPayload = IWorkerPayload<
-  WorkerOutputType.StabilizationProgress,
+type IWorkerOutputSimulationProgressPayload = IWorkerPayload<
+  WorkerOutputType.SIMULATION_PROGRESS,
   {
     nodes: ISimulationNode[];
     edges: ISimulationEdge[];
@@ -22,41 +22,41 @@ type IWorkerOutputStabilizationProgressPayload = IWorkerPayload<
   }
 >;
 
-type IWorkerOutputStabilizationEndedPayload = IWorkerPayload<
-  WorkerOutputType.StabilizationEnded,
+type IWorkerOutputSimulationEndPayload = IWorkerPayload<
+  WorkerOutputType.SIMULATION_END,
   {
     nodes: ISimulationNode[];
     edges: ISimulationEdge[];
   }
 >;
 
-type IWorkerOutputNodeDraggedPayload = IWorkerPayload<
-  WorkerOutputType.NodeDragged,
+type IWorkerOutputNodeDragPayload = IWorkerPayload<
+  WorkerOutputType.NODE_DRAG,
   {
     nodes: ISimulationNode[];
     edges: ISimulationEdge[];
   }
 >;
 
-type IWorkerOutputNodeDragEndedPayload = IWorkerPayload<
-  WorkerOutputType.NodeDragEnded,
+type IWorkerOutputNodeDragEndPayload = IWorkerPayload<
+  WorkerOutputType.NODE_DRAG_END,
   {
     nodes: ISimulationNode[];
     edges: ISimulationEdge[];
   }
 >;
 
-type IWorkerOutputSettingsUpdatedPayload = IWorkerPayload<
-  WorkerOutputType.SettingsUpdated,
+type IWorkerOutputSettingsUpdatePayload = IWorkerPayload<
+  WorkerOutputType.SETTINGS_UPDATE,
   {
     settings: ID3SimulatorEngineSettings;
   }
 >;
 
 export type IWorkerOutputPayload =
-  | IWorkerOutputStabilizationStartedPayload
-  | IWorkerOutputStabilizationProgressPayload
-  | IWorkerOutputStabilizationEndedPayload
-  | IWorkerOutputNodeDraggedPayload
-  | IWorkerOutputNodeDragEndedPayload
-  | IWorkerOutputSettingsUpdatedPayload;
+  | IWorkerOutputSimulationStartPayload
+  | IWorkerOutputSimulationProgressPayload
+  | IWorkerOutputSimulationEndPayload
+  | IWorkerOutputNodeDragPayload
+  | IWorkerOutputNodeDragEndPayload
+  | IWorkerOutputSettingsUpdatePayload;

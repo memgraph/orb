@@ -1,36 +1,38 @@
-import { ISimulationEdge, ISimulationNode, ISimulator, ISimulatorEvents } from '../shared';
+import { ISimulationEdge, ISimulationNode, ISimulator, SimulatorEvents, SimulatorEventType } from '../shared';
 import { IPosition } from '../../common';
+import { Emitter } from '../../utils/emitter.utils';
 import {
   D3SimulatorEngine,
   D3SimulatorEngineEventType,
   ID3SimulatorEngineSettingsUpdate,
 } from '../engine/d3-simulator-engine';
 
-export class MainThreadSimulator implements ISimulator {
+export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISimulator {
   protected readonly simulator: D3SimulatorEngine;
 
-  constructor(events: Partial<ISimulatorEvents>) {
+  constructor() {
+    super();
     this.simulator = new D3SimulatorEngine();
+    this.simulator.on(D3SimulatorEngineEventType.SIMULATION_START, () => {
+      this.emit(SimulatorEventType.SIMULATION_START, undefined);
+    });
+    this.simulator.on(D3SimulatorEngineEventType.SIMULATION_PROGRESS, (data) => {
+      this.emit(SimulatorEventType.SIMULATION_PROGRESS, data);
+    });
+    this.simulator.on(D3SimulatorEngineEventType.SIMULATION_END, (data) => {
+      this.emit(SimulatorEventType.SIMULATION_END, data);
+    });
+    this.simulator.on(D3SimulatorEngineEventType.NODE_DRAG, (data) => {
+      this.emit(SimulatorEventType.NODE_DRAG_END, data);
+    });
     this.simulator.on(D3SimulatorEngineEventType.TICK, (data) => {
-      events.onNodeDrag?.(data);
+      this.emit(SimulatorEventType.NODE_DRAG, data);
     });
     this.simulator.on(D3SimulatorEngineEventType.END, (data) => {
-      events.onNodeDragEnd?.(data);
+      this.emit(SimulatorEventType.NODE_DRAG_END, data);
     });
-    this.simulator.on(D3SimulatorEngineEventType.STABILIZATION_STARTED, () => {
-      events.onStabilizationStart?.();
-    });
-    this.simulator.on(D3SimulatorEngineEventType.STABILIZATION_PROGRESS, (data) => {
-      events.onStabilizationProgress?.(data);
-    });
-    this.simulator.on(D3SimulatorEngineEventType.STABILIZATION_ENDED, (data) => {
-      events.onStabilizationEnd?.(data);
-    });
-    this.simulator.on(D3SimulatorEngineEventType.NODE_DRAGGED, (data) => {
-      events.onNodeDrag?.(data);
-    });
-    this.simulator.on(D3SimulatorEngineEventType.SETTINGS_UPDATED, (data) => {
-      events.onSettingsUpdate?.(data);
+    this.simulator.on(D3SimulatorEngineEventType.SETTINGS_UPDATE, (data) => {
+      this.emit(SimulatorEventType.SETTINGS_UPDATE, data);
     });
   }
 
@@ -95,6 +97,8 @@ export class MainThreadSimulator implements ISimulator {
   }
 
   terminate() {
+    this.simulator.removeAllListeners();
+    this.removeAllListeners();
     // Do nothing
   }
 }

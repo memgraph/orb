@@ -12,7 +12,7 @@ other type of `IOrbView`. This will be necessary if you want to assign fixed nod
 coordinates, which you can read about further below.
 
 ```typescript
-import { DefaultView } from '@memgraph/orb';
+import { DefaultView } from "@memgraph/orb";
 
 const orb = new Orb<MyNode, MyEdge>(container);
 
@@ -25,7 +25,7 @@ you can see the list of all settings' parameters:
 ```typescript
 interface IDefaultViewSettings {
   // For custom node positions
-  getPosition(node: INode): { x: number; y: number; } | undefined;
+  getPosition(node: INode): { x: number; y: number } | undefined;
   // For node positioning simulation (d3-force parameters)
   simulation: {
     isPhysicsEnabled: false;
@@ -80,10 +80,11 @@ interface IDefaultViewSettings {
     contextAlphaOnEventIsEnabled: boolean;
   };
   // Other default view parameters
-  zoomFitTransitionMs: 200;
-  isOutOfBoundsDragEnabled: false;
-  areCoordinatesRounded: true;
-  isSimulationAnimated: true;
+  zoomFitTransitionMs: number;
+  isOutOfBoundsDragEnabled: boolean;
+  areCoordinatesRounded: boolean;
+  isSimulationAnimated: boolean;
+  areCollapsedContainerDimensionsAllowed: boolean;
 }
 ```
 
@@ -145,10 +146,11 @@ const defaultSettings = {
   isOutOfBoundsDragEnabled: false,
   areCoordinatesRounded: true,
   isSimulationAnimated: true,
+  areCollapsedContainerDimensionsAllowed: false;
 }
 ```
 
-You can read more about each property down below and on [Styles guide](./styles.md). 
+You can read more about each property down below and on [Styles guide](./styles.md).
 
 ### Property `getPosition`
 
@@ -204,7 +206,7 @@ that allows Orb to position the nodes.
 ![](./assets/view-default-fixed.png)
 
 ```typescript
-import { DefaultView } from '@memgraph/orb';
+import { DefaultView } from "@memgraph/orb";
 const container = document.getElementById("graph");
 
 const nodes: MyNode[] = [
@@ -244,7 +246,7 @@ The function has a node input (`INode`) which represents the Orb node data struc
 access your original properties through `.data` property. There you can find all properties of
 your nodes that you assigned in the `orb.data.setup()` function.
 
-Here you can use your original properties to indicate which ones represent your node coordinates 
+Here you can use your original properties to indicate which ones represent your node coordinates
 (`node.data.posX`, `node.data.posY`). All you have to do is return a `IPosition` that requires
 2 basic properties: `x` and `y` (`{ x: node.data.posX, y: node.data.posY }`).
 
@@ -269,15 +271,24 @@ Use this property to adjust the transition time when recentering the graph. Defa
 
 Disabled by default (`false`).
 
+### Property `areCoordinatesRounded`
+
+Rounds node coordinates to integer values. Slightly improves performance. Enabled by default (`true`).
+
 ### Property `isSimulationAnimated`
 
 Shows the process of simulation where the nodes are moved by the physics engine until they
 converge to a stable position. If disabled, the graph will suddenly appear in its final position.
 Enabled by default (`true`).
 
-### Property `areCoordinatesRounded`
+### Property `areCollapsedContainerDimensionsAllowed`
 
-Rounds node coordinates to integer values. Slightly improves performance. Enabled by default (`true`).
+Enables setting the dimensions of the Orb container element to zero.
+If the container element of Orb has collapsed dimensions (`width: 0;` or `height: 0;`),
+Orb will expand the container by setting the values to `100%`.
+If that doesn't work (the parent of the container also has collapsed dimensions),
+Orb will set an arbitrary fixed dimension to the container.
+Disabled by default (`false`).
 
 ## Settings
 
@@ -285,18 +296,21 @@ The above settings of the `DefaultView` can be defined on view initialization, b
 after the initialization with a view function `setSettings`:
 
 ```typescript
-import { DefaultView } from '@memgraph/orb';
+import { DefaultView } from "@memgraph/orb";
 
 const orb = new Orb<MyNode, MyEdge>(container);
 
-orb.setView((context) => new DefaultView(context, {
-  getPosition: (node) => ({ x: node.data.posY, y: node.data.posX }),
-  zoomFitTransformMs: 1000,
-  render: {
-    shadowIsEnabled: false,
-    shadowOnEventIsEnabled: false,
-  },
-}));
+orb.setView(
+  (context) =>
+    new DefaultView(context, {
+      getPosition: (node) => ({ x: node.data.posY, y: node.data.posX }),
+      zoomFitTransformMs: 1000,
+      render: {
+        shadowIsEnabled: false,
+        shadowOnEventIsEnabled: false,
+      },
+    })
+);
 ```
 
 ```typescript
