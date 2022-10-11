@@ -31,11 +31,12 @@ export interface IRendererSettingsInit extends IRendererSettings {
   type: RendererType;
 }
 
-export interface IRenderer
-  extends IEmitter<{
-    [RenderEventType.RENDER_START]: undefined;
-    [RenderEventType.RENDER_END]: { durationMs: number };
-  }> {
+export type RendererEvents = {
+  [RenderEventType.RENDER_START]: undefined;
+  [RenderEventType.RENDER_END]: { durationMs: number };
+};
+
+export interface IRenderer extends IEmitter<RendererEvents> {
   // Width and height of the canvas. Used for clearing.
   width: number;
   height: number;
@@ -79,8 +80,3 @@ export const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
 
 export const DEFAULT_RENDERER_WIDTH = 640;
 export const DEFAULT_RENDERER_HEIGHT = 480;
-
-export type RendererEvents = {
-  [RenderEventType.RENDER_START]: undefined;
-  [RenderEventType.RENDER_END]: { durationMs: number };
-};

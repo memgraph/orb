@@ -36,11 +36,19 @@
     padding: 6px;
     text-align: center;
   }
+  .physics-checkbox {
+    font-size: 0.8rem;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 100;
+  }
   .graph-container {
     width: 450px;
     height: 350px;
     border: 1px solid white;
     margin: 1rem;
+    position: relative;
   }
   .text-new {
     color: #F24747;
@@ -55,17 +63,26 @@
     <h1>Simulator Scenarios</h1>
 
     <div class="flex-row">
+      <p>Toggle physics for all scenarios:</p>
+      <input id="globalPhysicsCheckbox" type="checkbox" onclick="toggleAllCheckboxes()">
+    </div>
+
+    <div class="flex-row">
       <div class="scenario">
         <div class="scenario-title">
           <span class="text-new">NEW</span> nodes ((FREE))
         </div>
-        <div id='newNodesFree' class="graph-container"></div>
+        <div id='newNodesFree' class="graph-container">
+          <span class="physics-checkbox">physics: <input class="checkbox" type="checkbox"></span>
+        </div>
       </div>
       <div class="scenario">
         <div class="scenario-title">
           <span class="text-new">NEW</span> nodes FIXED
         </div>
-        <div id='newNodesFixed' class="graph-container"></div>
+        <div id='newNodesFixed' class="graph-container">
+          <span class="physics-checkbox">physics: <input class="checkbox" type="checkbox"></span>
+        </div>
       </div>
     </div>
 
@@ -77,8 +94,12 @@
           <span class="text-new">NEW</span> nodes ((FREE))
         </div>
         <div class="flex-row">
-          <div id='oldNodesFixedNewNodesFree1' class="graph-container"></div>
-          <div id='oldNodesFixedNewNodesFree2' class="graph-container"></div>
+          <div id='oldNodesFixedNewNodesFree1' class="graph-container">
+            <span class="physics-checkbox">physics: <input class="checkbox" type="checkbox"></span>
+          </div>
+          <div id='oldNodesFixedNewNodesFree2' class="graph-container">
+            <span class="physics-checkbox">physics: <input class="checkbox" type="checkbox"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -90,7 +111,9 @@
           <br>
           <span class="text-new">NEW</span> nodes ((FREE))
         </div>
-        <div id='oldNodesFreeNewNodesFree' class="graph-container"></div>
+        <div id='oldNodesFreeNewNodesFree' class="graph-container">
+          <span class="physics-checkbox">physics: <input class="checkbox" type="checkbox"></span>
+        </div>
       </div>
       <div class="scenario">
         <div class="scenario-title">
@@ -98,7 +121,9 @@
           <br>
           <span class="text-new">NEW</span> nodes FIXED
         </div>
-        <div id='oldNodesFixedNewNodesFixed' class="graph-container"></div>
+        <div id='oldNodesFixedNewNodesFixed' class="graph-container">
+          <span class="physics-checkbox">physics: <input class="checkbox" type="checkbox"></span>
+        </div>
       </div>
     </div>
 
@@ -110,8 +135,12 @@
           <span class="text-new">NEW</span> nodes FIXED
         </div>
         <div class="flex-row">
-          <div id='oldNodesFreeNewNodesFixed1' class="graph-container"></div>
-          <div id='oldNodesFreeNewNodesFixed2' class="graph-container"></div>
+          <div id='oldNodesFreeNewNodesFixed1' class="graph-container">
+            <span class="physics-checkbox">physics: <input class="checkbox" type="checkbox"></span>
+          </div>
+          <div id='oldNodesFreeNewNodesFixed2' class="graph-container">
+            <span class="physics-checkbox">physics: <input class="checkbox" type="checkbox"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -119,6 +148,14 @@
   </div>
 
   <script type="text/javascript">
+
+    const toggleAllCheckboxes = () => {
+      const globalPhysicsCheckbox = document.getElementById('globalPhysicsCheckbox');
+      for (let element of document.getElementsByClassName('checkbox')) {
+        element.checked = globalPhysicsCheckbox.checked;
+      }
+    }
+
     const initialSetup = (graphContainerId, nodes, edges, callback) => {
       const container = document.getElementById(graphContainerId);
 
@@ -180,6 +217,16 @@
       });
       orb.events.on('edge-click', (edge) => {
         console.log('Event: edge-click', edge);
+      });
+
+      const globalPhysicsCheckbox = document.getElementById('globalPhysicsCheckbox');
+      globalPhysicsCheckbox.addEventListener('click', () => {
+        orb.view.setSettings({ simulation: { isPhysicsEnabled: globalPhysicsCheckbox.checked } });
+      });
+
+      const containerPhysicsCheckbox = container.getElementsByClassName('checkbox')[0];
+      containerPhysicsCheckbox.addEventListener('click', () => {
+        orb.view.setSettings({ simulation: { isPhysicsEnabled: containerPhysicsCheckbox.checked } });
       });
     }
 

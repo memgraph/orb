@@ -18,6 +18,8 @@ import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
 import { IRenderer, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
+import { setupContainer } from '../utils/html.utils';
+import { SimulatorEventType } from '../simulator/shared';
 
 export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
@@ -27,6 +29,7 @@ export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> 
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
   isSimulationAnimated: boolean;
+  areCollapsedContainerDimensionsAllowed: boolean;
 }
 
 export type IDefaultViewSettingsInit<N extends INodeBase, E extends IEdgeBase> = Omit<
@@ -63,6 +66,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       isOutOfBoundsDragEnabled: false,
       areCoordinatesRounded: true,
       isSimulationAnimated: true,
+      areCollapsedContainerDimensionsAllowed: false,
       ...settings,
       simulation: {
         isPhysicsEnabled: false,
@@ -73,10 +77,8 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       },
     };
 
-    this._container.textContent = '';
-    this._canvas = document.createElement('canvas');
-    this._canvas.style.position = 'absolute';
-    this._container.appendChild(this._canvas);
+    setupContainer(this._container, this._settings.areCollapsedContainerDimensionsAllowed);
+    this._canvas = this._initCanvas();
 
     try {
       this._renderer = RendererFactory.getRenderer(this._canvas, settings?.render?.type, this._settings.render);
@@ -93,7 +95,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     this._renderer.translateOriginToCenter();
     this._settings.render = this._renderer.settings;
 
-    // Resize the canvas based on the dimensions of it's parent container <div>.
+    // Resize the canvas based on the dimensions of its parent container <div>.
     const resizeObs = new ResizeObserver(() => this._handleResize());
     resizeObs.observe(this._container);
     this._handleResize();
@@ -115,34 +117,33 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       .on('click', this.mouseClicked)
       .on('mousemove', this.mouseMoved);
 
-    this._simulator = SimulatorFactory.getSimulator({
-      onStabilizationStart: () => {
-        this._isSimulating = true;
-        this._simulationStartedAt = Date.now();
-        this._events.emit(OrbEventType.SIMULATION_START, undefined);
-      },
-      onStabilizationProgress: (data) => {
-        this._graph.setNodePositions(data.nodes);
-        this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
-        if (this._settings.isSimulationAnimated) {
-          this._renderer.render(this._graph);
-        }
-      },
-      onStabilizationEnd: (data) => {
-        this._graph.setNodePositions(data.nodes);
+    this._simulator = SimulatorFactory.getSimulator();
+    this._simulator.on(SimulatorEventType.SIMULATION_START, () => {
+      this._isSimulating = true;
+      this._simulationStartedAt = Date.now();
+      this._events.emit(OrbEventType.SIMULATION_START, undefined);
+    });
+    this._simulator.on(SimulatorEventType.SIMULATION_PROGRESS, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
+      if (this._settings.isSimulationAnimated) {
         this._renderer.render(this._graph);
-        this._isSimulating = false;
-        this._onSimulationEnd?.();
-        this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
-      },
-      onNodeDrag: (data) => {
-        // TODO: Add throttle render (for larger graphs)
-        this._graph.setNodePositions(data.nodes);
-        this._renderer.render(this._graph);
-      },
-      onSettingsUpdate: (data) => {
-        this._settings.simulation = data.settings;
-      },
+      }
+    });
+    this._simulator.on(SimulatorEventType.SIMULATION_END, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this._renderer.render(this._graph);
+      this._isSimulating = false;
+      this._onSimulationEnd?.();
+      this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
+    });
+    this._simulator.on(SimulatorEventType.NODE_DRAG, (data) => {
+      // TODO: Add throttle render (for larger graphs)
+      this._graph.setNodePositions(data.nodes);
+      this._renderer.render(this._graph);
+    });
+    this._simulator.on(SimulatorEventType.SETTINGS_UPDATE, (data) => {
+      this._settings.simulation = data.settings;
     });
 
     this._simulator.setSettings(this._settings.simulation);
@@ -216,7 +217,8 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
 
   destroy() {
     this._renderer.removeAllListeners();
-    this._container.textContent = '';
+    this._simulator.terminate();
+    this._canvas.outerHTML = '';
   }
 
   dragSubject = (event: D3DragEvent<any, MouseEvent, INode<N, E>>) => {
@@ -388,6 +390,16 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       }
     }
   };
+
+  private _initCanvas(): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+
+    this._container.appendChild(canvas);
+    return canvas;
+  }
 
   private _handleResize() {
     const containerSize = this._container.getBoundingClientRect();

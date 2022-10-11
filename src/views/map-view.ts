@@ -9,6 +9,7 @@ import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
 import { IRenderer, RendererType, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
+import { setupContainer } from '../utils/html.utils';
 
 export interface ILeafletMapTile {
   instance: L.TileLayer;
@@ -45,6 +46,7 @@ export interface IMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
   map: IMapSettings;
   render: Partial<IRendererSettings>;
+  areCollapsedContainerDimensionsAllowed: boolean;
 }
 
 export interface IMapViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
@@ -76,6 +78,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._strategy = context.strategy;
 
     this._settings = {
+      areCollapsedContainerDimensionsAllowed: false,
       ...settings,
       map: {
         zoomLevel: settings.map?.zoomLevel ?? DEFAULT_ZOOM_LEVEL,
@@ -87,8 +90,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       },
     };
 
-    // Check for more details here: https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent
-    this._container.textContent = '';
+    setupContainer(this._container);
     this._canvas = this._initCanvas();
     this._map = this._initMap();
 
@@ -173,7 +175,8 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._renderer.removeAllListeners();
     this._leaflet.off();
     this._leaflet.remove();
-    this._container.textContent = '';
+    this._leaflet.getContainer().outerHTML = '';
+    this._canvas.outerHTML = '';
   }
 
   private _initCanvas() {

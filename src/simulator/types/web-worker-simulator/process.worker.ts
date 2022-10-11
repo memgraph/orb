@@ -11,33 +11,33 @@ const emitToMain = (message: IWorkerOutputPayload) => {
 };
 
 simulator.on(D3SimulatorEngineEventType.TICK, (data) => {
-  emitToMain({ type: WorkerOutputType.NodeDragged, data });
+  emitToMain({ type: WorkerOutputType.NODE_DRAG, data });
 });
 
 simulator.on(D3SimulatorEngineEventType.END, (data) => {
-  emitToMain({ type: WorkerOutputType.NodeDragEnded, data });
+  emitToMain({ type: WorkerOutputType.NODE_DRAG_END, data });
 });
 
-simulator.on(D3SimulatorEngineEventType.STABILIZATION_STARTED, () => {
-  emitToMain({ type: WorkerOutputType.StabilizationStarted });
+simulator.on(D3SimulatorEngineEventType.SIMULATION_START, () => {
+  emitToMain({ type: WorkerOutputType.SIMULATION_START });
 });
 
-simulator.on(D3SimulatorEngineEventType.STABILIZATION_PROGRESS, (data) => {
-  emitToMain({ type: WorkerOutputType.StabilizationProgress, data });
+simulator.on(D3SimulatorEngineEventType.SIMULATION_PROGRESS, (data) => {
+  emitToMain({ type: WorkerOutputType.SIMULATION_PROGRESS, data });
 });
 
-simulator.on(D3SimulatorEngineEventType.STABILIZATION_ENDED, (data) => {
-  emitToMain({ type: WorkerOutputType.StabilizationEnded, data });
+simulator.on(D3SimulatorEngineEventType.SIMULATION_END, (data) => {
+  emitToMain({ type: WorkerOutputType.SIMULATION_END, data });
 });
 
-simulator.on(D3SimulatorEngineEventType.NODE_DRAGGED, (data) => {
+simulator.on(D3SimulatorEngineEventType.NODE_DRAG, (data) => {
   // Notify the client that the node position changed.
   // This is otherwise handled by the simulation tick if physics is enabled.
-  emitToMain({ type: WorkerOutputType.NodeDragged, data });
+  emitToMain({ type: WorkerOutputType.NODE_DRAG, data });
 });
 
-simulator.on(D3SimulatorEngineEventType.SETTINGS_UPDATED, (data) => {
-  emitToMain({ type: WorkerOutputType.SettingsUpdated, data });
+simulator.on(D3SimulatorEngineEventType.SETTINGS_UPDATE, (data) => {
+  emitToMain({ type: WorkerOutputType.SETTINGS_UPDATE, data });
 });
 
 addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {

@@ -58,14 +58,14 @@ export class Orb<N extends INodeBase = any, E extends IEdgeBase = any, S = any> 
   }
 
   setView(factory: IOrbViewFactory<N, E, S>) {
-    if (this._view) {
-      this._view.destroy();
-    }
-    this._view = factory(this._context);
-
     // Reset the existing graph in case of switching between different view types.
     if (this._graph.getNodeCount() > 0) {
       this._graph.clearPositions();
     }
+
+    if (this._view) {
+      this._view.destroy();
+    }
+    this._view = factory(this._context);
   }
 }
