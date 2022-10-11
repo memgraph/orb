@@ -146,6 +146,10 @@ export interface ID3SimulatorSettings {
   settings: ID3SimulatorEngineSettings;
 }
 
+interface IRunSimulationOptions {
+  isUpdatingSettings: boolean;
+}
+
 export type D3SimulatorEvents = {
   [D3SimulatorEngineEventType.TICK]: ID3SimulatorGraph;
   [D3SimulatorEngineEventType.END]: ID3SimulatorGraph;
@@ -208,7 +212,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this.initSimulation(settings);
     this.emit(D3SimulatorEngineEventType.SETTINGS_UPDATE, { settings: this.settings });
 
-    this.runSimulation();
+    this.runSimulation({ isUpdatingSettings: true });
   }
 
   startDragNode() {
@@ -312,6 +316,10 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     // Old links won't work as some discrepancies arise between the D3 index property
     // and Memgraph's `id` property which affects the source->target mapping.
     this._edges = data.edges;
+
+    // Update simulation with new data.
+    this.simulation.nodes(this._nodes);
+    this.linkForce.links(this._edges);
   }
 
   simulate() {
@@ -373,7 +381,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     }
 
     // Run simulation "physics".
-    this.runSimulation();
+    this.runSimulation({ isUpdatingSettings: true });
   }
 
   stopSimulation() {
@@ -442,11 +450,13 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
   // This is a blocking action - the user will not be able to interact with the graph
   // during the simulation process.
-  protected runSimulation() {
+  protected runSimulation(options?: IRunSimulationOptions) {
     if (this._isStabilizing) {
       return;
     }
-    this.releaseNodes();
+    if (this.settings.isPhysicsEnabled || options?.isUpdatingSettings) {
+      this.releaseNodes();
+    }
 
     this.emit(D3SimulatorEngineEventType.SIMULATION_START, undefined);
 
