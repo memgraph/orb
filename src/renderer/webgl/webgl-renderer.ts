@@ -4,18 +4,17 @@ import { IEdgeBase } from '../../models/edge';
 import { IGraph } from '../../models/graph';
 import { IPosition, IRectangle } from '../../common';
 import { Emitter } from '../../utils/emitter.utils';
-import { RendererEvents } from '../shared';
 import {
   DEFAULT_RENDERER_HEIGHT,
   DEFAULT_RENDERER_SETTINGS,
   DEFAULT_RENDERER_WIDTH,
   IRenderer,
+  RendererEvents as RE,
   IRendererSettings,
 } from '../shared';
 import { copyObject } from '../../utils/object.utils';
 
-// STUB
-export class WebGLRenderer extends Emitter<RendererEvents> implements IRenderer {
+export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emitter<RE> implements IRenderer<N, E> {
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
   private readonly _context: WebGL2RenderingContext;
 
@@ -53,7 +52,7 @@ export class WebGLRenderer extends Emitter<RendererEvents> implements IRenderer 
     };
   }
 
-  render<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>): void {
+  render(graph: IGraph<N, E>): void {
     console.log('graph:', graph);
     throw new Error('Method not implemented.');
   }
@@ -62,7 +61,7 @@ export class WebGLRenderer extends Emitter<RendererEvents> implements IRenderer 
     throw new Error('Method not implemented.');
   }
 
-  getFitZoomTransform<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>): ZoomTransform {
+  getFitZoomTransform(graph: IGraph<N, E>): ZoomTransform {
     console.log('graph:', graph);
     throw new Error('Method not implemented.');
   }

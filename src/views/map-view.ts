@@ -68,7 +68,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   private _canvas: HTMLCanvasElement;
   private _map: HTMLDivElement;
 
-  private readonly _renderer: IRenderer;
+  private readonly _renderer: IRenderer<N, E>;
   private readonly _leaflet: L.Map;
 
   constructor(context: IOrbViewContext<N, E>, settings: IMapViewSettingsInit<N, E>) {
@@ -95,7 +95,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._map = this._initMap();
 
     try {
-      this._renderer = RendererFactory.getRenderer(this._canvas, settings?.render?.type, this._settings.render);
+      this._renderer = RendererFactory.getRenderer<N, E>(this._canvas, settings?.render?.type, this._settings.render);
     } catch (error: any) {
       this._container.textContent = error.message;
       throw error;
@@ -213,7 +213,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     leaflet.on('mousemove', (event: ILeafletEvent<MouseEvent>) => {
       const point: IPosition = { x: event.layerPoint.x, y: event.layerPoint.y };
       const containerPoint: IPosition = { x: event.containerPoint.x, y: event.containerPoint.y };
-      // TODO: Add throttle
+
       if (this._strategy.onMouseMove) {
         const response = this._strategy.onMouseMove(this._graph, point);
         const subject = response.changedSubject;

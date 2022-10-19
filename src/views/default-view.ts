@@ -45,7 +45,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   private _settings: IDefaultViewSettings<N, E>;
   private _canvas: HTMLCanvasElement;
 
-  private readonly _renderer: IRenderer;
+  private readonly _renderer: IRenderer<N, E>;
   private readonly _simulator: ISimulator;
 
   private _isSimulating = false;
@@ -81,7 +81,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     this._canvas = this._initCanvas();
 
     try {
-      this._renderer = RendererFactory.getRenderer(this._canvas, settings?.render?.type, this._settings.render);
+      this._renderer = RendererFactory.getRenderer<N, E>(this._canvas, settings?.render?.type, this._settings.render);
     } catch (error: any) {
       this._container.textContent = error.message;
       throw error;
@@ -138,7 +138,6 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
     });
     this._simulator.on(SimulatorEventType.NODE_DRAG, (data) => {
-      // TODO: Add throttle render (for larger graphs)
       this._graph.setNodePositions(data.nodes);
       this._renderer.render(this._graph);
     });
@@ -245,8 +244,6 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
 
     // A drag event de-selects the node, while a click event selects it.
     if (!isEqualPosition(this._dragStartPosition, mousePoint)) {
-      // this.selectedShape_.next(null);
-      // this.selectedShapePosition_.next(null);
       this._dragStartPosition = undefined;
     }
 
@@ -342,7 +339,6 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       });
 
       if (response.isStateChanged) {
-        // TODO: Add throttle render
         this._renderer.render(this._graph);
       }
     }

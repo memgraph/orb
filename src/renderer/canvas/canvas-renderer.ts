@@ -12,7 +12,7 @@ import {
   DEFAULT_RENDERER_WIDTH,
   IRenderer,
   IRendererSettings,
-  RendererEvents,
+  RendererEvents as RE,
   RenderEventType,
 } from '../shared';
 import { throttle } from '../../utils/function.utils';
@@ -25,7 +25,7 @@ const DEBUG_GREEN = '#3CFF33';
 const DEBUG_BLUE = '#3383FF';
 const DEBUG_PINK = '#F333FF';
 
-export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer {
+export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Emitter<RE> implements IRenderer<N, E> {
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
   private readonly _context: CanvasRenderingContext2D;
 
@@ -44,7 +44,7 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
   // False if renderer never rendered on canvas, otherwise true
   private _isInitiallyRendered = false;
 
-  private _throttleRender: (graph: IGraph<any, any>) => void;
+  private _throttleRender: (graph: IGraph<N, E>) => void;
 
   constructor(context: CanvasRenderingContext2D, settings?: Partial<IRendererSettings>) {
     super();
@@ -57,7 +57,7 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
       ...settings,
     };
 
-    this._throttleRender = throttle((graph: IGraph<any, any>) => {
+    this._throttleRender = throttle((graph: IGraph<N, E>) => {
       this._render(graph);
     }, getThrottleMsFromFPS(this._settings.fps));
   }
@@ -84,11 +84,11 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
     }
   }
 
-  render<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>) {
+  render(graph: IGraph<N, E>) {
     this._throttleRender(graph);
   }
 
-  private _render<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>) {
+  private _render(graph: IGraph<N, E>) {
     if (!graph.getNodeCount()) {
       return;
     }
@@ -132,15 +132,15 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
       this._context.fillRect(0, 0, this.width, this.height);
     }
 
-    this.drawObjects<N, E>(graph.getEdges());
-    this.drawObjects<N, E>(graph.getNodes());
+    this.drawObjects(graph.getEdges());
+    this.drawObjects(graph.getNodes());
 
     this._context.restore();
     this.emit(RenderEventType.RENDER_END, { durationMs: Date.now() - renderStartedAt });
     this._isInitiallyRendered = true;
   }
 
-  private drawObjects<N extends INodeBase, E extends IEdgeBase>(objects: (INode<N, E> | IEdge<N, E>)[]) {
+  private drawObjects(objects: (INode<N, E> | IEdge<N, E>)[]) {
     if (objects.length === 0) {
       return;
     }
@@ -191,10 +191,7 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
     }
   }
 
-  private drawObject<N extends INodeBase, E extends IEdgeBase>(
-    obj: INode<N, E> | IEdge<N, E>,
-    options?: Partial<INodeDrawOptions> | Partial<IEdgeDrawOptions>,
-  ) {
+  private drawObject(obj: INode<N, E> | IEdge<N, E>, options?: Partial<INodeDrawOptions> | Partial<IEdgeDrawOptions>) {
     if (isNode(obj)) {
       drawNode(this._context, obj, options);
     } else {
@@ -210,7 +207,7 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
     this._context.save();
   }
 
-  getFitZoomTransform<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>): ZoomTransform {
+  getFitZoomTransform(graph: IGraph<N, E>): ZoomTransform {
     // Graph view is a bounding box of the graph nodes that takes into
     // account node positions (x, y) and node sizes (style: size + border width)
     const graphView = graph.getBoundingBox();

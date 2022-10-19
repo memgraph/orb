@@ -37,7 +37,7 @@ export type RendererEvents = {
   [RenderEventType.RENDER_END]: { durationMs: number };
 };
 
-export interface IRenderer extends IEmitter<RendererEvents> {
+export interface IRenderer<N extends INodeBase, E extends IEdgeBase> extends IEmitter<RendererEvents> {
   // Width and height of the canvas. Used for clearing.
   width: number;
   height: number;
@@ -52,11 +52,11 @@ export interface IRenderer extends IEmitter<RendererEvents> {
 
   setSettings(settings: Partial<IRendererSettings>): void;
 
-  render<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>): void;
+  render(graph: IGraph<N, E>): void;
 
   reset(): void;
 
-  getFitZoomTransform<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>): ZoomTransform;
+  getFitZoomTransform(graph: IGraph<N, E>): ZoomTransform;
 
   getSimulationPosition(canvasPoint: IPosition): IPosition;
 
