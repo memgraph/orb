@@ -12,6 +12,7 @@ import {
   IRenderer,
   IRendererSettings,
 } from '../shared';
+import { copyObject } from '../../utils/object.utils';
 
 // STUB
 export class WebGLRenderer extends Emitter<RendererEvents> implements IRenderer {
@@ -20,7 +21,7 @@ export class WebGLRenderer extends Emitter<RendererEvents> implements IRenderer 
 
   width: number;
   height: number;
-  settings: IRendererSettings;
+  private _settings: IRendererSettings;
   transform: ZoomTransform;
 
   constructor(context: WebGL2RenderingContext, settings?: Partial<IRendererSettings>) {
@@ -31,7 +32,7 @@ export class WebGLRenderer extends Emitter<RendererEvents> implements IRenderer 
     this.width = DEFAULT_RENDERER_WIDTH;
     this.height = DEFAULT_RENDERER_HEIGHT;
     this.transform = zoomIdentity;
-    this.settings = {
+    this._settings = {
       ...DEFAULT_RENDERER_SETTINGS,
       ...settings,
     };
@@ -40,24 +41,41 @@ export class WebGLRenderer extends Emitter<RendererEvents> implements IRenderer 
   get isInitiallyRendered(): boolean {
     throw new Error('Method not implemented.');
   }
+
+  getSettings(): IRendererSettings {
+    return copyObject(this._settings);
+  }
+
+  setSettings(settings: Partial<IRendererSettings>): void {
+    this._settings = {
+      ...this._settings,
+      ...settings,
+    };
+  }
+
   render<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>): void {
     console.log('graph:', graph);
     throw new Error('Method not implemented.');
   }
+
   reset(): void {
     throw new Error('Method not implemented.');
   }
+
   getFitZoomTransform<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>): ZoomTransform {
     console.log('graph:', graph);
     throw new Error('Method not implemented.');
   }
+
   getSimulationPosition(canvasPoint: IPosition): IPosition {
     console.log('canvasPoint:', canvasPoint);
     throw new Error('Method not implemented.');
   }
+
   getSimulationViewRectangle(): IRectangle {
     throw new Error('Method not implemented.');
   }
+
   translateOriginToCenter(): void {
     throw new Error('Method not implemented.');
   }

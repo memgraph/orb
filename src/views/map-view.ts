@@ -103,9 +103,8 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._renderer.on(RenderEventType.RENDER_END, (data) => {
       this._events.emit(OrbEventType.RENDER_END, data);
     });
-    this._settings.render = {
-      ...this._renderer.settings,
-    };
+    this._settings.render = this._renderer.getSettings();
+
     // Resize the canvas based on the dimensions of it's parent container <div>.
     const resizeObs = new ResizeObserver(() => this._handleResize());
     resizeObs.observe(this._container);
@@ -147,13 +146,8 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     }
 
     if (settings.render) {
-      this._renderer.settings = {
-        ...this._renderer.settings,
-        ...settings.render,
-      };
-      this._settings.render = {
-        ...this._renderer.settings,
-      };
+      this._renderer.setSettings(settings.render);
+      this._settings.render = this._renderer.getSettings();
     }
   }
 

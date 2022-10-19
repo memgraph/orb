@@ -93,7 +93,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       this._events.emit(OrbEventType.RENDER_END, data);
     });
     this._renderer.translateOriginToCenter();
-    this._settings.render = this._renderer.settings;
+    this._settings.render = this._renderer.getSettings();
 
     // Resize the canvas based on the dimensions of its parent container <div>.
     const resizeObs = new ResizeObserver(() => this._handleResize());
@@ -101,7 +101,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     this._handleResize();
 
     this._d3Zoom = zoom<HTMLCanvasElement, any>()
-      .scaleExtent([this._renderer.settings.minZoom, this._renderer.settings.maxZoom])
+      .scaleExtent([this._renderer.getSettings().minZoom, this._renderer.getSettings().maxZoom])
       .on('zoom', this.zoomed);
 
     select<HTMLCanvasElement, any>(this._canvas)
@@ -171,11 +171,8 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     }
 
     if (settings.render) {
-      this._renderer.settings = {
-        ...this._renderer.settings,
-        ...settings.render,
-      };
-      this._settings.render = this._renderer.settings;
+      this._renderer.setSettings(settings.render);
+      this._settings.render = this._renderer.getSettings();
     }
   }
 

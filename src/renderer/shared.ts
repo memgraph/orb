@@ -16,6 +16,7 @@ export enum RenderEventType {
 }
 
 export interface IRendererSettings {
+  fps: number;
   minZoom: number;
   maxZoom: number;
   fitZoomMargin: number;
@@ -40,13 +41,16 @@ export interface IRenderer extends IEmitter<RendererEvents> {
   // Width and height of the canvas. Used for clearing.
   width: number;
   height: number;
-  settings: IRendererSettings;
 
   // Includes translation (pan) in the x and y direction
   // as well as scaling (level of zoom).
   transform: ZoomTransform;
 
   get isInitiallyRendered(): boolean;
+
+  getSettings(): IRendererSettings;
+
+  setSettings(settings: Partial<IRendererSettings>): void;
 
   render<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>): void;
 
@@ -67,6 +71,7 @@ export interface IRenderer extends IEmitter<RendererEvents> {
 }
 
 export const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
+  fps: 60,
   minZoom: 0.25,
   maxZoom: 8,
   fitZoomMargin: 0.2,

@@ -69,6 +69,7 @@ interface IDefaultViewSettings {
   };
   // For canvas rendering and events
   render: {
+    fps: number;
     minZoom: number;
     maxZoom: number;
     fitZoomMargin: number;
@@ -132,6 +133,7 @@ const defaultSettings = {
     },
   },
   render: {
+    fps: 60,
     minZoom: 0.25,
     maxZoom: 8,
     fitZoomMargin: 0.2,

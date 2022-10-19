@@ -15,6 +15,9 @@ import {
   RendererEvents,
   RenderEventType,
 } from '../shared';
+import { throttle } from '../../utils/function.utils';
+import { getThrottleMsFromFPS } from '../../utils/math.utils';
+import { copyObject } from '../../utils/object.utils';
 
 const DEBUG = false;
 const DEBUG_RED = '#FF5733';
@@ -29,7 +32,7 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
   // Width and height of the canvas. Used for clearing
   public width: number;
   public height: number;
-  public settings: IRendererSettings;
+  private _settings: IRendererSettings;
 
   // Includes translation (pan) in the x and y direction
   // as well as scaling (level of zoom).
@@ -41,23 +44,51 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
   // False if renderer never rendered on canvas, otherwise true
   private _isInitiallyRendered = false;
 
+  private _throttleRender: (graph: IGraph<any, any>) => void;
+
   constructor(context: CanvasRenderingContext2D, settings?: Partial<IRendererSettings>) {
     super();
     this._context = context;
     this.width = DEFAULT_RENDERER_WIDTH;
     this.height = DEFAULT_RENDERER_HEIGHT;
     this.transform = zoomIdentity;
-    this.settings = {
+    this._settings = {
       ...DEFAULT_RENDERER_SETTINGS,
       ...settings,
     };
+
+    this._throttleRender = throttle((graph: IGraph<any, any>) => {
+      this._render(graph);
+    }, getThrottleMsFromFPS(this._settings.fps));
   }
 
   get isInitiallyRendered(): boolean {
     return this._isInitiallyRendered;
   }
 
+  getSettings(): IRendererSettings {
+    return copyObject(this._settings);
+  }
+
+  setSettings(settings: Partial<IRendererSettings>) {
+    const isFpsChanged = settings.fps && settings.fps !== this._settings.fps;
+    this._settings = {
+      ...this._settings,
+      ...settings,
+    };
+
+    if (isFpsChanged) {
+      this._throttleRender = throttle((graph: IGraph<any, any>) => {
+        this._render(graph);
+      }, getThrottleMsFromFPS(this._settings.fps));
+    }
+  }
+
   render<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>) {
+    this._throttleRender(graph);
+  }
+
+  private _render<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>) {
     if (!graph.getNodeCount()) {
       return;
     }
@@ -128,34 +159,34 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
     }
     const hasStateChangedShapes = selectedObjects.length || hoveredObjects.length;
 
-    if (this.settings.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
-      this._context.globalAlpha = this.settings.contextAlphaOnEvent;
+    if (this._settings.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
+      this._context.globalAlpha = this._settings.contextAlphaOnEvent;
     }
 
     for (let i = 0; i < objects.length; i++) {
       const obj = objects[i];
       if (!obj.isSelected() && !obj.isHovered()) {
         this.drawObject(obj, {
-          isLabelEnabled: this.settings.labelsIsEnabled,
-          isShadowEnabled: this.settings.shadowIsEnabled,
+          isLabelEnabled: this._settings.labelsIsEnabled,
+          isShadowEnabled: this._settings.shadowIsEnabled,
         });
       }
     }
 
-    if (this.settings.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
+    if (this._settings.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
       this._context.globalAlpha = 1;
     }
 
     for (let i = 0; i < selectedObjects.length; i++) {
       this.drawObject(selectedObjects[i], {
-        isLabelEnabled: this.settings.labelsOnEventIsEnabled,
-        isShadowEnabled: this.settings.shadowOnEventIsEnabled,
+        isLabelEnabled: this._settings.labelsOnEventIsEnabled,
+        isShadowEnabled: this._settings.shadowOnEventIsEnabled,
       });
     }
     for (let i = 0; i < hoveredObjects.length; i++) {
       this.drawObject(hoveredObjects[i], {
-        isLabelEnabled: this.settings.labelsOnEventIsEnabled,
-        isShadowEnabled: this.settings.shadowOnEventIsEnabled,
+        isLabelEnabled: this._settings.labelsOnEventIsEnabled,
+        isShadowEnabled: this._settings.shadowOnEventIsEnabled,
       });
     }
   }
@@ -190,14 +221,14 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
     // the simulator: node position (x, y). We want to fit a graph view into a simulation view.
     const simulationView = this.getSimulationViewRectangle();
 
-    const heightScale = simulationView.height / (graphView.height * (1 + this.settings.fitZoomMargin));
-    const widthScale = simulationView.width / (graphView.width * (1 + this.settings.fitZoomMargin));
+    const heightScale = simulationView.height / (graphView.height * (1 + this._settings.fitZoomMargin));
+    const widthScale = simulationView.width / (graphView.width * (1 + this._settings.fitZoomMargin));
     // The scale of the translation and the zoom needed to fit a graph view
     // into a simulation view (renderer canvas)
     const scale = Math.min(heightScale, widthScale);
 
     const previousZoom = this.transform.k;
-    const newZoom = Math.max(Math.min(scale * previousZoom, this.settings.maxZoom), this.settings.minZoom);
+    const newZoom = Math.max(Math.min(scale * previousZoom, this._settings.maxZoom), this._settings.minZoom);
     // Translation is done in the following way for both coordinates:
     // - M = expected movement to the middle of the view (simulation width or height / 2)
     // - Z(-1) = previous zoom level
