@@ -1,4 +1,4 @@
-import { isCollapsedDimension } from './html.utils';
+import { isCollapsedDimension } from '../../src/utils/html.utils';
 
 describe('html.utils', () => {
   test('should match collapsed style dimensions regex', () => {

@@ -45,7 +45,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   private _settings: IDefaultViewSettings<N, E>;
   private _canvas: HTMLCanvasElement;
 
-  private readonly _renderer: IRenderer;
+  private readonly _renderer: IRenderer<N, E>;
   private readonly _simulator: ISimulator;
 
   private _isSimulating = false;
@@ -81,7 +81,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     this._canvas = this._initCanvas();
 
     try {
-      this._renderer = RendererFactory.getRenderer(this._canvas, settings?.render?.type, this._settings.render);
+      this._renderer = RendererFactory.getRenderer<N, E>(this._canvas, settings?.render?.type, this._settings.render);
     } catch (error: any) {
       this._container.textContent = error.message;
       throw error;
@@ -93,7 +93,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       this._events.emit(OrbEventType.RENDER_END, data);
     });
     this._renderer.translateOriginToCenter();
-    this._settings.render = this._renderer.settings;
+    this._settings.render = this._renderer.getSettings();
 
     // Resize the canvas based on the dimensions of its parent container <div>.
     const resizeObs = new ResizeObserver(() => this._handleResize());
@@ -101,7 +101,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     this._handleResize();
 
     this._d3Zoom = zoom<HTMLCanvasElement, any>()
-      .scaleExtent([this._renderer.settings.minZoom, this._renderer.settings.maxZoom])
+      .scaleExtent([this._renderer.getSettings().minZoom, this._renderer.getSettings().maxZoom])
       .on('zoom', this.zoomed);
 
     select<HTMLCanvasElement, any>(this._canvas)
@@ -138,7 +138,6 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
     });
     this._simulator.on(SimulatorEventType.NODE_DRAG, (data) => {
-      // TODO: Add throttle render (for larger graphs)
       this._graph.setNodePositions(data.nodes);
       this._renderer.render(this._graph);
     });
@@ -171,11 +170,8 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     }
 
     if (settings.render) {
-      this._renderer.settings = {
-        ...this._renderer.settings,
-        ...settings.render,
-      };
-      this._settings.render = this._renderer.settings;
+      this._renderer.setSettings(settings.render);
+      this._settings.render = this._renderer.getSettings();
     }
   }
 
@@ -248,8 +244,6 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
 
     // A drag event de-selects the node, while a click event selects it.
     if (!isEqualPosition(this._dragStartPosition, mousePoint)) {
-      // this.selectedShape_.next(null);
-      // this.selectedShapePosition_.next(null);
       this._dragStartPosition = undefined;
     }
 
@@ -345,7 +339,6 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       });
 
       if (response.isStateChanged) {
-        // TODO: Add throttle render
         this._renderer.render(this._graph);
       }
     }

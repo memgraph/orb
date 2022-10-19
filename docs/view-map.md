@@ -122,6 +122,7 @@ interface IMapViewSettings {
   getGeoPosition(node: INode): { lat: number; lng: number } | undefined;
   // For canvas rendering and events
   render: {
+    fps: number;
     minZoom: number;
     maxZoom: number;
     fitZoomMargin: number;
@@ -146,6 +147,7 @@ The default settings that `MapView` uses is:
 ```typescript
 const defaultSettings = {
   render: {
+    fps: 60,
     minZoom: 0.25,
     maxZoom: 8,
     fitZoomMargin: 0.2,
