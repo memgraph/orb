@@ -1,3 +1,9 @@
+## 0.1.3
+
+### Fix
+
+* Fix: Add throttle render to renderer via fps settings (#29)
+
 ## 0.1.2
 
 ### Fix

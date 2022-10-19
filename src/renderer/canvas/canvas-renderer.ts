@@ -12,9 +12,12 @@ import {
   DEFAULT_RENDERER_WIDTH,
   IRenderer,
   IRendererSettings,
-  RendererEvents,
+  RendererEvents as RE,
   RenderEventType,
 } from '../shared';
+import { throttle } from '../../utils/function.utils';
+import { getThrottleMsFromFPS } from '../../utils/math.utils';
+import { copyObject } from '../../utils/object.utils';
 
 const DEBUG = false;
 const DEBUG_RED = '#FF5733';
@@ -22,14 +25,14 @@ const DEBUG_GREEN = '#3CFF33';
 const DEBUG_BLUE = '#3383FF';
 const DEBUG_PINK = '#F333FF';
 
-export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer {
+export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Emitter<RE> implements IRenderer<N, E> {
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
   private readonly _context: CanvasRenderingContext2D;
 
   // Width and height of the canvas. Used for clearing
   public width: number;
   public height: number;
-  public settings: IRendererSettings;
+  private _settings: IRendererSettings;
 
   // Includes translation (pan) in the x and y direction
   // as well as scaling (level of zoom).
@@ -41,23 +44,51 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
   // False if renderer never rendered on canvas, otherwise true
   private _isInitiallyRendered = false;
 
+  private _throttleRender: (graph: IGraph<N, E>) => void;
+
   constructor(context: CanvasRenderingContext2D, settings?: Partial<IRendererSettings>) {
     super();
     this._context = context;
     this.width = DEFAULT_RENDERER_WIDTH;
     this.height = DEFAULT_RENDERER_HEIGHT;
     this.transform = zoomIdentity;
-    this.settings = {
+    this._settings = {
       ...DEFAULT_RENDERER_SETTINGS,
       ...settings,
     };
+
+    this._throttleRender = throttle((graph: IGraph<N, E>) => {
+      this._render(graph);
+    }, getThrottleMsFromFPS(this._settings.fps));
   }
 
   get isInitiallyRendered(): boolean {
     return this._isInitiallyRendered;
   }
 
-  render<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>) {
+  getSettings(): IRendererSettings {
+    return copyObject(this._settings);
+  }
+
+  setSettings(settings: Partial<IRendererSettings>) {
+    const isFpsChanged = settings.fps && settings.fps !== this._settings.fps;
+    this._settings = {
+      ...this._settings,
+      ...settings,
+    };
+
+    if (isFpsChanged) {
+      this._throttleRender = throttle((graph: IGraph<any, any>) => {
+        this._render(graph);
+      }, getThrottleMsFromFPS(this._settings.fps));
+    }
+  }
+
+  render(graph: IGraph<N, E>) {
+    this._throttleRender(graph);
+  }
+
+  private _render(graph: IGraph<N, E>) {
     if (!graph.getNodeCount()) {
       return;
     }
@@ -101,15 +132,15 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
       this._context.fillRect(0, 0, this.width, this.height);
     }
 
-    this.drawObjects<N, E>(graph.getEdges());
-    this.drawObjects<N, E>(graph.getNodes());
+    this.drawObjects(graph.getEdges());
+    this.drawObjects(graph.getNodes());
 
     this._context.restore();
     this.emit(RenderEventType.RENDER_END, { durationMs: Date.now() - renderStartedAt });
     this._isInitiallyRendered = true;
   }
 
-  private drawObjects<N extends INodeBase, E extends IEdgeBase>(objects: (INode<N, E> | IEdge<N, E>)[]) {
+  private drawObjects(objects: (INode<N, E> | IEdge<N, E>)[]) {
     if (objects.length === 0) {
       return;
     }
@@ -128,42 +159,39 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
     }
     const hasStateChangedShapes = selectedObjects.length || hoveredObjects.length;
 
-    if (this.settings.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
-      this._context.globalAlpha = this.settings.contextAlphaOnEvent;
+    if (this._settings.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
+      this._context.globalAlpha = this._settings.contextAlphaOnEvent;
     }
 
     for (let i = 0; i < objects.length; i++) {
       const obj = objects[i];
       if (!obj.isSelected() && !obj.isHovered()) {
         this.drawObject(obj, {
-          isLabelEnabled: this.settings.labelsIsEnabled,
-          isShadowEnabled: this.settings.shadowIsEnabled,
+          isLabelEnabled: this._settings.labelsIsEnabled,
+          isShadowEnabled: this._settings.shadowIsEnabled,
         });
       }
     }
 
-    if (this.settings.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
+    if (this._settings.contextAlphaOnEventIsEnabled && hasStateChangedShapes) {
       this._context.globalAlpha = 1;
     }
 
     for (let i = 0; i < selectedObjects.length; i++) {
       this.drawObject(selectedObjects[i], {
-        isLabelEnabled: this.settings.labelsOnEventIsEnabled,
-        isShadowEnabled: this.settings.shadowOnEventIsEnabled,
+        isLabelEnabled: this._settings.labelsOnEventIsEnabled,
+        isShadowEnabled: this._settings.shadowOnEventIsEnabled,
       });
     }
     for (let i = 0; i < hoveredObjects.length; i++) {
       this.drawObject(hoveredObjects[i], {
-        isLabelEnabled: this.settings.labelsOnEventIsEnabled,
-        isShadowEnabled: this.settings.shadowOnEventIsEnabled,
+        isLabelEnabled: this._settings.labelsOnEventIsEnabled,
+        isShadowEnabled: this._settings.shadowOnEventIsEnabled,
       });
     }
   }
 
-  private drawObject<N extends INodeBase, E extends IEdgeBase>(
-    obj: INode<N, E> | IEdge<N, E>,
-    options?: Partial<INodeDrawOptions> | Partial<IEdgeDrawOptions>,
-  ) {
+  private drawObject(obj: INode<N, E> | IEdge<N, E>, options?: Partial<INodeDrawOptions> | Partial<IEdgeDrawOptions>) {
     if (isNode(obj)) {
       drawNode(this._context, obj, options);
     } else {
@@ -179,7 +207,7 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
     this._context.save();
   }
 
-  getFitZoomTransform<N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>): ZoomTransform {
+  getFitZoomTransform(graph: IGraph<N, E>): ZoomTransform {
     // Graph view is a bounding box of the graph nodes that takes into
     // account node positions (x, y) and node sizes (style: size + border width)
     const graphView = graph.getBoundingBox();
@@ -190,14 +218,14 @@ export class CanvasRenderer extends Emitter<RendererEvents> implements IRenderer
     // the simulator: node position (x, y). We want to fit a graph view into a simulation view.
     const simulationView = this.getSimulationViewRectangle();
 
-    const heightScale = simulationView.height / (graphView.height * (1 + this.settings.fitZoomMargin));
-    const widthScale = simulationView.width / (graphView.width * (1 + this.settings.fitZoomMargin));
+    const heightScale = simulationView.height / (graphView.height * (1 + this._settings.fitZoomMargin));
+    const widthScale = simulationView.width / (graphView.width * (1 + this._settings.fitZoomMargin));
     // The scale of the translation and the zoom needed to fit a graph view
     // into a simulation view (renderer canvas)
     const scale = Math.min(heightScale, widthScale);
 
     const previousZoom = this.transform.k;
-    const newZoom = Math.max(Math.min(scale * previousZoom, this.settings.maxZoom), this.settings.minZoom);
+    const newZoom = Math.max(Math.min(scale * previousZoom, this._settings.maxZoom), this._settings.minZoom);
     // Translation is done in the following way for both coordinates:
     // - M = expected movement to the middle of the view (simulation width or height / 2)
     // - Z(-1) = previous zoom level
