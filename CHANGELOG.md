@@ -1,3 +1,9 @@
+## 0.1.4
+
+### Fix
+
+* Fix: Remove render callback after first usage in simulation end (#31)
+
 ## 0.1.3
 
 ### Fix
