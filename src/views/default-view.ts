@@ -135,6 +135,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       this._renderer.render(this._graph);
       this._isSimulating = false;
       this._onSimulationEnd?.();
+      this._onSimulationEnd = undefined;
       this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
     });
     this._simulator.on(SimulatorEventType.NODE_DRAG, (data) => {
