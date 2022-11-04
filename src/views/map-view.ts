@@ -30,9 +30,11 @@ const osmAttribution =
   '<a href="https://leafletjs.com/" target="_blank" >Leaflet</a> | ' +
   'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors';
 
-const DEFAULT_MAP_TILE: ILeafletMapTile = {
-  instance: new L.TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
-  attribution: osmAttribution,
+const getDefaultMapTile = () => {
+  return {
+    instance: new L.TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+    attribution: osmAttribution,
+  };
 };
 
 const DEFAULT_ZOOM_LEVEL = 2;
@@ -82,7 +84,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       ...settings,
       map: {
         zoomLevel: settings.map?.zoomLevel ?? DEFAULT_ZOOM_LEVEL,
-        tile: settings.map?.tile ?? DEFAULT_MAP_TILE,
+        tile: settings.map?.tile ?? getDefaultMapTile(),
       },
       render: {
         type: RendererType.CANVAS,
