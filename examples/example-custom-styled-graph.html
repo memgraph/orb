@@ -42,7 +42,7 @@
       { id: 5, start: 0, end: 1, label: 'A -> B' },
     ]
 
-    const orb = new Orb.Orb(container);
+    const orb = new Orb.OrbView(container);
 
     // Assign a basic style
     orb.data.setDefaultStyle({
@@ -87,8 +87,8 @@
     // Initialize nodes and edges
     orb.data.setup({ nodes, edges });
 
-    orb.view.render(() => {
-      orb.view.recenter();
+    orb.render(() => {
+      orb.recenter();
     });
   </script>
 </body>

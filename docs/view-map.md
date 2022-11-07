@@ -1,6 +1,6 @@
 # Orb views: Map view
 
-By default, Orb offers a `MapView` which is a graph view with a map as a background. Map rendering is
+By default, Orb offers a `OrbMapView` which is a graph view with a map as a background. Map rendering is
 done with a library [leaflet](https://leafletjs.com/). To render maps, make sure to add the
 following CSS to your project:
 
@@ -11,12 +11,13 @@ following CSS to your project:
 />
 ```
 
-Here is a simple example of `MapView` usage:
+Here is a simple example of `OrbMapView` usage:
 
 ![](./assets/view-map-example.png)
 
 ```typescript
-import { MapView } from "@memgraph/orb";
+import { OrbMapView } from "@memgraph/orb";
+
 const container = document.getElementById("<your-div-id>");
 
 const nodes: MyNode[] = [
@@ -30,13 +31,9 @@ const edges: MyEdge[] = [
   { id: 2, start: "hamilton", end: "miami" },
 ];
 
-const orb = new Orb<MyNode, MyEdge>(container);
-orb.setView(
-  (context) =>
-    new MapView(context, {
-      getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng }),
-    })
-);
+const orb = new OrbMapView<MyNode, MyEdge>(container, {
+  getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng }),
+});
 
 // Assign a default style
 orb.data.setDefaultStyle({
@@ -63,61 +60,58 @@ orb.data.setDefaultStyle({
 orb.data.setup({ nodes, edges });
 
 // Render and recenter the view
-orb.view.render(() => {
-  orb.view.recenter();
+orb.render(() => {
+  orb.recenter();
 });
 ```
 
 ## Initialization
 
-On `MapView` initialization, you must provide an implementation for `getGeoPosition` which is used
+On `OrbMapView` initialization, you must provide an implementation for `getGeoPosition` which is used
 to get `latitude` and `longitude` for each node. Here is the example of settings (required and optional)
-initialized on the new `MapView`:
+initialized on the new `OrbMapView`:
 
 ```typescript
 import * as L from "leaflet";
-import { MapView } from "@memgraph/orb";
+import { OrbMapView } from "@memgraph/orb";
 
 const mapAttribution =
   '<a href="https://leafletjs.com/" target="_blank" >Leaflet</a> | ' +
   'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors';
 
-orb.setView(
-  (context) =>
-    new MapView(context, {
-      getGeoPosition: (node) => ({
-        lat: node.data.latitude,
-        lng: node.data.longitude,
-      }),
-      map: {
-        zoomLevel: 5,
-        tile: {
-          instance: new L.TileLayer(
-            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          ),
-          attribution: mapAttribution,
-        },
-        render: {
-          labelsIsEnabled: true,
-          labelsOnEventIsEnabled: true,
-          shadowIsEnabled: true,
-          shadowOnEventIsEnabled: true,
-          contextAlphaOnEvent: 0.3,
-          contextAlphaOnEventIsEnabled: true,
-        },
-      },
-      areCollapsedContainerDimensionsAllowed: false;
-    })
-);
+const orb = new OrbMapView(container, {
+  getGeoPosition: (node) => ({
+    lat: node.data.latitude,
+    lng: node.data.longitude,
+  }),
+  map: {
+    zoomLevel: 5,
+    tile: {
+      instance: new L.TileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      ),
+      attribution: mapAttribution,
+    },
+    render: {
+      labelsIsEnabled: true,
+      labelsOnEventIsEnabled: true,
+      shadowIsEnabled: true,
+      shadowOnEventIsEnabled: true,
+      contextAlphaOnEvent: 0.3,
+      contextAlphaOnEventIsEnabled: true,
+    },
+  },
+  areCollapsedContainerDimensionsAllowed: false,
+});
 ```
 
-You can set settings on view initialization or afterward with `orb.view.setSettings`. Below
+You can set settings on view initialization or afterward with `orb.setSettings`. Below
 you can see the list of all settings' parameters:
 
 ```typescript
 import * as L from "leaflet";
 
-interface IMapViewSettings {
+interface IOrbMapViewSettings {
   // For map node positions
   getGeoPosition(node: INode): { lat: number; lng: number } | undefined;
   // For canvas rendering and events
@@ -142,7 +136,7 @@ interface IMapViewSettings {
 }
 ```
 
-The default settings that `MapView` uses is:
+The default settings that `OrbMapView` uses is:
 
 ```typescript
 const defaultSettings = {
@@ -197,20 +191,20 @@ Disabled by default (`false`).
 
 ## Settings
 
-The above settings of `MapView` can be defined on view initialization, but also anytime after the
+The above settings of `OrbMapView` can be defined on view initialization, but also anytime after the
 initialization with a view function `setSettings`:
 
 ```typescript
 // If you want to see all the current view settings
-const settings = orb.view.getSettings();
+const settings = orb.getSettings();
 
 // Change the way how geo coordinates are defined on nodes
-orb.view.setSettings({
+orb.setSettings({
   getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng }),
 });
 
 // Change the zoom level and disable shadows
-orb.view.setSettings({
+orb.setSettings({
   map: {
     zoomLevel: 7,
   },
@@ -227,8 +221,8 @@ Just like other Orb views, use `render` to render the view and `recenter` to fit
 the rendered graph.
 
 ```typescript
-orb.view.render(() => {
-  orb.view.recenter();
+orb.render(() => {
+  orb.recenter();
 });
 ```
 
@@ -238,8 +232,8 @@ If you need a reference to the internal map reference from `leaflet` library, ju
 following example:
 
 ```typescript
-import { MapView } from "@memgraph/orb";
+import { OrbMapView } from "@memgraph/orb";
 
-// It will only work on MapView
-const leaflet = (orb.view as MapView).leaflet;
+// It will only work on OrbMapView
+const leaflet = (orb.view as OrbMapView).leaflet;
 ```

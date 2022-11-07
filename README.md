@@ -43,7 +43,7 @@ Below you can find a simple Typescript example using Orb to visualize a small gr
 free to check other Javascript examples in `examples/` directory.
 
 ```typescript
-import { Orb } from '@memgraph/orb';
+import { OrbView } from '@memgraph/orb';
 const container = document.getElementById('graph');
 
 const nodes: MyNode[] = [
@@ -56,14 +56,14 @@ const edges: MyEdge[] = [
   { id: 2, start: 2, end: 3, label: 'ON' },
 ];
 
-const orb = new Orb<MyNode, MyEdge>(container);
+const orb = new OrbView<MyNode, MyEdge>(container);
 
 // Initialize nodes and edges
 orb.data.setup({ nodes, edges });
 
 // Render and recenter the view
-orb.view.render(() => {
-  orb.view.recenter();
+orb.render(() => {
+  orb.recenter();
 });
 ```
 
@@ -118,14 +118,14 @@ free to check other Javascript examples in `examples/` directory.
       ];
     
       // First `Orb` is just a namespace of the JS package 
-      const orb = new Orb.Orb(container);
+      const orb = new Orb.OrbView(container);
     
       // Initialize nodes and edges
       orb.data.setup({ nodes, edges });
     
       // Render and recenter the view
-      orb.view.render(() => {
-        orb.view.recenter();
+      orb.render(() => {
+        orb.recenter();
       });
     </script>
   </body>

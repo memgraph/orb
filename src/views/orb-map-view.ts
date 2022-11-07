@@ -1,15 +1,16 @@
 import * as L from 'leaflet';
 import { IEdgeBase, isEdge } from '../models/edge';
 import { INode, INodeBase, isNode } from '../models/node';
-import { IGraph } from '../models/graph';
-import { IOrbView, IOrbViewContext } from './shared';
+import { Graph, IGraph } from '../models/graph';
+import { IOrbView } from './shared';
 import { IPosition } from '../common';
-import { IEventStrategy } from '../models/strategy';
+import { getDefaultEventStrategy, IEventStrategy } from '../models/strategy';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
 import { IRenderer, RendererType, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
 import { setupContainer } from '../utils/html.utils';
+import { getDefaultGraphStyle } from '../models/style';
 
 export interface ILeafletMapTile {
   instance: L.TileLayer;
@@ -42,28 +43,30 @@ export interface IMapSettings {
   tile: ILeafletMapTile;
 }
 
-export interface IMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
+export interface IOrbMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
   map: IMapSettings;
   render: Partial<IRendererSettings>;
   areCollapsedContainerDimensionsAllowed: boolean;
 }
 
-export interface IMapViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
+export interface IOrbMapViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
   getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
   map?: Partial<IMapSettings>;
   render?: Partial<IRendererSettingsInit>;
 }
 
-export type IMapViewSettingsUpdate<N extends INodeBase, E extends IEdgeBase> = Partial<IMapViewSettingsInit<N, E>>;
+export type IOrbMapViewSettingsUpdate<N extends INodeBase, E extends IEdgeBase> = Partial<
+  IOrbMapViewSettingsInit<N, E>
+>;
 
-export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<IMapViewSettings<N, E>> {
+export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E, IOrbMapViewSettings<N, E>> {
   private _container: HTMLElement;
   private _graph: IGraph<N, E>;
   private _events: OrbEmitter<N, E>;
   private _strategy: IEventStrategy<N, E>;
 
-  private _settings: IMapViewSettings<N, E>;
+  private _settings: IOrbMapViewSettings<N, E>;
 
   private _canvas: HTMLCanvasElement;
   private _map: HTMLDivElement;
@@ -71,11 +74,19 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   private readonly _renderer: IRenderer<N, E>;
   private readonly _leaflet: L.Map;
 
-  constructor(context: IOrbViewContext<N, E>, settings: IMapViewSettingsInit<N, E>) {
-    this._container = context.container;
-    this._graph = context.graph;
-    this._events = context.events;
-    this._strategy = context.strategy;
+  constructor(container: HTMLElement, settings: IOrbMapViewSettingsInit<N, E>) {
+    this._container = container;
+    this._graph = new Graph<N, E>(undefined, {
+      onLoadedImages: () => {
+        // Not to call render() before user's .render()
+        if (this._renderer.isInitiallyRendered) {
+          this.render();
+        }
+      },
+    });
+    this._graph.setDefaultStyle(getDefaultGraphStyle());
+    this._events = new OrbEmitter<N, E>();
+    this._strategy = getDefaultEventStrategy<N, E>();
 
     this._settings = {
       areCollapsedContainerDimensionsAllowed: false,
@@ -115,19 +126,23 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._handleTileChange();
   }
 
+  get data(): IGraph<N, E> {
+    return this._graph;
+  }
+
+  get events(): OrbEmitter<N, E> {
+    return this._events;
+  }
+
   get leaflet(): L.Map {
     return this._leaflet;
   }
 
-  isInitiallyRendered(): boolean {
-    return this._renderer.isInitiallyRendered;
-  }
-
-  getSettings(): IMapViewSettings<N, E> {
+  getSettings(): IOrbMapViewSettings<N, E> {
     return copyObject(this._settings);
   }
 
-  setSettings(settings: IMapViewSettingsUpdate<N, E>) {
+  setSettings(settings: IOrbMapViewSettingsUpdate<N, E>) {
     if (settings.getGeoPosition) {
       this._settings.getGeoPosition = settings.getGeoPosition;
       this._updateGraphPositions();

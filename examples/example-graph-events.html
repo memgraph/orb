@@ -53,7 +53,7 @@
       };
     }
 
-    const orb = new Orb.Orb(container);
+    const orb = new Orb.OrbView(container);
 
     // Assign a basic style
     orb.data.setDefaultStyle({
@@ -87,8 +87,8 @@
     orb.data.setup({ nodes, edges });
 
     // Render and recenter the view
-    orb.view.render(() => {
-      orb.view.recenter(() => {
+    orb.render(() => {
+      orb.recenter(() => {
         output.innerHTML = '< Click on any of the nodes or edges >';
       });
     });

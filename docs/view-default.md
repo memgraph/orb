@@ -4,26 +4,20 @@ This is the default view that Orb uses to render a basic graph.
 
 ## Initialization
 
-The `DefaultView` is assigned to every instance of Orb by default. You don't need to
-provide any additional configuration to use it.
-
-You can, however, explicitly provide it in the factory function as you would any
-other type of `IOrbView`. This will be necessary if you want to assign fixed node
-coordinates, which you can read about further below.
+The `OrbView` doesn't need any additional configuration. You can, however, explicitly provide
+if you want to assign fixed node coordinates, which you can read about further below.
 
 ```typescript
-import { DefaultView } from "@memgraph/orb";
+import { OrbView } from "@memgraph/orb";
 
-const orb = new Orb<MyNode, MyEdge>(container);
-
-orb.setView((context) => new DefaultView(context, optionalSettings));
+const orb = new OrbView<MyNode, MyEdge>(container, optionalSettings);
 ```
 
-You can set settings on view initialization or afterward with `orb.view.setSettings`. Below
+You can set settings on view initialization or afterward with `orb.setSettings`. Below
 you can see the list of all settings' parameters:
 
 ```typescript
-interface IDefaultViewSettings {
+interface IOrbViewSettings {
   // For custom node positions
   getPosition(node: INode): { x: number; y: number } | undefined;
   // For node positioning simulation (d3-force parameters)
@@ -89,7 +83,7 @@ interface IDefaultViewSettings {
 }
 ```
 
-The default settings that `DefaultView` uses is:
+The default settings that `OrbView` uses is:
 
 ```typescript
 const defaultSettings = {
@@ -156,7 +150,7 @@ You can read more about each property down below and on [Styles guide](./styles.
 
 ### Property `getPosition`
 
-There are two basic ways to use the `DefaultView` API based on the node positions:
+There are two basic ways to use the `OrbView` API based on the node positions:
 
 - **Simulated node positions** - Orb internally calculates and assigns coordinates to
   your nodes.
@@ -165,7 +159,7 @@ There are two basic ways to use the `DefaultView` API based on the node position
 
 #### Simulated node positions
 
-In this mode, the `DefaultView` arranges node positions by internally calculating their
+In this mode, the `OrbView` arranges node positions by internally calculating their
 coordinates using the [D3.js](https://d3js.org/) library, or more specifically,
 [`d3-force`](https://github.com/d3/d3-force). This method is applied by default - you don't
 need to initialize Orb with any additional configuration.
@@ -173,6 +167,8 @@ need to initialize Orb with any additional configuration.
 ![](./assets/view-default-simulated.png)
 
 ```typescript
+import { OrbView } from "@memgraph/orb";
+
 const nodes: MyNode[] = [
   { id: 0, label: "Node A" },
   { id: 1, label: "Node B" },
@@ -187,14 +183,14 @@ const edges: MyEdge[] = [
   { id: 5, start: 0, end: 1, label: "Edge V" },
 ];
 
-const orb = new Orb<MyNode, MyEdge>(container);
+const orb = new OrbView<MyNode, MyEdge>(container);
 
 // Initialize nodes and edges
 orb.data.setup({ nodes, edges });
 
 // Render and recenter the view
-orb.view.render(() => {
-  orb.view.recenter();
+orb.render(() => {
+  orb.recenter();
 });
 ```
 
@@ -208,7 +204,7 @@ that allows Orb to position the nodes.
 ![](./assets/view-default-fixed.png)
 
 ```typescript
-import { DefaultView } from "@memgraph/orb";
+import { OrbView } from "@memgraph/orb";
 const container = document.getElementById("graph");
 
 const nodes: MyNode[] = [
@@ -225,20 +221,16 @@ const edges: MyEdge[] = [
   { id: 5, start: 0, end: 1, label: "Edge V" },
 ];
 
-const orb = new Orb<MyNode, MyEdge>(container);
-orb.setView(
-  (context) =>
-    new DefaultView(context, {
-      getPosition: (node) => ({ x: node.data.posX, y: node.data.posY }),
-    })
-);
+const orb = new OrbView<MyNode, MyEdge>(container, {
+  getPosition: (node) => ({ x: node.data.posX, y: node.data.posY }),
+});
 
 // Initialize nodes and edges
 orb.data.setup({ nodes, edges });
 
 // Render and recenter the view
-orb.view.render(() => {
-  orb.view.recenter();
+orb.render(() => {
+  orb.recenter();
 });
 ```
 
@@ -294,38 +286,33 @@ Disabled by default (`false`).
 
 ## Settings
 
-The above settings of the `DefaultView` can be defined on view initialization, but also anytime
+The above settings of the `OrbView` can be defined on view initialization, but also anytime
 after the initialization with a view function `setSettings`:
 
 ```typescript
-import { DefaultView } from "@memgraph/orb";
+import { OrbView } from "@memgraph/orb";
 
-const orb = new Orb<MyNode, MyEdge>(container);
-
-orb.setView(
-  (context) =>
-    new DefaultView(context, {
-      getPosition: (node) => ({ x: node.data.posY, y: node.data.posX }),
-      zoomFitTransformMs: 1000,
-      render: {
-        shadowIsEnabled: false,
-        shadowOnEventIsEnabled: false,
-      },
-    })
-);
+const orb = new OrbView<MyNode, MyEdge>(container, {
+  getPosition: (node) => ({ x: node.data.posY, y: node.data.posX }),
+  zoomFitTransformMs: 1000,
+  render: {
+    shadowIsEnabled: false,
+    shadowOnEventIsEnabled: false,
+  },
+});
 ```
 
 ```typescript
 // If you want to see all the current view settings
-const settings = orb.view.getSettings();
+const settings = orb.getSettings();
 
 // Change the x and y axis
-orb.view.setSettings({
+orb.setSettings({
   getPosition: (node) => ({ x: node.data.posY, y: node.data.posX }),
 });
 
 // Change the zoom fit and transform time while recentering and disable shadows
-orb.view.setSettings({
+orb.setSettings({
   zoomFitTransformMs: 1000,
   render: {
     shadowIsEnabled: false,
@@ -340,7 +327,7 @@ Just like other Orb views, use `render` to render the view and `recenter` to fit
 the rendered graph.
 
 ```typescript
-orb.view.render(() => {
-  orb.view.recenter();
+orb.render(() => {
+  orb.recenter();
 });
 ```

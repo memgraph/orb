@@ -159,13 +159,9 @@
     const initialSetup = (graphContainerId, nodes, edges, callback) => {
       const container = document.getElementById(graphContainerId);
 
-      const orb = new Orb.Orb(container);
-      orb.setView((context) => new Orb.DefaultView(context, {
+      const orb = new Orb.OrbView(container, {
         getPosition: (node) => ({ x: node.data.x, y: node.data.y })
-      }))
-
-      // Initialize nodes and edges
-      orb.data.setup({ nodes, edges });
+      });
 
       // Assign a basic style
       orb.data.setDefaultStyle({
@@ -199,10 +195,13 @@
         },
       });
 
+      // Initialize nodes and edges
+      orb.data.setup({ nodes, edges });
+
       // Render and recenter the view
-      orb.view.render(() => {
+      orb.render(() => {
         setTimeout(() => {
-          orb.view.recenter();
+          orb.recenter();
         }, 1000);
         if (callback) {
           callback(orb);
@@ -221,12 +220,12 @@
 
       const globalPhysicsCheckbox = document.getElementById('globalPhysicsCheckbox');
       globalPhysicsCheckbox.addEventListener('click', () => {
-        orb.view.setSettings({ simulation: { isPhysicsEnabled: globalPhysicsCheckbox.checked } });
+        orb.setSettings({ simulation: { isPhysicsEnabled: globalPhysicsCheckbox.checked } });
       });
 
       const containerPhysicsCheckbox = container.getElementsByClassName('checkbox')[0];
       containerPhysicsCheckbox.addEventListener('click', () => {
-        orb.view.setSettings({ simulation: { isPhysicsEnabled: containerPhysicsCheckbox.checked } });
+        orb.setSettings({ simulation: { isPhysicsEnabled: containerPhysicsCheckbox.checked } });
       });
     }
 
@@ -270,7 +269,7 @@
 
     initialSetupFree('oldNodesFixedNewNodesFree1', (orb) => {
       setTimeout(() => {
-        orb.view.fixNodes();
+        orb.fixNodes();
         orb.data.merge({
           nodes: [
             { id: 4, labels: ['Node E'] },
@@ -279,9 +278,9 @@
             { id: 14, start: 0, end: 4, label: 'Edge R' }
           ]
         });
-        orb.view.render(() => {
+        orb.render(() => {
           setTimeout(() => {
-            orb.view.recenter();
+            orb.recenter();
           }, 1000);
         });
       }, 2000);
@@ -297,9 +296,9 @@
             { id: 14, start: 0, end: 4, label: 'Edge R' }
           ]
         });
-        orb.view.render(() => {
+        orb.render(() => {
           setTimeout(() => {
-            orb.view.recenter();
+            orb.recenter();
           }, 1000);
         });
       }, 2000);
@@ -315,9 +314,9 @@
             { id: 14, start: 0, end: 4, label: 'Edge R' }
           ]
         });
-        orb.view.render(() => {
+        orb.render(() => {
           setTimeout(() => {
-            orb.view.recenter();
+            orb.recenter();
           }, 1000);
         });
       }, 2000);
@@ -333,9 +332,9 @@
             { id: 14, start: 0, end: 4, label: 'Edge R' }
           ]
         });
-        orb.view.render(() => {
+        orb.render(() => {
           setTimeout(() => {
-            orb.view.recenter();
+            orb.recenter();
           }, 1000);
         });
       }, 2000);
@@ -351,9 +350,9 @@
             { id: 14, start: 0, end: 4, label: 'Edge R' }
           ]
         });
-        orb.view.render(() => {
+        orb.render(() => {
           setTimeout(() => {
-            orb.view.recenter();
+            orb.recenter();
           }, 1000);
         });
       }, 2000);
@@ -361,7 +360,7 @@
 
     initialSetupFixed('oldNodesFreeNewNodesFixed2', (orb) => {
       setTimeout(() => {
-        orb.view.releaseNodes();
+        orb.releaseNodes();
         orb.data.merge({
           nodes: [
             { id: 4, labels: ['Node E'], x: -100, y: -50 },
@@ -372,9 +371,9 @@
             { id: 15, start: 0, end: 5, label: 'Edge T' }
           ]
         });
-        orb.view.render(() => {
+        orb.render(() => {
           setTimeout(() => {
-            orb.view.recenter();
+            orb.recenter();
           }, 1000);
         });
       }, 2000);
