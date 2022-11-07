@@ -79,7 +79,7 @@ const mapAttribution =
   '<a href="https://leafletjs.com/" target="_blank" >Leaflet</a> | ' +
   'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors';
 
-const orb = new OrbMapView(container, {
+const orb = new OrbMapView<MyNode, MyEdge>(container, {
   getGeoPosition: (node) => ({
     lat: node.data.latitude,
     lng: node.data.longitude,
@@ -88,18 +88,18 @@ const orb = new OrbMapView(container, {
     zoomLevel: 5,
     tile: {
       instance: new L.TileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       ),
       attribution: mapAttribution,
     },
-    render: {
-      labelsIsEnabled: true,
-      labelsOnEventIsEnabled: true,
-      shadowIsEnabled: true,
-      shadowOnEventIsEnabled: true,
-      contextAlphaOnEvent: 0.3,
-      contextAlphaOnEventIsEnabled: true,
-    },
+  },
+  render: {
+    labelsIsEnabled: true,
+    labelsOnEventIsEnabled: true,
+    shadowIsEnabled: true,
+    shadowOnEventIsEnabled: true,
+    contextAlphaOnEvent: 0.3,
+    contextAlphaOnEventIsEnabled: true,
   },
   areCollapsedContainerDimensionsAllowed: false,
 });
@@ -127,6 +127,11 @@ interface IOrbMapViewSettings {
     contextAlphaOnEvent: number;
     contextAlphaOnEventIsEnabled: boolean;
   };
+  // For select and hover look-and-feel
+  strategy: {
+    isDefaultSelectEnabled: boolean;
+    isDefaultHoverEnabled: boolean;
+  };
   // Other map view parameters
   map: {
     zoomLevel: number;
@@ -151,6 +156,10 @@ const defaultSettings = {
     shadowOnEventIsEnabled: true,
     contextAlphaOnEvent: 0.3,
     contextAlphaOnEventIsEnabled: true,
+  },
+  strategy: {
+    isDefaultSelectEnabled: true,
+    isDefaultHoverEnabled: true,
   },
   map: {
     zoomLevel: 2, // Default map zoom level
@@ -179,6 +188,58 @@ Optional property `map` has two properties that you can set which are:
 
 Optional property `render` has several rendering options that you can tweak. Read more about them
 on [Styling guide](./styles.md).
+
+### Property `strategy`
+
+The optional property `strategy` has two properties that you can enable/disable:
+
+* `isDefaultSelectEnabled` - when `true`, the default selection strategy is used on mouse click:
+  * If there is a node at the mouse click point, the node, its edges, and adjacent nodes will change
+    its state to `GraphObjectState.SELECTED`. Style properties that end with `...Selected` will be
+    applied to all the selected objects (e.g. `borderColorSelected`).
+  * If there is an edge at the mouse click point, the edge and its starting and ending nodes will change
+    its state to `GraphObjectState.SELECTED`.
+* `isDefaultHoverEnabled` - when `true`, the default hover strategy is used on mouse move:
+  * If there is a node at the mouse pointer, the node, its edges, and adjacent nodes will change its state to
+    `GraphObjectState.HOVERED`. Style properties that end with `...Hovered` will be applied to all the
+    hovered objects (e.g. `borderColorHovered`).
+
+With property `strategy` you can disable the above behavior and implement your select/hover strategy on
+top of events `OrbEventType.MOUSE_CLICK` and `OrbEventType.MOUSE_MOVE`, e.g:
+
+```typescript
+import { isNode, OrbEventType, GraphObjectState } from '@memgraph/orb';
+
+// Disable default select and hover strategy
+orb.setSettings({
+  strategy: {
+    isDefaultSelectEnabled: false,
+    isDefaultHoverEnabled: false,
+  },
+});
+
+// Create custom select strategy which selects just clicked node
+orb.events.on(OrbEventType.MOUSE_CLICK, (event) => {
+  // Clicked on blank canvas
+  if (!event.subject) {
+    // Deselect the previously selected nodes and render if there are changes
+    const selectedNodes = orb.data.getNodes((node) => node.isSelected());
+    if (selectedNodes) {
+      selectedNodes.forEach((node) => node.clearState());
+      orb.render();
+    }
+  }
+
+  // Clicked on unselected node
+  if (event.subject && isNode(event.subject) && !event.subject.isSelected()) {
+    // Deselect the previously selected nodes
+    orb.data.getNodes((node) => node.isSelected()).forEach((node) => node.clearState());
+    // Select the new node
+    event.subject.state = GraphObjectState.SELECTED;
+    orb.render();
+  }
+});
+```
 
 ### Property `areCollapsedContainerDimensionsAllowed`
 

@@ -315,7 +315,7 @@ each node/edge, you can use the view settings to enable/disable labels globally:
 import { OrbView } from '@memgraph/orb';
 
 // Change on view init
-const orb = new OrbView<MyNode, MyEdge>(context, {
+const orb = new OrbView<MyNode, MyEdge>(container, {
   render: {
     labelsIsEnabled: true,
     labelsOnEventIsEnabled: true,
@@ -345,7 +345,7 @@ whole graph you can use the view settings to enable/disable shadows globally:
 import { OrbView } from '@memgraph/orb';
 
 // Change on view init
-const orb = new OrbView<MyNode, MyEdge>(context, {
+const orb = new OrbView<MyNode, MyEdge>(container, {
   render: {
     shadowsIsEnabled: true,
     shadowsOnEventIsEnabled: true,
@@ -382,7 +382,7 @@ You can configure the transparency with the following two properties:
 import { OrbView } from '@memgraph/orb';
 
 // Change on view init
-const orb = new OrbView<MyNode, MyEdge>(context, {
+const orb = new OrbView<MyNode, MyEdge>(container, {
   render: {
     contextAlphaOnEvent: 0.3,
     contextAlphaOnEventIsEnabled: true,

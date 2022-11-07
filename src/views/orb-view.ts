@@ -12,7 +12,7 @@ import { Graph, IGraph } from '../models/graph';
 import { INode, INodeBase, isNode } from '../models/node';
 import { IEdgeBase, isEdge } from '../models/edge';
 import { IOrbView } from './shared';
-import { getDefaultEventStrategy, IEventStrategy } from '../models/strategy';
+import { DefaultEventStrategy, IEventStrategy, IEventStrategySettings } from '../models/strategy';
 import { ID3SimulatorEngineSettings } from '../simulator/engine/d3-simulator-engine';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
@@ -21,11 +21,13 @@ import { RendererFactory } from '../renderer/factory';
 import { setupContainer } from '../utils/html.utils';
 import { SimulatorEventType } from '../simulator/shared';
 import { getDefaultGraphStyle } from '../models/style';
+import { isBoolean } from '../utils/type.utils';
 
 export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
   simulation: Partial<ID3SimulatorEngineSettings>;
   render: Partial<IRendererSettings>;
+  strategy: Partial<IEventStrategySettings>;
   zoomFitTransitionMs: number;
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
@@ -67,7 +69,6 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     });
     this._graph.setDefaultStyle(getDefaultGraphStyle());
     this._events = new OrbEmitter<N, E>();
-    this._strategy = getDefaultEventStrategy<N, E>();
 
     this._settings = {
       getPosition: settings?.getPosition,
@@ -84,7 +85,17 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       render: {
         ...settings?.render,
       },
+      strategy: {
+        isDefaultHoverEnabled: true,
+        isDefaultSelectEnabled: true,
+        ...settings?.strategy,
+      },
     };
+
+    this._strategy = new DefaultEventStrategy<N, E>({
+      isDefaultSelectEnabled: this._settings.strategy.isDefaultSelectEnabled ?? false,
+      isDefaultHoverEnabled: this._settings.strategy.isDefaultHoverEnabled ?? false,
+    });
 
     setupContainer(this._container, this._settings.areCollapsedContainerDimensionsAllowed);
     this._canvas = this._initCanvas();
@@ -186,6 +197,18 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     if (settings.render) {
       this._renderer.setSettings(settings.render);
       this._settings.render = this._renderer.getSettings();
+    }
+
+    if (settings.strategy) {
+      if (isBoolean(settings.strategy.isDefaultHoverEnabled)) {
+        this._settings.strategy.isDefaultHoverEnabled = settings.strategy.isDefaultHoverEnabled;
+        this._strategy.isHoverEnabled = this._settings.strategy.isDefaultHoverEnabled;
+      }
+
+      if (isBoolean(settings.strategy.isDefaultSelectEnabled)) {
+        this._settings.strategy.isDefaultSelectEnabled = settings.strategy.isDefaultSelectEnabled;
+        this._strategy.isSelectEnabled = this._settings.strategy.isDefaultSelectEnabled;
+      }
     }
   }
 
@@ -322,39 +345,37 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     const mousePoint = this.getCanvasMousePosition(event);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
-    if (this._strategy.onMouseMove) {
-      const response = this._strategy.onMouseMove(this._graph, simulationPoint);
-      const subject = response.changedSubject;
+    const response = this._strategy.onMouseMove(this._graph, simulationPoint);
+    const subject = response.changedSubject;
 
-      if (subject && response.isStateChanged) {
-        if (isNode(subject)) {
-          this._events.emit(OrbEventType.NODE_HOVER, {
-            node: subject,
-            event,
-            localPoint: simulationPoint,
-            globalPoint: mousePoint,
-          });
-        }
-        if (isEdge(subject)) {
-          this._events.emit(OrbEventType.EDGE_HOVER, {
-            edge: subject,
-            event,
-            localPoint: simulationPoint,
-            globalPoint: mousePoint,
-          });
-        }
+    if (subject && response.isStateChanged) {
+      if (isNode(subject)) {
+        this._events.emit(OrbEventType.NODE_HOVER, {
+          node: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
       }
-
-      this._events.emit(OrbEventType.MOUSE_MOVE, {
-        subject,
-        event,
-        localPoint: simulationPoint,
-        globalPoint: mousePoint,
-      });
-
-      if (response.isStateChanged) {
-        this._renderer.render(this._graph);
+      if (isEdge(subject)) {
+        this._events.emit(OrbEventType.EDGE_HOVER, {
+          edge: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
       }
+    }
+
+    this._events.emit(OrbEventType.MOUSE_MOVE, {
+      subject,
+      event,
+      localPoint: simulationPoint,
+      globalPoint: mousePoint,
+    });
+
+    if (response.isStateChanged) {
+      this._renderer.render(this._graph);
     }
   };
 
@@ -362,39 +383,37 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     const mousePoint = this.getCanvasMousePosition(event);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
-    if (this._strategy.onMouseClick) {
-      const response = this._strategy.onMouseClick(this._graph, simulationPoint);
-      const subject = response.changedSubject;
+    const response = this._strategy.onMouseClick(this._graph, simulationPoint);
+    const subject = response.changedSubject;
 
-      if (subject) {
-        if (isNode(subject)) {
-          this._events.emit(OrbEventType.NODE_CLICK, {
-            node: subject,
-            event,
-            localPoint: simulationPoint,
-            globalPoint: mousePoint,
-          });
-        }
-        if (isEdge(subject)) {
-          this._events.emit(OrbEventType.EDGE_CLICK, {
-            edge: subject,
-            event,
-            localPoint: simulationPoint,
-            globalPoint: mousePoint,
-          });
-        }
+    if (subject) {
+      if (isNode(subject)) {
+        this._events.emit(OrbEventType.NODE_CLICK, {
+          node: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
       }
-
-      this._events.emit(OrbEventType.MOUSE_CLICK, {
-        subject,
-        event,
-        localPoint: simulationPoint,
-        globalPoint: mousePoint,
-      });
-
-      if (response.isStateChanged || response.changedSubject) {
-        this._renderer.render(this._graph);
+      if (isEdge(subject)) {
+        this._events.emit(OrbEventType.EDGE_CLICK, {
+          edge: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
       }
+    }
+
+    this._events.emit(OrbEventType.MOUSE_CLICK, {
+      subject,
+      event,
+      localPoint: simulationPoint,
+      globalPoint: mousePoint,
+    });
+
+    if (response.isStateChanged || response.changedSubject) {
+      this._renderer.render(this._graph);
     }
   };
 
