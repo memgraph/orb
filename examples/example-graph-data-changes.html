@@ -46,7 +46,7 @@
       };
     }
 
-    const orb = new Orb.Orb(container);
+    const orb = new Orb.OrbView(container);
 
     orb.data.setDefaultStyle({
       getNodeStyle(node) {
@@ -106,7 +106,7 @@
         n += 1;
 
         orb.data.merge(graphUpdates);
-        orb.view.render();
+        orb.render();
         randomlyExpandGraph();
       }, 3000);
     };
@@ -116,12 +116,12 @@
     orb.events.on(Orb.OrbEventType.NODE_CLICK, (event) => {
       console.log('Node clicked: ', event.node);
       orb.data.remove({ nodeIds: [event.node.id] });
-      orb.view.render();
+      orb.render();
     });
 
     // Render and recenter the view
-    orb.view.render(() => {
-      orb.view.recenter();
+    orb.render(() => {
+      orb.recenter();
     });
 
   </script>

@@ -1,15 +1,17 @@
 import * as L from 'leaflet';
 import { IEdgeBase, isEdge } from '../models/edge';
 import { INode, INodeBase, isNode } from '../models/node';
-import { IGraph } from '../models/graph';
-import { IOrbView, IOrbViewContext } from './shared';
+import { Graph, IGraph } from '../models/graph';
+import { IOrbView } from './shared';
 import { IPosition } from '../common';
-import { IEventStrategy } from '../models/strategy';
+import { DefaultEventStrategy, IEventStrategy, IEventStrategySettings } from '../models/strategy';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
 import { IRenderer, RendererType, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
 import { setupContainer } from '../utils/html.utils';
+import { getDefaultGraphStyle } from '../models/style';
+import { isBoolean } from '../utils/type.utils';
 
 export interface ILeafletMapTile {
   instance: L.TileLayer;
@@ -44,28 +46,32 @@ export interface IMapSettings {
   tile: ILeafletMapTile;
 }
 
-export interface IMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
+export interface IOrbMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
   map: IMapSettings;
   render: Partial<IRendererSettings>;
+  strategy: Partial<IEventStrategySettings>;
   areCollapsedContainerDimensionsAllowed: boolean;
 }
 
-export interface IMapViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
+export interface IOrbMapViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
   getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
   map?: Partial<IMapSettings>;
   render?: Partial<IRendererSettingsInit>;
+  strategy?: Partial<IEventStrategySettings>;
 }
 
-export type IMapViewSettingsUpdate<N extends INodeBase, E extends IEdgeBase> = Partial<IMapViewSettingsInit<N, E>>;
+export type IOrbMapViewSettingsUpdate<N extends INodeBase, E extends IEdgeBase> = Partial<
+  IOrbMapViewSettingsInit<N, E>
+>;
 
-export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<IMapViewSettings<N, E>> {
+export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E, IOrbMapViewSettings<N, E>> {
   private _container: HTMLElement;
   private _graph: IGraph<N, E>;
   private _events: OrbEmitter<N, E>;
   private _strategy: IEventStrategy<N, E>;
 
-  private _settings: IMapViewSettings<N, E>;
+  private _settings: IOrbMapViewSettings<N, E>;
 
   private _canvas: HTMLCanvasElement;
   private _map: HTMLDivElement;
@@ -73,11 +79,18 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   private readonly _renderer: IRenderer<N, E>;
   private readonly _leaflet: L.Map;
 
-  constructor(context: IOrbViewContext<N, E>, settings: IMapViewSettingsInit<N, E>) {
-    this._container = context.container;
-    this._graph = context.graph;
-    this._events = context.events;
-    this._strategy = context.strategy;
+  constructor(container: HTMLElement, settings: IOrbMapViewSettingsInit<N, E>) {
+    this._container = container;
+    this._graph = new Graph<N, E>(undefined, {
+      onLoadedImages: () => {
+        // Not to call render() before user's .render()
+        if (this._renderer.isInitiallyRendered) {
+          this.render();
+        }
+      },
+    });
+    this._graph.setDefaultStyle(getDefaultGraphStyle());
+    this._events = new OrbEmitter<N, E>();
 
     this._settings = {
       areCollapsedContainerDimensionsAllowed: false,
@@ -90,7 +103,17 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         type: RendererType.CANVAS,
         ...settings.render,
       },
+      strategy: {
+        isDefaultHoverEnabled: true,
+        isDefaultSelectEnabled: true,
+        ...settings?.strategy,
+      },
     };
+
+    this._strategy = new DefaultEventStrategy<N, E>({
+      isDefaultSelectEnabled: this._settings.strategy.isDefaultSelectEnabled ?? false,
+      isDefaultHoverEnabled: this._settings.strategy.isDefaultHoverEnabled ?? false,
+    });
 
     setupContainer(this._container);
     this._canvas = this._initCanvas();
@@ -117,19 +140,23 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._handleTileChange();
   }
 
+  get data(): IGraph<N, E> {
+    return this._graph;
+  }
+
+  get events(): OrbEmitter<N, E> {
+    return this._events;
+  }
+
   get leaflet(): L.Map {
     return this._leaflet;
   }
 
-  isInitiallyRendered(): boolean {
-    return this._renderer.isInitiallyRendered;
-  }
-
-  getSettings(): IMapViewSettings<N, E> {
+  getSettings(): IOrbMapViewSettings<N, E> {
     return copyObject(this._settings);
   }
 
-  setSettings(settings: IMapViewSettingsUpdate<N, E>) {
+  setSettings(settings: IOrbMapViewSettingsUpdate<N, E>) {
     if (settings.getGeoPosition) {
       this._settings.getGeoPosition = settings.getGeoPosition;
       this._updateGraphPositions();
@@ -150,6 +177,18 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     if (settings.render) {
       this._renderer.setSettings(settings.render);
       this._settings.render = this._renderer.getSettings();
+    }
+
+    if (settings.strategy) {
+      if (isBoolean(settings.strategy.isDefaultHoverEnabled)) {
+        this._settings.strategy.isDefaultHoverEnabled = settings.strategy.isDefaultHoverEnabled;
+        this._strategy.isHoverEnabled = this._settings.strategy.isDefaultHoverEnabled;
+      }
+
+      if (isBoolean(settings.strategy.isDefaultSelectEnabled)) {
+        this._settings.strategy.isDefaultSelectEnabled = settings.strategy.isDefaultSelectEnabled;
+        this._strategy.isSelectEnabled = this._settings.strategy.isDefaultSelectEnabled;
+      }
     }
   }
 
@@ -216,39 +255,37 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       const point: IPosition = { x: event.layerPoint.x, y: event.layerPoint.y };
       const containerPoint: IPosition = { x: event.containerPoint.x, y: event.containerPoint.y };
 
-      if (this._strategy.onMouseMove) {
-        const response = this._strategy.onMouseMove(this._graph, point);
-        const subject = response.changedSubject;
+      const response = this._strategy.onMouseMove(this._graph, point);
+      const subject = response.changedSubject;
 
-        if (subject && response.isStateChanged) {
-          if (isNode(subject)) {
-            this._events.emit(OrbEventType.NODE_HOVER, {
-              node: subject,
-              event: event.originalEvent,
-              localPoint: point,
-              globalPoint: containerPoint,
-            });
-          }
-          if (isEdge(subject)) {
-            this._events.emit(OrbEventType.EDGE_HOVER, {
-              edge: subject,
-              event: event.originalEvent,
-              localPoint: point,
-              globalPoint: containerPoint,
-            });
-          }
+      if (subject && response.isStateChanged) {
+        if (isNode(subject)) {
+          this._events.emit(OrbEventType.NODE_HOVER, {
+            node: subject,
+            event: event.originalEvent,
+            localPoint: point,
+            globalPoint: containerPoint,
+          });
         }
-
-        this._events.emit(OrbEventType.MOUSE_MOVE, {
-          subject,
-          event: event.originalEvent,
-          localPoint: point,
-          globalPoint: containerPoint,
-        });
-
-        if (response.isStateChanged) {
-          this._renderer.render(this._graph);
+        if (isEdge(subject)) {
+          this._events.emit(OrbEventType.EDGE_HOVER, {
+            edge: subject,
+            event: event.originalEvent,
+            localPoint: point,
+            globalPoint: containerPoint,
+          });
         }
+      }
+
+      this._events.emit(OrbEventType.MOUSE_MOVE, {
+        subject,
+        event: event.originalEvent,
+        localPoint: point,
+        globalPoint: containerPoint,
+      });
+
+      if (response.isStateChanged) {
+        this._renderer.render(this._graph);
       }
     });
 
@@ -258,39 +295,37 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       const point: IPosition = { x: event.layerPoint.x, y: event.layerPoint.y };
       const containerPoint: IPosition = { x: event.containerPoint.x, y: event.containerPoint.y };
 
-      if (this._strategy.onMouseClick) {
-        const response = this._strategy.onMouseClick(this._graph, point);
-        const subject = response.changedSubject;
+      const response = this._strategy.onMouseClick(this._graph, point);
+      const subject = response.changedSubject;
 
-        if (subject) {
-          if (isNode(subject)) {
-            this._events.emit(OrbEventType.NODE_CLICK, {
-              node: subject,
-              event: event.originalEvent,
-              localPoint: point,
-              globalPoint: containerPoint,
-            });
-          }
-          if (isEdge(subject)) {
-            this._events.emit(OrbEventType.EDGE_CLICK, {
-              edge: subject,
-              event: event.originalEvent,
-              localPoint: point,
-              globalPoint: containerPoint,
-            });
-          }
+      if (subject) {
+        if (isNode(subject)) {
+          this._events.emit(OrbEventType.NODE_CLICK, {
+            node: subject,
+            event: event.originalEvent,
+            localPoint: point,
+            globalPoint: containerPoint,
+          });
         }
-
-        this._events.emit(OrbEventType.MOUSE_CLICK, {
-          subject,
-          event: event.originalEvent,
-          localPoint: point,
-          globalPoint: containerPoint,
-        });
-
-        if (response.isStateChanged || response.changedSubject) {
-          this._renderer.render(this._graph);
+        if (isEdge(subject)) {
+          this._events.emit(OrbEventType.EDGE_CLICK, {
+            edge: subject,
+            event: event.originalEvent,
+            localPoint: point,
+            globalPoint: containerPoint,
+          });
         }
+      }
+
+      this._events.emit(OrbEventType.MOUSE_CLICK, {
+        subject,
+        event: event.originalEvent,
+        localPoint: point,
+        globalPoint: containerPoint,
+      });
+
+      if (response.isStateChanged || response.changedSubject) {
+        this._renderer.render(this._graph);
       }
     });
 

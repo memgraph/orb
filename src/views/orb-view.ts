@@ -8,23 +8,26 @@ import { D3ZoomEvent, zoom, ZoomBehavior } from 'd3-zoom';
 import { select } from 'd3-selection';
 import { IPosition, isEqualPosition } from '../common';
 import { ISimulator, SimulatorFactory } from '../simulator';
-import { IGraph } from '../models/graph';
+import { Graph, IGraph } from '../models/graph';
 import { INode, INodeBase, isNode } from '../models/node';
 import { IEdgeBase, isEdge } from '../models/edge';
-import { IOrbView, IOrbViewContext } from './shared';
-import { IEventStrategy } from '../models/strategy';
-import { ID3SimulatorEngineSettingsUpdate } from '../simulator/engine/d3-simulator-engine';
+import { IOrbView } from './shared';
+import { DefaultEventStrategy, IEventStrategy, IEventStrategySettings } from '../models/strategy';
+import { ID3SimulatorEngineSettings } from '../simulator/engine/d3-simulator-engine';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
 import { IRenderer, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
 import { setupContainer } from '../utils/html.utils';
 import { SimulatorEventType } from '../simulator/shared';
+import { getDefaultGraphStyle } from '../models/style';
+import { isBoolean } from '../utils/type.utils';
 
-export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> {
+export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
-  simulation: ID3SimulatorEngineSettingsUpdate;
+  simulation: Partial<ID3SimulatorEngineSettings>;
   render: Partial<IRendererSettings>;
+  strategy: Partial<IEventStrategySettings>;
   zoomFitTransitionMs: number;
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
@@ -32,17 +35,17 @@ export interface IDefaultViewSettings<N extends INodeBase, E extends IEdgeBase> 
   areCollapsedContainerDimensionsAllowed: boolean;
 }
 
-export type IDefaultViewSettingsInit<N extends INodeBase, E extends IEdgeBase> = Omit<
-  Partial<IDefaultViewSettings<N, E>>,
+export type IOrbViewSettingsInit<N extends INodeBase, E extends IEdgeBase> = Omit<
+  Partial<IOrbViewSettings<N, E>>,
   'render'
 > & { render?: Partial<IRendererSettingsInit> };
 
-export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<IDefaultViewSettings<N, E>> {
+export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E, IOrbViewSettings<N, E>> {
   private _container: HTMLElement;
   private _graph: IGraph<N, E>;
   private _events: OrbEmitter<N, E>;
   private _strategy: IEventStrategy<N, E>;
-  private _settings: IDefaultViewSettings<N, E>;
+  private _settings: IOrbViewSettings<N, E>;
   private _canvas: HTMLCanvasElement;
 
   private readonly _renderer: IRenderer<N, E>;
@@ -54,11 +57,18 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   private _d3Zoom: ZoomBehavior<HTMLCanvasElement, any>;
   private _dragStartPosition: IPosition | undefined;
 
-  constructor(context: IOrbViewContext<N, E>, settings?: Partial<IDefaultViewSettingsInit<N, E>>) {
-    this._container = context.container;
-    this._graph = context.graph;
-    this._events = context.events;
-    this._strategy = context.strategy;
+  constructor(container: HTMLElement, settings?: Partial<IOrbViewSettingsInit<N, E>>) {
+    this._container = container;
+    this._graph = new Graph<N, E>(undefined, {
+      onLoadedImages: () => {
+        // Not to call render() before user's .render()
+        if (this._renderer.isInitiallyRendered) {
+          this.render();
+        }
+      },
+    });
+    this._graph.setDefaultStyle(getDefaultGraphStyle());
+    this._events = new OrbEmitter<N, E>();
 
     this._settings = {
       getPosition: settings?.getPosition,
@@ -75,7 +85,17 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       render: {
         ...settings?.render,
       },
+      strategy: {
+        isDefaultHoverEnabled: true,
+        isDefaultSelectEnabled: true,
+        ...settings?.strategy,
+      },
     };
+
+    this._strategy = new DefaultEventStrategy<N, E>({
+      isDefaultSelectEnabled: this._settings.strategy.isDefaultSelectEnabled ?? false,
+      isDefaultHoverEnabled: this._settings.strategy.isDefaultHoverEnabled ?? false,
+    });
 
     setupContainer(this._container, this._settings.areCollapsedContainerDimensionsAllowed);
     this._canvas = this._initCanvas();
@@ -149,15 +169,19 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     this._simulator.setSettings(this._settings.simulation);
   }
 
-  isInitiallyRendered(): boolean {
-    return this._renderer.isInitiallyRendered;
+  get data(): IGraph<N, E> {
+    return this._graph;
   }
 
-  getSettings(): IDefaultViewSettings<N, E> {
+  get events(): OrbEmitter<N, E> {
+    return this._events;
+  }
+
+  getSettings(): IOrbViewSettings<N, E> {
     return copyObject(this._settings);
   }
 
-  setSettings(settings: Partial<IDefaultViewSettings<N, E>>) {
+  setSettings(settings: Partial<IOrbViewSettings<N, E>>) {
     if (settings.getPosition) {
       this._settings.getPosition = settings.getPosition;
     }
@@ -173,6 +197,18 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     if (settings.render) {
       this._renderer.setSettings(settings.render);
       this._settings.render = this._renderer.getSettings();
+    }
+
+    if (settings.strategy) {
+      if (isBoolean(settings.strategy.isDefaultHoverEnabled)) {
+        this._settings.strategy.isDefaultHoverEnabled = settings.strategy.isDefaultHoverEnabled;
+        this._strategy.isHoverEnabled = this._settings.strategy.isDefaultHoverEnabled;
+      }
+
+      if (isBoolean(settings.strategy.isDefaultSelectEnabled)) {
+        this._settings.strategy.isDefaultSelectEnabled = settings.strategy.isDefaultSelectEnabled;
+        this._strategy.isSelectEnabled = this._settings.strategy.isDefaultSelectEnabled;
+      }
     }
   }
 
@@ -309,39 +345,37 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     const mousePoint = this.getCanvasMousePosition(event);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
-    if (this._strategy.onMouseMove) {
-      const response = this._strategy.onMouseMove(this._graph, simulationPoint);
-      const subject = response.changedSubject;
+    const response = this._strategy.onMouseMove(this._graph, simulationPoint);
+    const subject = response.changedSubject;
 
-      if (subject && response.isStateChanged) {
-        if (isNode(subject)) {
-          this._events.emit(OrbEventType.NODE_HOVER, {
-            node: subject,
-            event,
-            localPoint: simulationPoint,
-            globalPoint: mousePoint,
-          });
-        }
-        if (isEdge(subject)) {
-          this._events.emit(OrbEventType.EDGE_HOVER, {
-            edge: subject,
-            event,
-            localPoint: simulationPoint,
-            globalPoint: mousePoint,
-          });
-        }
+    if (subject && response.isStateChanged) {
+      if (isNode(subject)) {
+        this._events.emit(OrbEventType.NODE_HOVER, {
+          node: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
       }
-
-      this._events.emit(OrbEventType.MOUSE_MOVE, {
-        subject,
-        event,
-        localPoint: simulationPoint,
-        globalPoint: mousePoint,
-      });
-
-      if (response.isStateChanged) {
-        this._renderer.render(this._graph);
+      if (isEdge(subject)) {
+        this._events.emit(OrbEventType.EDGE_HOVER, {
+          edge: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
       }
+    }
+
+    this._events.emit(OrbEventType.MOUSE_MOVE, {
+      subject,
+      event,
+      localPoint: simulationPoint,
+      globalPoint: mousePoint,
+    });
+
+    if (response.isStateChanged) {
+      this._renderer.render(this._graph);
     }
   };
 
@@ -349,39 +383,37 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
     const mousePoint = this.getCanvasMousePosition(event);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
-    if (this._strategy.onMouseClick) {
-      const response = this._strategy.onMouseClick(this._graph, simulationPoint);
-      const subject = response.changedSubject;
+    const response = this._strategy.onMouseClick(this._graph, simulationPoint);
+    const subject = response.changedSubject;
 
-      if (subject) {
-        if (isNode(subject)) {
-          this._events.emit(OrbEventType.NODE_CLICK, {
-            node: subject,
-            event,
-            localPoint: simulationPoint,
-            globalPoint: mousePoint,
-          });
-        }
-        if (isEdge(subject)) {
-          this._events.emit(OrbEventType.EDGE_CLICK, {
-            edge: subject,
-            event,
-            localPoint: simulationPoint,
-            globalPoint: mousePoint,
-          });
-        }
+    if (subject) {
+      if (isNode(subject)) {
+        this._events.emit(OrbEventType.NODE_CLICK, {
+          node: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
       }
-
-      this._events.emit(OrbEventType.MOUSE_CLICK, {
-        subject,
-        event,
-        localPoint: simulationPoint,
-        globalPoint: mousePoint,
-      });
-
-      if (response.isStateChanged || response.changedSubject) {
-        this._renderer.render(this._graph);
+      if (isEdge(subject)) {
+        this._events.emit(OrbEventType.EDGE_CLICK, {
+          edge: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
       }
+    }
+
+    this._events.emit(OrbEventType.MOUSE_CLICK, {
+      subject,
+      event,
+      localPoint: simulationPoint,
+      globalPoint: mousePoint,
+    });
+
+    if (response.isStateChanged || response.changedSubject) {
+      this._renderer.render(this._graph);
     }
   };
 

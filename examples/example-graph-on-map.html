@@ -44,10 +44,9 @@
       { id: 5, start: 0, end: 1 },
     ];
 
-    const orb = new Orb.Orb(container);
-    orb.setView((context) => new Orb.MapView(context, {
+    const orb = new Orb.OrbMapView(container, {
       getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng, }),
-    }));
+    });
 
     // Assign a basic style
     orb.data.setDefaultStyle({
@@ -81,8 +80,8 @@
     orb.data.setup({ nodes, edges });
 
     // Render and recenter the view
-    orb.view.render(() => {
-      orb.view.recenter();
+    orb.render(() => {
+      orb.recenter();
     });
   </script>
 </body>
