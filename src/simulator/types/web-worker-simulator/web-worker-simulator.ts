@@ -12,8 +12,8 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     super();
     this.worker = new Worker(
       new URL(
-        /* webpackChunkName: 'process.worker' */
-        './process.worker',
+        /* webpackChunkName: 'simulator.worker' */
+        './simulator.worker',
         import.meta.url,
       ),
       { type: 'module' },
@@ -49,16 +49,33 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     };
   }
 
-  setData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.emitToWorker({ type: WorkerInputType.SetData, data: { nodes, edges } });
+  /**
+   * Creates a new graph with the specified data. Any existing data gets discarded.
+   * This action creates a new simulation object but keeps the existing simulation settings.
+   *
+   * @param {ISimulationNode[]} nodes New nodes
+   * @param {ISimulationEdge[]} edges New edges
+   */
+  setupData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.emitToWorker({ type: WorkerInputType.SetupData, data: { nodes, edges } });
   }
 
-  addData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.emitToWorker({ type: WorkerInputType.AddData, data: { nodes, edges } });
+  /**
+   * Inserts or updates data to an existing graph. (Also known as upsert)
+   *
+   * @param {ISimulationNode[]} nodes Added nodes
+   * @param {ISimulationEdge[]} edges Added edges
+   */
+  mergeData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.emitToWorker({ type: WorkerInputType.MergeData, data: { nodes, edges } });
   }
 
   updateData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
     this.emitToWorker({ type: WorkerInputType.UpdateData, data: { nodes, edges } });
+  }
+
+  deleteData(nodeIds: number[] | undefined, edgeIds: number[] | undefined) {
+    this.emitToWorker({ type: WorkerInputType.DeleteData, data: { nodeIds, edgeIds } });
   }
 
   clearData() {
@@ -73,8 +90,8 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     this.emitToWorker({ type: WorkerInputType.ActivateSimulation });
   }
 
-  startSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.emitToWorker({ type: WorkerInputType.StartSimulation, data: { nodes, edges } });
+  startSimulation() {
+    this.emitToWorker({ type: WorkerInputType.StartSimulation });
   }
 
   updateSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]) {

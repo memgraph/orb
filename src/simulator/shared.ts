@@ -3,7 +3,24 @@ import { SimulationLinkDatum, SimulationNodeDatum } from 'd3-force';
 import { ID3SimulatorEngineSettings, ID3SimulatorEngineSettingsUpdate } from './engine/d3-simulator-engine';
 import { IEmitter } from '../utils/emitter.utils';
 
-export type ISimulationNode = SimulationNodeDatum & { id: number; mass?: number };
+/**
+ * Node with sticky coordinates.
+ * A sticky node is immovable and represents a positioned node with user defined coordinates.
+ * This node isn't affected by physics.
+ * This enables a combination of sticky and free nodes where the free nodes are positioned
+ * by the simulator engine to adjust to the immobilized sticky nodes.
+ * Not to be confused with fixed coordinates `{ fx, fy }` which are used for physics.
+ */
+export interface IStickyNode {
+  sx?: number | null;
+  sy?: number | null;
+}
+
+export type ISimulationNode = SimulationNodeDatum &
+  IStickyNode & {
+    id: number;
+    mass?: number;
+  };
 export type ISimulationEdge = SimulationLinkDatum<ISimulationNode> & { id: number };
 
 export enum SimulatorEventType {
@@ -25,17 +42,16 @@ export type SimulatorEvents = {
 };
 
 export interface ISimulator extends IEmitter<SimulatorEvents> {
-  // Sets nodes and edges without running simulation
-  setData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
-  addData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
+  setupData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
+  mergeData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
   updateData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
+  deleteData(nodeIds: number[] | undefined, edgeIds: number[] | undefined): void;
   clearData(): void;
 
   // Simulation handlers
   simulate(): void;
   activateSimulation(): void;
   startSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
-  updateSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
   stopSimulation(): void;
 
   // Node handlers
