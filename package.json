@@ -28,7 +28,7 @@
     "build:release": "tsc && webpack",
     "webpack": "webpack",
     "webpack:watch": "webpack --watch",
-    "serve": "http-server ./dist/browser/",
+    "serve": "http-server ./dist/browser/ -o -c-1 -p 8082",
     "test": "jest --runInBand --detectOpenHandles --forceExit --verbose --useStderr",
     "coverage": "npm test -- --coverage --collectCoverageFrom='./src/**'",
     "lint": "eslint .",

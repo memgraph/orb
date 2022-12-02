@@ -21,9 +21,9 @@ export interface IGraph<N extends INodeBase, E extends IEdgeBase> {
   getEdgeCount(): number;
   getNodeById(id: any): INode<N, E> | undefined;
   getEdgeById(id: any): IEdge<N, E> | undefined;
-  getNodePositions(): INodePosition[];
+  getNodePositions(filterBy?: INodeFilter<N, E>): INodePosition[];
   setNodePositions(positions: INodePosition[]): void;
-  getEdgePositions(): IEdgePosition[];
+  getEdgePositions(filterBy?: IEdgeFilter<N, E>): IEdgePosition[];
   setDefaultStyle(style: Partial<IGraphStyle<N, E>>): void;
   setup(data: Partial<IGraphData<N, E>>): void;
   clearPositions(): void;
@@ -33,25 +33,37 @@ export interface IGraph<N extends INodeBase, E extends IEdgeBase> {
   getBoundingBox(): IRectangle;
   getNearestNode(point: IPosition): INode<N, E> | undefined;
   getNearestEdge(point: IPosition, minDistance?: number): IEdge<N, E> | undefined;
+  setSettings(settings: Partial<IGraphSettings<N, E>>): void;
 }
 
-// TODO: Move this to node events when image listening will be on node level
-// TODO: Add global events user can listen for: images-load-start, images-load-end
-export interface IGraphSettings {
-  onLoadedImages: () => void;
+export interface IGraphSettings<N extends INodeBase, E extends IEdgeBase> {
+  // TODO(tlastre): Move this to node events when image listening will be on node level
+  // TODO(tlastre): Add global events user can listen for: images-load-start, images-load-end
+  onLoadedImages?: () => void;
+  onSetupData?: (data: Partial<IGraphData<N, E>>, graph: IGraph<N, E>) => void;
+  onMergeData?: (data: Partial<IGraphData<N, E>>, graph: IGraph<N, E>) => void;
+  onRemoveData?: (data: Partial<{ nodeIds: number[]; edgeIds: number[] }>, graph: IGraph<N, E>) => void;
 }
 
 export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N, E> {
   private _nodeById: { [id: number]: INode<N, E> } = {};
   private _edgeById: { [id: number]: IEdge<N, E> } = {};
   private _defaultStyle?: Partial<IGraphStyle<N, E>>;
-  private _onLoadedImages?: () => void;
+  private _settings: IGraphSettings<N, E> | undefined;
 
-  constructor(data?: Partial<IGraphData<N, E>>, settings?: Partial<IGraphSettings>) {
-    this._onLoadedImages = settings?.onLoadedImages;
+  constructor(data?: Partial<IGraphData<N, E>>, settings?: Partial<IGraphSettings<N, E>>) {
+    // TODO(dlozic): How to use object assign here? If I add add and export a default const here, it needs N, E.
+    this._settings = settings;
     const nodes = data?.nodes ?? [];
     const edges = data?.edges ?? [];
     this.setup({ nodes, edges });
+  }
+
+  setSettings(settings: Partial<IGraphSettings<N, E>>) {
+    Object.keys(settings).forEach((key) => {
+      // @ts-ignore
+      this._settings[key] = settings[key];
+    });
   }
 
   /**
@@ -137,10 +149,11 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
   /**
    * Returns a list of current node positions (x, y).
    *
+   * @param {INodeFilter} filterBy Filter function for nodes
    * @return {INodePosition[]} List of node positions
    */
-  getNodePositions(): INodePosition[] {
-    const nodes = this.getNodes();
+  getNodePositions(filterBy?: INodeFilter<N, E>): INodePosition[] {
+    const nodes = this.getNodes(filterBy);
     const positions: INodePosition[] = new Array<INodePosition>(nodes.length);
     for (let i = 0; i < nodes.length; i++) {
       positions[i] = nodes[i].position;
@@ -166,10 +179,11 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
    * Returns a list of current edge positions. Edge positions do not have
    * (x, y) but a link to the source and target node ids.
    *
+   * @param {IEdgeFilter} filterBy Filter function for edges
    * @return {IEdgePosition[]} List of edge positions
    */
-  getEdgePositions(): IEdgePosition[] {
-    const edges = this.getEdges();
+  getEdgePositions(filterBy?: IEdgeFilter<N, E>): IEdgePosition[] {
+    const edges = this.getEdges(filterBy);
     const positions: IEdgePosition[] = new Array<IEdgePosition>(edges.length);
     for (let i = 0; i < edges.length; i++) {
       positions[i] = edges[i].position;
@@ -200,6 +214,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
 
     this._applyEdgeOffsets();
     this._applyStyle();
+
+    this._settings?.onSetupData?.(data, this);
   }
 
   clearPositions() {
@@ -218,8 +234,11 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
 
     this._applyEdgeOffsets();
     this._applyStyle();
+
+    this._settings?.onMergeData?.(data, this);
   }
 
+  // TODO(dlozic): Add delete all mechanic.
   remove(data: Partial<{ nodeIds: number[]; edgeIds: number[] }>) {
     const nodeIds = data.nodeIds ?? [];
     const edgeIds = data.edgeIds ?? [];
@@ -229,6 +248,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
 
     this._applyEdgeOffsets();
     // this._applyStyle();
+
+    this._settings?.onRemoveData?.(data, this);
   }
 
   isEqual<T extends INodeBase, K extends IEdgeBase>(graph: Graph<T, K>): boolean {
@@ -328,7 +349,10 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
 
   private _insertNodes(nodes: N[]) {
     for (let i = 0; i < nodes.length; i++) {
-      const node = NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._onLoadedImages?.() });
+      const node = NodeFactory.create<N, E>(
+        { data: nodes[i] },
+        { onLoadedImage: () => this._settings?.onLoadedImages?.() },
+      );
       this._nodeById[node.id] = node;
     }
   }
@@ -357,7 +381,10 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
         continue;
       }
 
-      const node = NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._onLoadedImages?.() });
+      const node = NodeFactory.create<N, E>(
+        { data: nodes[i] },
+        { onLoadedImage: () => this._settings?.onLoadedImages?.() },
+      );
       this._nodeById[node.id] = node;
     }
   }
@@ -493,7 +520,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
 
     if (styleImageUrls.size) {
       ImageHandler.getInstance().loadImages(Array.from(styleImageUrls), () => {
-        this._onLoadedImages?.();
+        this._settings?.onLoadedImages?.();
       });
     }
   }

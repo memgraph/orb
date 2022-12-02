@@ -36,16 +36,22 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
     });
   }
 
-  setData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.simulator.setData({ nodes, edges });
+  setupData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.simulator.setupData({ nodes, edges });
   }
 
-  addData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.simulator.addData({ nodes, edges });
+  mergeData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.simulator.mergeData({ nodes, edges });
   }
 
   updateData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
     this.simulator.updateData({ nodes, edges });
+  }
+
+  // TODO(dlozic): Replace arguments with object to match IGraph.
+  // Partial doesn't work well this way - have to add undefined manually.
+  deleteData(nodeIds: number[] | undefined, edgeIds: number[] | undefined) {
+    this.simulator.deleteData({ nodeIds, edgeIds });
   }
 
   clearData() {
@@ -53,19 +59,16 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
   }
 
   simulate() {
-    this.simulator.simulate();
+    console.log('not implemented');
+    // this.simulator.runSimulation();
   }
 
   activateSimulation() {
     this.simulator.activateSimulation();
   }
 
-  startSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.simulator.startSimulation({ nodes, edges });
-  }
-
-  updateSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.simulator.updateSimulation({ nodes, edges });
+  startSimulation() {
+    this.simulator.startSimulation();
   }
 
   stopSimulation() {
@@ -85,11 +88,11 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
   }
 
   fixNodes(nodes: ISimulationNode[]) {
-    this.simulator.fixNodes(nodes);
+    this.simulator.stickNodes(nodes);
   }
 
   releaseNodes(nodes?: ISimulationNode[] | undefined): void {
-    this.simulator.releaseNodes(nodes);
+    this.simulator.unstickNodes(nodes);
   }
 
   setSettings(settings: ID3SimulatorEngineSettingsUpdate) {
