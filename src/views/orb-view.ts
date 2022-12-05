@@ -59,6 +59,10 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
   constructor(container: HTMLElement, settings?: Partial<IOrbViewSettingsInit<N, E>>) {
     this._container = container;
+    // TODO(dlozic): Why is this popping up?
+    // I guess the callbacks that use this variable have their own scope and TS doesn't recognize this.
+    // TS6133: '_isSimulating' is declared but its value is never read.
+    console.log(this._isSimulating);
     this._settings = {
       getPosition: settings?.getPosition,
       zoomFitTransitionMs: 200,
