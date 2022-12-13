@@ -1,3 +1,9 @@
+## 0.1.5
+
+### Fix
+
+* Fix web worker build with parcel (#36) - by @jondlm
+
 ## 0.1.4
 
 ### Fix
