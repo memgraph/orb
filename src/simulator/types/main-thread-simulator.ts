@@ -1,4 +1,11 @@
-import { ISimulationEdge, ISimulationNode, ISimulator, SimulatorEvents, SimulatorEventType } from '../shared';
+import {
+  ISimulationNode,
+  ISimulator,
+  SimulatorEvents,
+  SimulatorEventType,
+  ISimulationGraph,
+  ISimulationIds,
+} from '../shared';
 import { IPosition } from '../../common';
 import { Emitter } from '../../utils/emitter.utils';
 import {
@@ -36,22 +43,20 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
     });
   }
 
-  setupData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.simulator.setupData({ nodes, edges });
+  setupData(data: ISimulationGraph) {
+    this.simulator.setupData(data);
   }
 
-  mergeData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.simulator.mergeData({ nodes, edges });
+  mergeData(data: ISimulationGraph) {
+    this.simulator.mergeData(data);
   }
 
-  updateData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.simulator.updateData({ nodes, edges });
+  updateData(data: ISimulationGraph) {
+    this.simulator.updateData(data);
   }
 
-  // TODO(dlozic): Replace arguments with object to match IGraph.
-  // Partial doesn't work well this way - have to add undefined manually.
-  deleteData(nodeIds: number[] | undefined, edgeIds: number[] | undefined) {
-    this.simulator.deleteData({ nodeIds, edgeIds });
+  deleteData(data: ISimulationIds) {
+    this.simulator.deleteData(data);
   }
 
   clearData() {
@@ -102,6 +107,5 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
   terminate() {
     this.simulator.removeAllListeners();
     this.removeAllListeners();
-    // Do nothing
   }
 }

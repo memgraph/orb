@@ -40,9 +40,9 @@ export interface IGraphSettings<N extends INodeBase, E extends IEdgeBase> {
   // TODO(tlastre): Move this to node events when image listening will be on node level
   // TODO(tlastre): Add global events user can listen for: images-load-start, images-load-end
   onLoadedImages?: () => void;
-  onSetupData?: (data: Partial<IGraphData<N, E>>, graph: IGraph<N, E>) => void;
-  onMergeData?: (data: Partial<IGraphData<N, E>>, graph: IGraph<N, E>) => void;
-  onRemoveData?: (data: Partial<{ nodeIds: number[]; edgeIds: number[] }>, graph: IGraph<N, E>) => void;
+  onSetupData?: (data: Partial<IGraphData<N, E>>) => void;
+  onMergeData?: (data: Partial<IGraphData<N, E>>) => void;
+  onRemoveData?: (data: Partial<{ nodeIds: number[]; edgeIds: number[] }>) => void;
 }
 
 export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N, E> {
@@ -215,7 +215,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     this._applyEdgeOffsets();
     this._applyStyle();
 
-    this._settings?.onSetupData?.(data, this);
+    this._settings?.onSetupData?.(data);
   }
 
   clearPositions() {
@@ -235,7 +235,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     this._applyEdgeOffsets();
     this._applyStyle();
 
-    this._settings?.onMergeData?.(data, this);
+    this._settings?.onMergeData?.(data);
   }
 
   // TODO(dlozic): Add delete all mechanic.
@@ -249,7 +249,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     this._applyEdgeOffsets();
     // this._applyStyle();
 
-    this._settings?.onRemoveData?.(data, this);
+    this._settings?.onRemoveData?.(data);
   }
 
   isEqual<T extends INodeBase, K extends IEdgeBase>(graph: Graph<T, K>): boolean {

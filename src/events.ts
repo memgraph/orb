@@ -26,36 +26,36 @@ export enum OrbEventType {
   NODE_DRAG_END = 'node-drag-end',
 }
 
-interface IOrbEventDuration {
+export interface IOrbEventDuration {
   durationMs: number;
 }
 
-interface IOrbEventProgress {
+export interface IOrbEventProgress {
   progress: number;
 }
 
-interface IOrbEventMousePosition {
+export interface IOrbEventMousePosition {
   localPoint: IPosition;
   globalPoint: IPosition;
 }
 
-interface IOrbEventMouseClickEvent extends IOrbEventMousePosition {
+export interface IOrbEventMouseClickEvent extends IOrbEventMousePosition {
   event: PointerEvent;
 }
 
-interface IOrbEventMouseMoveEvent extends IOrbEventMousePosition {
+export interface IOrbEventMouseMoveEvent extends IOrbEventMousePosition {
   event: MouseEvent;
 }
 
-interface IOrbEventMouseEvent<N extends INodeBase, E extends IEdgeBase> extends IOrbEventMousePosition {
+export interface IOrbEventMouseEvent<N extends INodeBase, E extends IEdgeBase> extends IOrbEventMousePosition {
   subject?: INode<N, E> | IEdge<N, E>;
 }
 
-interface IOrbEventMouseNodeEvent<N extends INodeBase, E extends IEdgeBase> {
+export interface IOrbEventMouseNodeEvent<N extends INodeBase, E extends IEdgeBase> {
   node: INode<N, E>;
 }
 
-interface IOrbEventMouseEdgeEvent<N extends INodeBase, E extends IEdgeBase> {
+export interface IOrbEventMouseEdgeEvent<N extends INodeBase, E extends IEdgeBase> {
   edge: IEdge<N, E>;
 }
 

@@ -11,7 +11,7 @@ import {
   SimulationLinkDatum,
 } from 'd3-force';
 import { IPosition } from '../../common';
-import { ISimulationNode, ISimulationEdge } from '../shared';
+import { ISimulationNode, ISimulationEdge, ISimulationGraph } from '../shared';
 import { Emitter } from '../../utils/emitter.utils';
 import { isObjectEqual, copyObject } from '../../utils/object.utils';
 
@@ -137,11 +137,6 @@ export interface ID3SimulatorProgress {
   progress: number;
 }
 
-export interface ID3SimulatorGraph {
-  nodes: ISimulationNode[];
-  edges: ISimulationEdge[];
-}
-
 export interface ID3SimulatorNodeId {
   id: number;
 }
@@ -155,12 +150,12 @@ interface IRunSimulationOptions {
 }
 
 export type D3SimulatorEvents = {
-  [D3SimulatorEngineEventType.TICK]: ID3SimulatorGraph;
-  [D3SimulatorEngineEventType.END]: ID3SimulatorGraph;
+  [D3SimulatorEngineEventType.TICK]: ISimulationGraph;
+  [D3SimulatorEngineEventType.END]: ISimulationGraph;
   [D3SimulatorEngineEventType.SIMULATION_START]: undefined;
-  [D3SimulatorEngineEventType.SIMULATION_PROGRESS]: ID3SimulatorGraph & ID3SimulatorProgress;
-  [D3SimulatorEngineEventType.SIMULATION_END]: ID3SimulatorGraph;
-  [D3SimulatorEngineEventType.NODE_DRAG]: ID3SimulatorGraph;
+  [D3SimulatorEngineEventType.SIMULATION_PROGRESS]: ISimulationGraph & ID3SimulatorProgress;
+  [D3SimulatorEngineEventType.SIMULATION_END]: ISimulationGraph;
+  [D3SimulatorEngineEventType.NODE_DRAG]: ISimulationGraph;
   [D3SimulatorEngineEventType.SETTINGS_UPDATE]: ID3SimulatorSettings;
 };
 
@@ -298,7 +293,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this.simulation.alphaTarget(this.settings.alpha.alphaTarget).restart();
   }
 
-  setupData(data: ID3SimulatorGraph) {
+  setupData(data: ISimulationGraph) {
     this.clearData();
 
     this._initializeNewData(data);
@@ -309,7 +304,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     }
   }
 
-  mergeData(data: ID3SimulatorGraph) {
+  mergeData(data: Partial<ISimulationGraph>) {
     this._initializeNewData(data);
 
     if (this.settings.isSimulatingOnDataUpdate) {
@@ -318,15 +313,23 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     }
   }
 
-  private _initializeNewData(data: ID3SimulatorGraph) {
-    data = this._fixDefinedNodes(data);
-    this._nodes = this._nodes.concat(data.nodes);
-    this._edges = this._edges.concat(data.edges);
+  private _initializeNewData(data: Partial<ISimulationGraph>) {
+    if (data.nodes) {
+      data.nodes = this._fixDefinedNodes(data.nodes);
+      this._nodes = this._nodes.concat(data.nodes);
+    } else {
+      this._nodes = [];
+    }
+    if (data.edges) {
+      this._edges = this._edges.concat(data.edges);
+    } else {
+      this._edges = [];
+    }
     this.setNodeIndexByNodeId();
   }
 
-  updateData(data: ID3SimulatorGraph) {
-    data = this._fixDefinedNodes(data);
+  updateData(data: ISimulationGraph) {
+    data.nodes = this._fixDefinedNodes(data.nodes);
 
     // Keep existing nodes along with their (x, y, fx, fy) coordinates to avoid
     // rearranging the graph layout.
@@ -355,7 +358,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   /**
    * Removes specified data from the simulation.
    *
-   * @param {ID3SimulatorGraph} data Nodes and edges that will be deleted
+   * @param {ISimulationGraph} data Nodes and edges that will be deleted
    */
   deleteData(data: Partial<{ nodeIds: number[] | undefined; edgeIds: number[] | undefined }>) {
     const newNodes = [];
@@ -642,22 +645,22 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
    * If the user provided nodes already have defined `x` **or** `y` properties, they are treated as _"sticky"_.
    * Only the specified axis gets immobilized.
    *
-   * @param {ID3SimulatorGraph} data Graph data.
-   * @return {ID3SimulatorGraph} Graph data with attached `{fx, sx}`, and/or `{fy, sy}` coordinates.
+   * @param {ISimulationNode[]} nodes Graph nodes.
+   * @return {ISimulationNodes[]} Graph nodes with attached `{fx, sx}`, and/or `{fy, sy}` coordinates.
    */
-  private _fixDefinedNodes(data: ID3SimulatorGraph): ID3SimulatorGraph {
+  private _fixDefinedNodes(nodes: ISimulationNode[]): ISimulationNode[] {
     // TODO(dlozic): Question: should this function be extracted or should i use `this.data` everywhere and remove inputs/outputs?
-    for (let i = 0; i < data.nodes.length; i++) {
-      if (data.nodes[i].x !== null && data.nodes[i].x !== undefined) {
-        data.nodes[i].fx = data.nodes[i].x;
-        data.nodes[i].sx = data.nodes[i].x;
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].x !== null && nodes[i].x !== undefined) {
+        nodes[i].fx = nodes[i].x;
+        nodes[i].sx = nodes[i].x;
       }
-      if (data.nodes[i].y !== null && data.nodes[i].y !== undefined) {
-        data.nodes[i].fy = data.nodes[i].y;
-        data.nodes[i].sy = data.nodes[i].y;
+      if (nodes[i].y !== null && nodes[i].y !== undefined) {
+        nodes[i].fy = nodes[i].y;
+        nodes[i].sy = nodes[i].y;
       }
     }
-    return data;
+    return nodes;
   }
 
   /**

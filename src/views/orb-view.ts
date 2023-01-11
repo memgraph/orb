@@ -62,7 +62,6 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     // TODO(dlozic): Why is this popping up?
     // I guess the callbacks that use this variable have their own scope and TS doesn't recognize this.
     // TS6133: '_isSimulating' is declared but its value is never read.
-    console.log(this._isSimulating);
     this._settings = {
       getPosition: settings?.getPosition,
       zoomFitTransitionMs: 200,
@@ -172,36 +171,42 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
     this._simulator.setSettings(this._settings.simulation);
 
-    // TODO(dlozic): Optimize crud uperations here.
+    // TODO(dlozic): Optimize crud operations here.
     this._graph.setSettings({
-      onSetupData: (_, graph) => {
+      onSetupData: () => {
+        if (this._isSimulating) {
+          console.warn('Already running a simulation. Discarding the setup data call.');
+          return;
+        }
         this._isSimulating = true;
-        this._assignPositions(graph.getNodes());
-        const nodePositions = graph.getNodePositions();
-        const edgePositions = graph.getEdgePositions();
+        this._assignPositions(this._graph.getNodes());
+        const nodePositions = this._graph.getNodePositions();
+        const edgePositions = this._graph.getEdgePositions();
         // this._onSimulationEnd = onRendered;
-        this._simulator.setupData(nodePositions, edgePositions);
+        this._simulator.setupData({ nodes: nodePositions, edges: edgePositions });
       },
-      onMergeData: (data, graph) => {
+      onMergeData: (data) => {
         const nodeIds = new Set(data.nodes?.map((node) => node.id));
         const nodeFilter: INodeFilter<N, E> = (node: INode<N, E>) => nodeIds.has(node.id);
         const edgeIds = new Set(data.edges?.map((edge) => edge.id));
         const edgeFilter: IEdgeFilter<N, E> = (edge: IEdge<N, E>) => edgeIds.has(edge.id);
 
-        this._assignPositions(graph.getNodes(nodeFilter));
+        this._assignPositions(this._graph.getNodes(nodeFilter));
 
-        const nodePositions = graph.getNodePositions(nodeFilter);
-        const edgePositions = graph.getEdgePositions(edgeFilter);
+        const nodePositions = this._graph.getNodePositions(nodeFilter);
+        const edgePositions = this._graph.getEdgePositions(edgeFilter);
 
-        this._simulator.mergeData(nodePositions, edgePositions);
+        this._simulator.mergeData({ nodes: nodePositions, edges: edgePositions });
         // this._simulator.simulate();
       },
-      onRemoveData: (_, graph) => {
-        // this._simulator.deleteData(data.nodeIds, data.edgeIds);
-        const nodePositions = graph.getNodePositions();
-        const edgePositions = graph.getEdgePositions();
-        this._simulator.updateData(nodePositions, edgePositions);
+      onRemoveData: (data) => {
+        this._simulator.deleteData(data);
+        /*
+        const nodePositions = this._graph.getNodePositions();
+        const edgePositions = this._graph.getEdgePositions();
+        this._simulator.updateData({ nodes: nodePositions, edges: edgePositions });
         this.render();
+        */
       },
     });
   }
