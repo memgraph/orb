@@ -23,6 +23,16 @@ export type ISimulationNode = SimulationNodeDatum &
   };
 export type ISimulationEdge = SimulationLinkDatum<ISimulationNode> & { id: number };
 
+export interface ISimulationGraph {
+  nodes: ISimulationNode[];
+  edges: ISimulationEdge[];
+}
+
+export interface ISimulationIds {
+  nodeIds: number[];
+  edgeIds: number[];
+}
+
 export enum SimulatorEventType {
   SIMULATION_START = 'simulation-start',
   SIMULATION_PROGRESS = 'simulation-progress',
@@ -42,10 +52,10 @@ export type SimulatorEvents = {
 };
 
 export interface ISimulator extends IEmitter<SimulatorEvents> {
-  setupData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
-  mergeData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
-  updateData(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
-  deleteData(nodeIds: number[] | undefined, edgeIds: number[] | undefined): void;
+  setupData(data: ISimulationGraph): void;
+  mergeData(data: ISimulationGraph): void;
+  updateData(data: ISimulationGraph): void;
+  deleteData(data: Partial<ISimulationIds>): void;
   clearData(): void;
 
   // Simulation handlers
