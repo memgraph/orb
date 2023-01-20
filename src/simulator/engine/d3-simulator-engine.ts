@@ -164,7 +164,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   protected simulation!: Simulation<ISimulationNode, undefined>;
   // TODO(dlozic): Question: I removed readonly here since I'm using _initialSettings to reassign
   // the settings in resetSettings(). Is this okay? Should I use Object.assign()?
-  protected settings!: ID3SimulatorEngineSettings;
+  protected settings: ID3SimulatorEngineSettings;
 
   protected _edges: ISimulationEdge[] = [];
   protected _nodes: ISimulationNode[] = [];
@@ -184,10 +184,15 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
       this._initialSettings = Object.assign(copyObject(DEFAULT_SETTINGS), settings);
     }
 
+    /*
     // TODO(dlozic): Question: TLastre, settings! are initialized in here, so they are guaranteed
     // to be defined, hence the (!). This isn't very readable though, but if not like this there would be
     // code duplication.
     this.reset();
+    */
+    // TODO(dlozic): Question2 (TLastre) I reverted this to the following and removed the (!) from settings:
+    this.settings = this.resetSettings();
+    this.clearData();
   }
 
   getSettings(): ID3SimulatorEngineSettings {
@@ -226,18 +231,12 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
   /**
    * Restores simulator engine settings to the initial settings provided during construction.
+   *
+   * @return {ID3SimulatorEngineSettings} The default settings patched with the specified parameters in the
+   * initial settings provided in the constructor or during the first settings update.
    */
-  resetSettings() {
-    this.settings = Object.assign(copyObject(DEFAULT_SETTINGS), this._initialSettings);
-  }
-
-  /**
-   * Completely resets the simulator engine by clearing all data
-   * and restoring the settings to the initial value provided during consturction.
-   */
-  reset() {
-    this.resetSettings();
-    this.clearData();
+  resetSettings(): ID3SimulatorEngineSettings {
+    return Object.assign(copyObject(DEFAULT_SETTINGS), this._initialSettings);
   }
 
   startDragNode() {

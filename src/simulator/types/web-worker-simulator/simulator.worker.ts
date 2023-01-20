@@ -10,14 +10,6 @@ const emitToMain = (message: IWorkerOutputPayload) => {
   postMessage(message);
 };
 
-simulator.on(D3SimulatorEngineEventType.TICK, (data) => {
-  emitToMain({ type: WorkerOutputType.NODE_DRAG, data });
-});
-
-simulator.on(D3SimulatorEngineEventType.END, (data) => {
-  emitToMain({ type: WorkerOutputType.NODE_DRAG_END, data });
-});
-
 simulator.on(D3SimulatorEngineEventType.SIMULATION_START, () => {
   emitToMain({ type: WorkerOutputType.SIMULATION_START });
 });
@@ -34,6 +26,14 @@ simulator.on(D3SimulatorEngineEventType.NODE_DRAG, (data) => {
   // Notify the client that the node position changed.
   // This is otherwise handled by the simulation tick if physics is enabled.
   emitToMain({ type: WorkerOutputType.NODE_DRAG, data });
+});
+
+simulator.on(D3SimulatorEngineEventType.TICK, (data) => {
+  emitToMain({ type: WorkerOutputType.SIMULATION_STEP, data });
+});
+
+simulator.on(D3SimulatorEngineEventType.END, (data) => {
+  emitToMain({ type: WorkerOutputType.NODE_DRAG_END, data });
 });
 
 simulator.on(D3SimulatorEngineEventType.SETTINGS_UPDATE, (data) => {
