@@ -35,6 +35,7 @@ export interface ISimulationIds {
 
 export enum SimulatorEventType {
   SIMULATION_START = 'simulation-start',
+  SIMULATION_STEP = 'simulation-step',
   SIMULATION_PROGRESS = 'simulation-progress',
   SIMULATION_END = 'simulation-end',
   NODE_DRAG = 'node-drag',
@@ -44,6 +45,7 @@ export enum SimulatorEventType {
 
 export type SimulatorEvents = {
   [SimulatorEventType.SIMULATION_START]: undefined;
+  [SimulatorEventType.SIMULATION_STEP]: ISimulatorEventGraph;
   [SimulatorEventType.SIMULATION_PROGRESS]: ISimulatorEventGraph & ISimulatorEventProgress;
   [SimulatorEventType.SIMULATION_END]: ISimulatorEventGraph;
   [SimulatorEventType.NODE_DRAG]: ISimulatorEventGraph;
@@ -94,6 +96,7 @@ export interface ISimulatorEvents {
   onNodeDrag: (data: ISimulatorEventGraph) => void;
   onNodeDragEnd: (data: ISimulatorEventGraph) => void;
   onSimulationStart: () => void;
+  onSimulationStep: (data: ISimulatorEventGraph) => void;
   onSimulationProgress: (data: ISimulatorEventGraph & ISimulatorEventProgress) => void;
   onSimulationEnd: (data: ISimulatorEventGraph) => void;
   onSettingsUpdate: (data: ISimulatorEventSettings) => void;

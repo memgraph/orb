@@ -59,9 +59,6 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
   constructor(container: HTMLElement, settings?: Partial<IOrbViewSettingsInit<N, E>>) {
     this._container = container;
-    // TODO(dlozic): Why is this popping up?
-    // I guess the callbacks that use this variable have their own scope and TS doesn't recognize this.
-    // TS6133: '_isSimulating' is declared but its value is never read.
     this._settings = {
       getPosition: settings?.getPosition,
       zoomFitTransitionMs: 200,
@@ -162,6 +159,10 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       this._onSimulationEnd?.();
       this._onSimulationEnd = undefined;
       this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
+    });
+    this._simulator.on(SimulatorEventType.SIMULATION_STEP, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this._renderer.render(this._graph);
     });
     this._simulator.on(SimulatorEventType.NODE_DRAG, (data) => {
       this._graph.setNodePositions(data.nodes);
