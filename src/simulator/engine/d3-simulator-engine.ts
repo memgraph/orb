@@ -324,7 +324,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     } else {
       this._edges = [];
     }
-    this.setNodeIndexByNodeId();
+    this._setNodeIndexByNodeId();
   }
 
   updateData(data: ISimulationGraph) {
@@ -341,7 +341,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     const newNodes = data.nodes.filter((node) => this._nodeIndexByNodeId[node.id] === undefined);
 
     this._nodes = [...oldNodes, ...newNodes];
-    this.setNodeIndexByNodeId();
+    this._setNodeIndexByNodeId();
 
     // Only keep new links and discard all old links.
     // Old links won't work as some discrepancies arise between the D3 index property
@@ -379,15 +379,15 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   }
 
   /**
-   * Removes all data and resets the simulation.
+   * Removes all internal and D3 simulation node and relationship data.
    */
   clearData() {
     // TODO(dlozic): Is it okay for this to also reset the simulation? Is the naming right?
     this._nodes = [];
     this._edges = [];
-    this.setNodeIndexByNodeId();
-    this._resetSimulation();
-    // TODO(dlozic): emit an event here (SIMULATION_RESET)
+    this._setNodeIndexByNodeId();
+    this.resetSimulation();
+    // TODO(dlozic): emit an event here (DATA_CLEARED)
   }
 
   /**
@@ -418,7 +418,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this.simulation.stop();
     this._nodes = [];
     this._edges = [];
-    this.setNodeIndexByNodeId();
+    this._setNodeIndexByNodeId();
     this._updateSimulationData();
   }
 
@@ -426,7 +426,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
    * Resets the simulator engine by discarding all existing simulator data (nodes and edges),
    * and keeping the current simulator engine settings.
    */
-  private _resetSimulation() {
+  resetSimulation() {
     this.linkForce = forceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>(this._edges).id(
       (node) => node.id,
     );
@@ -447,6 +447,156 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
         this.fixNodes();
       }
     });
+    // TODO(dlozic): emit an event here (SIMULATION_RESET)
+  }
+
+  /**
+   * Fixes all nodes by setting their `fx` and `fy` properties to `x` and `y`.
+   * If no nodes are provided, this function fixes all nodes.
+   *
+   * @param {ISimulationNode[]} nodes Nodes that are going to be fixed. If undefined, all nodes get fixed.
+   */
+  fixNodes(nodes?: ISimulationNode[]) {
+    if (!nodes) {
+      nodes = this._nodes;
+    }
+
+    for (let i = 0; i < nodes.length; i++) {
+      this.fixNode(this._nodes[i]);
+    }
+  }
+
+  /**
+   * Releases specified nodes.
+   * If no nodes are provided, this function releases all nodes.
+   *
+   * @param {ISimulationNode[]} nodes Nodes that are going to be released. If undefined, all nodes get released.
+   */
+  unfixNodes(nodes?: ISimulationNode[]) {
+    if (!nodes) {
+      nodes = this._nodes;
+    }
+
+    for (let i = 0; i < nodes.length; i++) {
+      this.unfixNode(this._nodes[i]);
+    }
+  }
+
+  /**
+   * Fixes a node by setting its `fx` and `fy` properties to `x` and `y`.
+   * This function is called when disabling physics.
+   *
+   * @param {ISimulationNode} node Simulation node that is going to be fixed
+   */
+  fixNode(node: ISimulationNode) {
+    if (node.sx === null || node.sx === undefined) {
+      node.fx = node.x;
+    }
+    if (node.sy === null || node.sy === undefined) {
+      node.fy = node.y;
+    }
+  }
+
+  /**
+   * Releases a node if it's not sticky by setting its `fx` and `fy` properties to `null`.
+   * This function is called when enabling physics but the sticky property overpowers physics.
+   *
+   * @param {ISimulationNode} node Simulation node that is going to be released
+   */
+  unfixNode(node: ISimulationNode) {
+    if (node.sx === null || node.sx === undefined) {
+      node.fx = null;
+    }
+    if (node.sy === null || node.sy === undefined) {
+      node.fy = null;
+    }
+  }
+
+  /**
+   * Sticks the specified nodes into place.
+   * This overpowers any physics state and also sticks the node to their current positions.
+   * If no nodes are provided, this function sticks all nodes.
+   *
+   * @param {ISimulationNode[]} nodes Nodes that are going to become sticky. If undefined, all nodes get sticked.
+   */
+  stickNodes(nodes?: ISimulationNode[]) {
+    if (!nodes) {
+      nodes = this._nodes;
+    }
+
+    for (let i = 0; i < nodes.length; i++) {
+      this.stickNode(this._nodes[i]);
+    }
+  }
+
+  /**
+   * Removes the sticky properties from all specified nodes.
+   * If physics is enabled, the nodes get unfixed as well.
+   * If no nodes are provided, this function unsticks all nodes.
+   *
+   * @param {ISimulationNode[]} nodes Nodes that are going to be unsticked. If undefined, all nodes get unsticked.
+   */
+  unstickNodes(nodes?: ISimulationNode[]) {
+    if (!nodes) {
+      nodes = this._nodes;
+    }
+
+    for (let i = 0; i < nodes.length; i++) {
+      this.unstickNode(this._nodes[i]);
+    }
+  }
+
+  /**
+   * Sticks a node into place.
+   * This function overpowers any physics state and also sticks the node to its current coordinates.
+   *
+   * @param {ISimulationNode} node Simulation node that is going to become sticky
+   */
+  stickNode(node: ISimulationNode) {
+    node.sx = node.x;
+    node.fx = node.x;
+    node.sy = node.y;
+    node.fy = node.y;
+  }
+
+  /**
+   * Removes the sticky properties from the node.
+   * If physics is enabled, the node gets released as well.
+   *
+   * @param {ISimulationNode} node Simulation node that gets unstuck
+   */
+  unstickNode(node: ISimulationNode) {
+    node.sx = null;
+    node.sy = null;
+
+    if (this.settings.isPhysicsEnabled) {
+      node.fx = null;
+      node.fy = null;
+    }
+  }
+
+  /**
+   * Sticks all nodes thath have a defined position (x and y coordinates).
+   * This function should be called when the user initially sets up or merges some data.
+   * If the user provided nodes already have defined `x` **or** `y` properties, they are treated as _"sticky"_.
+   * Only the specified axis gets immobilized.
+   *
+   * @param {ISimulationNode[]} nodes Graph nodes.
+   * @return {ISimulationNodes[]} Graph nodes with attached `{fx, sx}`, and/or `{fy, sy}` coordinates.
+   */
+  protected _fixDefinedNodes(nodes: ISimulationNode[]): ISimulationNode[] {
+    // TODO(dlozic): Question: should this function be extracted or should i use `this.data` everywhere and remove inputs/outputs?
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].x !== null && nodes[i].x !== undefined) {
+        nodes[i].fx = nodes[i].x;
+        nodes[i].sx = nodes[i].x;
+      }
+      if (nodes[i].y !== null && nodes[i].y !== undefined) {
+        nodes[i].fy = nodes[i].y;
+        nodes[i].sy = nodes[i].y;
+      }
+    }
+    return nodes;
   }
 
   /**
@@ -552,159 +702,10 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this.emit(D3SimulatorEngineEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
   }
 
-  protected setNodeIndexByNodeId() {
+  protected _setNodeIndexByNodeId() {
     this._nodeIndexByNodeId = {};
     for (let i = 0; i < this._nodes.length; i++) {
       this._nodeIndexByNodeId[this._nodes[i].id] = i;
-    }
-  }
-
-  /**
-   * Fixes all nodes by setting their `fx` and `fy` properties to `x` and `y`.
-   * If no nodes are provided, this function fixes all nodes.
-   *
-   * @param {ISimulationNode[]} nodes Nodes that are going to be fixed. If undefined, all nodes get fixed.
-   */
-  fixNodes(nodes?: ISimulationNode[]) {
-    if (!nodes) {
-      nodes = this._nodes;
-    }
-
-    for (let i = 0; i < nodes.length; i++) {
-      this.fixNode(this._nodes[i]);
-    }
-  }
-
-  /**
-   * Releases specified nodes.
-   * If no nodes are provided, this function releases all nodes.
-   *
-   * @param {ISimulationNode[]} nodes Nodes that are going to be released. If undefined, all nodes get released.
-   */
-  unfixNodes(nodes?: ISimulationNode[]) {
-    if (!nodes) {
-      nodes = this._nodes;
-    }
-
-    for (let i = 0; i < nodes.length; i++) {
-      this.unfixNode(this._nodes[i]);
-    }
-  }
-
-  /**
-   * Fixes a node by setting its `fx` and `fy` properties to `x` and `y`.
-   * This function is called when disabling physics.
-   *
-   * @param {ISimulationNode} node Simulation node that is going to be fixed
-   */
-  private fixNode(node: ISimulationNode) {
-    if (node.sx === null || node.sx === undefined) {
-      node.fx = node.x;
-    }
-    if (node.sy === null || node.sy === undefined) {
-      node.fy = node.y;
-    }
-  }
-
-  /**
-   * Releases a node if it's not sticky by setting its `fx` and `fy` properties to `null`.
-   * This function is called when enabling physics but the sticky property overpowers physics.
-   *
-   * @param {ISimulationNode} node Simulation node that is going to be released
-   */
-  private unfixNode(node: ISimulationNode) {
-    if (node.sx === null || node.sx === undefined) {
-      node.fx = null;
-    }
-    if (node.sy === null || node.sy === undefined) {
-      node.fy = null;
-    }
-  }
-
-  /**
-   * Sticks the specified nodes into place.
-   * This overpowers any physics state and also sticks the node to their current positions.
-   * If no nodes are provided, this function sticks all nodes.
-   *
-   * @param {ISimulationNode[]} nodes Nodes that are going to become sticky. If undefined, all nodes get sticked.
-   */
-  stickNodes(nodes?: ISimulationNode[]) {
-    if (!nodes) {
-      nodes = this._nodes;
-    }
-
-    for (let i = 0; i < nodes.length; i++) {
-      this.stickNode(this._nodes[i]);
-    }
-  }
-
-  /**
-   * Sticks all nodes thath have a defined position (x and y coordinates).
-   * This function should be called when the user initially sets up or merges some data.
-   * If the user provided nodes already have defined `x` **or** `y` properties, they are treated as _"sticky"_.
-   * Only the specified axis gets immobilized.
-   *
-   * @param {ISimulationNode[]} nodes Graph nodes.
-   * @return {ISimulationNodes[]} Graph nodes with attached `{fx, sx}`, and/or `{fy, sy}` coordinates.
-   */
-  private _fixDefinedNodes(nodes: ISimulationNode[]): ISimulationNode[] {
-    // TODO(dlozic): Question: should this function be extracted or should i use `this.data` everywhere and remove inputs/outputs?
-    for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i].x !== null && nodes[i].x !== undefined) {
-        nodes[i].fx = nodes[i].x;
-        nodes[i].sx = nodes[i].x;
-      }
-      if (nodes[i].y !== null && nodes[i].y !== undefined) {
-        nodes[i].fy = nodes[i].y;
-        nodes[i].sy = nodes[i].y;
-      }
-    }
-    return nodes;
-  }
-
-  /**
-   * Removes the sticky properties from all specified nodes.
-   * If physics is enabled, the nodes get unfixed as well.
-   * If no nodes are provided, this function unsticks all nodes.
-   *
-   * @param {ISimulationNode[]} nodes Nodes that are going to be unsticked. If undefined, all nodes get unsticked.
-   */
-  unstickNodes(nodes?: ISimulationNode[]) {
-    if (!nodes) {
-      nodes = this._nodes;
-    }
-
-    for (let i = 0; i < nodes.length; i++) {
-      this.unstickNode(this._nodes[i]);
-    }
-  }
-
-  /**
-   * Sticks a node into place.
-   * This function overpowers any physics state and also sticks the node to its current coordinates.
-   *
-   * @param {ISimulationNode} node Simulation node that is going to become sticky
-   */
-  private stickNode(node: ISimulationNode) {
-    node.sx = node.x;
-    node.fx = node.x;
-    node.sy = node.y;
-    node.fy = node.y;
-  }
-
-  /**
-   * Removes the sticky properties from the node.
-   * If physics is enabled, the node gets released as well.
-   *
-   * @param {ISimulationNode} node Simulation node that gets unstuck
-   */
-  private unstickNode(node: ISimulationNode) {
-    node.sx = null;
-    node.sy = null;
-
-    if (this.settings.isPhysicsEnabled) {
-      node.fx = null;
-      node.fy = null;
     }
   }
 }
