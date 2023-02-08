@@ -14,4 +14,11 @@
       "message": "Chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
     }],
   ],
+  "branches": [
+    "master",
+    {
+      "name": "beta",
+      "prerelease": true,
+    },
+  ],
 }
