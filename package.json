@@ -33,7 +33,7 @@
     "coverage": "npm test -- --coverage --collectCoverageFrom='./src/**'",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
-    "release": "semantic-release --branches main, beta",
+    "release": "semantic-release",
     "prepare": "husky install"
   },
   "dependencies": {
@@ -103,5 +103,14 @@
     "coverageDirectory": "coverage",
     "testEnvironment": "node",
     "testTimeout": 5000
+  },
+  "release": {
+    "branches": [
+      "master",
+      {
+        "name": "beta",
+        "prerelease": true
+      }
+    ]
   }
 }
