@@ -33,7 +33,7 @@
     "coverage": "npm test -- --coverage --collectCoverageFrom='./src/**'",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
-    "release": "semantic-release --branches main",
+    "release": "semantic-release --branches main, beta",
     "prepare": "husky install"
   },
   "dependencies": {
