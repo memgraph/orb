@@ -220,7 +220,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
       return;
     }
 
-    this.initSimulation(settings);
+    this._initSimulation(settings);
     this.emit(D3SimulatorEngineEventType.SETTINGS_UPDATE, { settings: this.settings });
 
     if (this.settings.isSimulatingOnSettingsUpdate) {
@@ -299,7 +299,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
     if (this.settings.isSimulatingOnDataUpdate) {
       this._updateSimulationData();
-      this.runSimulation();
+      this._runSimulation();
     }
   }
 
@@ -432,7 +432,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     );
     this.simulation = forceSimulation(this._nodes).force('link', this.linkForce).stop();
 
-    this.initSimulation(this.settings);
+    this._initSimulation(this.settings);
 
     this.simulation.on('tick', () => {
       this.emit(D3SimulatorEngineEventType.TICK, { nodes: this._nodes, edges: this._edges });
@@ -584,7 +584,8 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
    * @param {ISimulationNode[]} nodes Graph nodes.
    * @return {ISimulationNodes[]} Graph nodes with attached `{fx, sx}`, and/or `{fy, sy}` coordinates.
    */
-  protected _fixDefinedNodes(nodes: ISimulationNode[]): ISimulationNode[] {
+  // _fixAndStick?
+  private _fixDefinedNodes(nodes: ISimulationNode[]): ISimulationNode[] {
     // TODO(dlozic): Question: should this function be extracted or should i use `this.data` everywhere and remove inputs/outputs?
     for (let i = 0; i < nodes.length; i++) {
       if (nodes[i].x !== null && nodes[i].x !== undefined) {
@@ -604,7 +605,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
    *
    * @param {ID3SimulatorEngineSettingsUpdate} settings Simulator engine settings
    */
-  protected initSimulation(settings: ID3SimulatorEngineSettingsUpdate) {
+  private _initSimulation(settings: ID3SimulatorEngineSettingsUpdate) {
     // TODO(dlozic): Question: better naming - applySettingsToSimulation?
     if (settings.alpha) {
       this.simulation
@@ -662,7 +663,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
   // This is a blocking action - the user will not be able to interact with the graph
   // during the simulation process.
-  protected runSimulation(options?: IRunSimulationOptions) {
+  private _runSimulation(options?: IRunSimulationOptions) {
     if (this._isStabilizing) {
       return;
     }
@@ -702,7 +703,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this.emit(D3SimulatorEngineEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
   }
 
-  protected _setNodeIndexByNodeId() {
+  private _setNodeIndexByNodeId() {
     this._nodeIndexByNodeId = {};
     for (let i = 0; i < this._nodes.length; i++) {
       this._nodeIndexByNodeId[this._nodes[i].id] = i;

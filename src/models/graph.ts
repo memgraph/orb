@@ -55,11 +55,11 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     getId: (edge) => edge.id,
   });
   private _defaultStyle?: Partial<IGraphStyle<N, E>>;
-  private _settings: IGraphSettings<N, E> | undefined;
+  private _settings: IGraphSettings<N, E>;
 
   constructor(data?: Partial<IGraphData<N, E>>, settings?: Partial<IGraphSettings<N, E>>) {
     // TODO(dlozic): How to use object assign here? If I add add and export a default const here, it needs N, E.
-    this._settings = settings;
+    this._settings = settings || {};
     const nodes = data?.nodes ?? [];
     const edges = data?.edges ?? [];
     this.setup({ nodes, edges });
