@@ -36,7 +36,7 @@ Orb is a graph visualization library. Read more about Orb in the following guide
 ### With `npm` (recommended)
 
 ```
-npm install @memgraph/orb
+npm install @memgraph/orb@beta
 ```
 
 Below you can find a simple Typescript example using Orb to visualize a small graph. Feel
