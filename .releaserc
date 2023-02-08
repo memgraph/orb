@@ -13,5 +13,12 @@
       "assets": ["package.json", "CHANGELOG.md"],
       "message": "Chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
     }]
+  ],
+  "branches": [
+    "main",
+    {
+      "name": "beta",
+      "prerelease": true,
+    }
   ]
 }
