@@ -9,7 +9,6 @@ import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
 import { IRenderer, RendererType, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
-import { setupContainer } from '../utils/html.utils';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
 
@@ -72,8 +71,6 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
   private _strategy: IEventStrategy<N, E>;
 
   private _settings: IOrbMapViewSettings<N, E>;
-
-  private _canvas: HTMLCanvasElement;
   private _map: HTMLDivElement;
 
   private readonly _renderer: IRenderer<N, E>;
@@ -115,12 +112,12 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
       isDefaultHoverEnabled: this._settings.strategy.isDefaultHoverEnabled ?? false,
     });
 
-    setupContainer(this._container);
-    this._canvas = this._initCanvas();
-    this._map = this._initMap();
-
     try {
-      this._renderer = RendererFactory.getRenderer<N, E>(this._canvas, settings?.render?.type, this._settings.render);
+      this._renderer = RendererFactory.getRenderer<N, E>(
+        this._container,
+        settings?.render?.type,
+        this._settings.render,
+      );
     } catch (error: any) {
       this._container.textContent = error.message;
       throw error;
@@ -128,13 +125,18 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     this._renderer.on(RenderEventType.RENDER_END, (data) => {
       this._events.emit(OrbEventType.RENDER_END, data);
     });
+    this._renderer.on(RenderEventType.RESIZE, () => {
+      if (this._renderer.isInitiallyRendered) {
+        this._leaflet.invalidateSize(false);
+        this._renderer.render(this._graph);
+      }
+    });
+
     this._settings.render = this._renderer.getSettings();
+    this._renderer.canvas.style.zIndex = '2';
+    this._renderer.canvas.style.pointerEvents = 'none';
 
-    // Resize the canvas based on the dimensions of it's parent container <div>.
-    const resizeObs = new ResizeObserver(() => this._handleResize());
-    resizeObs.observe(this._container);
-    this._handleResize();
-
+    this._map = this._initMap();
     this._leaflet = this._initLeaflet();
     // Setting up leaflet map tile
     this._handleTileChange();
@@ -207,22 +209,10 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
   }
 
   destroy() {
-    this._renderer.removeAllListeners();
+    this._renderer.destroy();
     this._leaflet.off();
     this._leaflet.remove();
     this._leaflet.getContainer().outerHTML = '';
-    this._canvas.outerHTML = '';
-  }
-
-  private _initCanvas() {
-    const canvas = document.createElement('canvas');
-    canvas.style.position = 'absolute';
-    canvas.style.width = '100%';
-    canvas.style.zIndex = '2';
-    canvas.style.pointerEvents = 'none';
-
-    this._container.appendChild(canvas);
-    return canvas;
   }
 
   private _initMap() {
@@ -437,18 +427,6 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
       const layerPoint = this._leaflet.latLngToLayerPoint([coordinates.lat, coordinates.lng]);
       nodes[i].position.x = layerPoint.x;
       nodes[i].position.y = layerPoint.y;
-    }
-  }
-
-  private _handleResize() {
-    const containerSize = this._container.getBoundingClientRect();
-    this._canvas.width = containerSize.width;
-    this._canvas.height = containerSize.height;
-    this._renderer.width = containerSize.width;
-    this._renderer.height = containerSize.height;
-    if (this._renderer.isInitiallyRendered) {
-      this._leaflet.invalidateSize(false);
-      this._renderer.render(this._graph);
     }
   }
 

@@ -48,3 +48,13 @@ export const isCollapsedDimension = (dimension: string | null | undefined) => {
 
   return collapsedDimensionRegex.test(dimension);
 };
+
+export const appendCanvas = (container: HTMLElement): HTMLCanvasElement => {
+  const canvas = document.createElement('canvas');
+  canvas.style.position = 'absolute';
+  canvas.style.top = '0';
+  canvas.style.left = '0';
+
+  container.appendChild(canvas);
+  return canvas;
+};

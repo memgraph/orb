@@ -11,6 +11,7 @@ export enum RendererType {
 }
 
 export enum RenderEventType {
+  RESIZE = 'resize',
   RENDER_START = 'render-start',
   RENDER_END = 'render-end',
 }
@@ -27,6 +28,7 @@ export interface IRendererSettings {
   contextAlphaOnEvent: number;
   contextAlphaOnEventIsEnabled: boolean;
   backgroundColor: Color | string | null;
+  areCollapsedContainerDimensionsAllowed: boolean;
 }
 
 export interface IRendererSettingsInit extends IRendererSettings {
@@ -34,19 +36,21 @@ export interface IRendererSettingsInit extends IRendererSettings {
 }
 
 export type RendererEvents = {
+  [RenderEventType.RESIZE]: undefined;
   [RenderEventType.RENDER_START]: undefined;
   [RenderEventType.RENDER_END]: { durationMs: number };
 };
 
 export interface IRenderer<N extends INodeBase, E extends IEdgeBase> extends IEmitter<RendererEvents> {
-  // Width and height of the canvas. Used for clearing.
-  width: number;
-  height: number;
-
   // Includes translation (pan) in the x and y direction
   // as well as scaling (level of zoom).
   transform: ZoomTransform;
 
+  // Width and height of the canvas
+  get width(): number;
+  get height(): number;
+  get container(): HTMLElement;
+  get canvas(): HTMLCanvasElement;
   get isInitiallyRendered(): boolean;
 
   getSettings(): IRendererSettings;
@@ -69,6 +73,8 @@ export interface IRenderer<N extends INodeBase, E extends IEdgeBase> extends IEm
   getSimulationViewRectangle(): IRectangle;
 
   translateOriginToCenter(): void;
+
+  destroy(): void;
 }
 
 export const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
@@ -83,6 +89,7 @@ export const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
   contextAlphaOnEvent: 0.3,
   contextAlphaOnEventIsEnabled: true,
   backgroundColor: null,
+  areCollapsedContainerDimensionsAllowed: false,
 };
 
 export const DEFAULT_RENDERER_WIDTH = 640;
