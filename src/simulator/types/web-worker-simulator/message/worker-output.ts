@@ -7,6 +7,7 @@ export enum WorkerOutputType {
   SIMULATION_STEP = 'simulation-step',
   SIMULATION_PROGRESS = 'simulation-progress',
   SIMULATION_END = 'simulation-end',
+  SIMULATION_TICK = 'simulation-tick',
   NODE_DRAG = 'node-drag',
   NODE_DRAG_END = 'node-drag-end',
   SETTINGS_UPDATE = 'settings-update',

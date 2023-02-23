@@ -19,11 +19,10 @@ const MANY_BODY_MAX_DISTANCE_TO_LINK_DISTANCE_RATIO = 100;
 const DEFAULT_LINK_DISTANCE = 30;
 
 export enum D3SimulatorEngineEventType {
-  TICK = 'tick',
-  END = 'end',
   SIMULATION_START = 'simulation-start',
   SIMULATION_PROGRESS = 'simulation-progress',
   SIMULATION_END = 'simulation-end',
+  SIMULATION_TICK = 'simulation-tick',
   NODE_DRAG = 'node-drag',
   SETTINGS_UPDATE = 'settings-update',
 }
@@ -74,6 +73,7 @@ export interface ID3SimulatorEngineSettingsPositioning {
 export interface ID3SimulatorEngineSettings {
   isSimulatingOnDataUpdate: boolean;
   isSimulatingOnSettingsUpdate: boolean;
+  isSimulatingOnUnstick: boolean;
   isPhysicsEnabled: boolean;
   alpha: ID3SimulatorEngineSettingsAlpha;
   centering: ID3SimulatorEngineSettingsCentering | null;
@@ -93,6 +93,7 @@ export const getManyBodyMaxDistance = (linkDistance: number) => {
 export const DEFAULT_SETTINGS: ID3SimulatorEngineSettings = {
   isSimulatingOnDataUpdate: true,
   isSimulatingOnSettingsUpdate: true,
+  isSimulatingOnUnstick: true,
   isPhysicsEnabled: false,
   alpha: {
     alpha: 1,
@@ -150,11 +151,10 @@ interface IRunSimulationOptions {
 }
 
 export type D3SimulatorEvents = {
-  [D3SimulatorEngineEventType.TICK]: ISimulationGraph;
-  [D3SimulatorEngineEventType.END]: ISimulationGraph;
   [D3SimulatorEngineEventType.SIMULATION_START]: undefined;
   [D3SimulatorEngineEventType.SIMULATION_PROGRESS]: ISimulationGraph & ID3SimulatorProgress;
   [D3SimulatorEngineEventType.SIMULATION_END]: ISimulationGraph;
+  [D3SimulatorEngineEventType.SIMULATION_TICK]: ISimulationGraph;
   [D3SimulatorEngineEventType.NODE_DRAG]: ISimulationGraph;
   [D3SimulatorEngineEventType.SETTINGS_UPDATE]: ID3SimulatorSettings;
 };
@@ -211,10 +211,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
     // TODO(dlozic): Question: (from line 166, 167) is this then necessary? Why not simple assign?
     const previousSettings = this.getSettings();
-    Object.keys(settings).forEach((key) => {
-      // @ts-ignore
-      this.settings[key] = settings[key];
-    });
+    Object.assign(this.settings, settings);
 
     if (isObjectEqual(this.settings, previousSettings)) {
       return;
@@ -223,7 +220,9 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this._initSimulation(settings);
     this.emit(D3SimulatorEngineEventType.SETTINGS_UPDATE, { settings: this.settings });
 
-    if (this.settings.isSimulatingOnSettingsUpdate) {
+    const hasPhysicsBeenDisabled = previousSettings.isPhysicsEnabled && !settings.isPhysicsEnabled;
+
+    if (this.settings.isSimulatingOnSettingsUpdate && !hasPhysicsBeenDisabled) {
       // this.runSimulation({ isUpdatingSettings: true });
       this.activateSimulation();
     }
@@ -263,11 +262,10 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     if (!this.settings.isPhysicsEnabled) {
       node.x = data.x;
       node.y = data.y;
-
-      // Notify the client that the node position changed.
-      // This is otherwise handled by the simulation tick if physics is enabled.
-      this.emit(D3SimulatorEngineEventType.NODE_DRAG, { nodes: this._nodes, edges: this._edges });
     }
+
+    // Notify the client that the node position changed.
+    this.emit(D3SimulatorEngineEventType.NODE_DRAG, { nodes: this._nodes, edges: this._edges });
   }
 
   endDragNode(data: ID3SimulatorNodeId) {
@@ -435,13 +433,13 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this._initSimulation(this.settings);
 
     this.simulation.on('tick', () => {
-      this.emit(D3SimulatorEngineEventType.TICK, { nodes: this._nodes, edges: this._edges });
+      this.emit(D3SimulatorEngineEventType.SIMULATION_TICK, { nodes: this._nodes, edges: this._edges });
     });
 
     this.simulation.on('end', () => {
       this._isDragging = false;
       this._isStabilizing = false;
-      this.emit(D3SimulatorEngineEventType.END, { nodes: this._nodes, edges: this._edges });
+      this.emit(D3SimulatorEngineEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
 
       if (!this.settings.isPhysicsEnabled) {
         this.fixNodes();
@@ -543,6 +541,10 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
     for (let i = 0; i < nodes.length; i++) {
       this.unstickNode(this._nodes[i]);
+    }
+
+    if (this.settings.isSimulatingOnUnstick) {
+      this.activateSimulation();
     }
   }
 

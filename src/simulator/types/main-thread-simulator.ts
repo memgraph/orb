@@ -32,11 +32,8 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
     this.simulator.on(D3SimulatorEngineEventType.NODE_DRAG, (data) => {
       this.emit(SimulatorEventType.NODE_DRAG, data);
     });
-    this.simulator.on(D3SimulatorEngineEventType.TICK, (data) => {
+    this.simulator.on(D3SimulatorEngineEventType.SIMULATION_TICK, (data) => {
       this.emit(SimulatorEventType.SIMULATION_STEP, data);
-    });
-    this.simulator.on(D3SimulatorEngineEventType.END, (data) => {
-      this.emit(SimulatorEventType.NODE_DRAG_END, data);
     });
     this.simulator.on(D3SimulatorEngineEventType.SETTINGS_UPDATE, (data) => {
       this.emit(SimulatorEventType.SETTINGS_UPDATE, data);

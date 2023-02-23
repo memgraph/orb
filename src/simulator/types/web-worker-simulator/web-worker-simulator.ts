@@ -41,6 +41,10 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
           this.emit(SimulatorEventType.SIMULATION_END, data.data);
           break;
         }
+        case WorkerOutputType.SIMULATION_STEP: {
+          this.emit(SimulatorEventType.SIMULATION_STEP, data.data);
+          break;
+        }
         case WorkerOutputType.NODE_DRAG: {
           this.emit(SimulatorEventType.NODE_DRAG, data.data);
           break;
