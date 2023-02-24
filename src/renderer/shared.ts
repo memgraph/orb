@@ -17,6 +17,7 @@ export enum RenderEventType {
 }
 
 export interface IRendererSettings {
+  devicePixelRatio: number | null;
   fps: number;
   minZoom: number;
   maxZoom: number;
@@ -54,15 +55,12 @@ export interface IRenderer<N extends INodeBase, E extends IEdgeBase> extends IEm
   get isInitiallyRendered(): boolean;
 
   getSettings(): IRendererSettings;
-
   setSettings(settings: Partial<IRendererSettings>): void;
 
   render(graph: IGraph<N, E>): void;
-
   reset(): void;
 
   getFitZoomTransform(graph: IGraph<N, E>): ZoomTransform;
-
   getSimulationPosition(canvasPoint: IPosition): IPosition;
 
   /**
@@ -78,6 +76,7 @@ export interface IRenderer<N extends INodeBase, E extends IEdgeBase> extends IEm
 }
 
 export const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
+  devicePixelRatio: null,
   fps: 60,
   minZoom: 0.25,
   maxZoom: 8,

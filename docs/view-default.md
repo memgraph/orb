@@ -63,6 +63,7 @@ interface IOrbViewSettings {
   };
   // For canvas rendering and events
   render: {
+    devicePixelRatio: number | null;
     fps: number;
     minZoom: number;
     maxZoom: number;
@@ -74,6 +75,7 @@ interface IOrbViewSettings {
     contextAlphaOnEvent: number;
     contextAlphaOnEventIsEnabled: boolean;
     backgroundColor: Color | string | null;
+    areCollapsedContainerDimensionsAllowed: boolean;
   };
   // For select and hover look-and-feel
   strategy: {
@@ -85,7 +87,6 @@ interface IOrbViewSettings {
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
   isSimulationAnimated: boolean;
-  areCollapsedContainerDimensionsAllowed: boolean;
 }
 ```
 
@@ -133,6 +134,7 @@ const defaultSettings = {
     },
   },
   render: {
+    devicePixelRatio: window.devicePixelRatio,
     fps: 60,
     minZoom: 0.25,
     maxZoom: 8,
@@ -144,6 +146,7 @@ const defaultSettings = {
     contextAlphaOnEvent: 0.3,
     contextAlphaOnEventIsEnabled: true,
     backgroundColor: null,
+    areCollapsedContainerDimensionsAllowed: false,
   },
   strategy: {
     isDefaultSelectEnabled: true,
@@ -153,7 +156,6 @@ const defaultSettings = {
   isOutOfBoundsDragEnabled: false,
   areCoordinatesRounded: true,
   isSimulationAnimated: true,
-  areCollapsedContainerDimensionsAllowed: false;
 }
 ```
 
@@ -189,7 +191,7 @@ const edges: MyEdge[] = [
   { id: 0, start: 0, end: 0, label: "Edge Q" },
   { id: 1, start: 0, end: 1, label: "Edge W" },
   { id: 2, start: 0, end: 2, label: "Edge E" },
-  { id: 3, start: 1, end: 2, label: "Edge T" },
+  { id: 3, start: 1, end: 2, label: "Edge Tf" },
   { id: 4, start: 2, end: 2, label: "Edge Y" },
   { id: 5, start: 0, end: 1, label: "Edge V" },
 ];
@@ -259,6 +261,26 @@ Here you can use your original properties to indicate which ones represent your 
 
 Optional property `render` has several rendering options that you can tweak. Read more about them
 on [Styling guide](./styles.md).
+
+#### Property `render.devicePixelRatio`
+
+`devicePixelRatio` is useful when dealing with the difference between rendering on a standard
+display versus a HiDPI or Retina display, which uses more screen pixels to draw the same
+objects, resulting in a sharper image. ([Reference: MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio)).
+Orb will listen for `devicePixelRatio` changes and handles them by default. You can override the
+value with a settings property `render.devicePixelRatio`. Once a custom value is provided, Orb will
+stop listening for `devicePixelRatio` changes.
+If you want to return automatic `devicePixelRatio` handling, just set `render.devicePixelRatio`
+to `null`.
+
+#### Property `render.areCollapsedContainerDimensionsAllowed`
+
+Enables setting the dimensions of the Orb container element to zero.
+If the container element of Orb has collapsed dimensions (`width: 0;` or `height: 0;`),
+Orb will expand the container by setting the values to `100%`.
+If that doesn't work (the parent of the container also has collapsed dimensions),
+Orb will set an arbitrary fixed dimension to the container.
+Disabled by default (`false`).
 
 ### Property `strategy`
 
@@ -337,15 +359,6 @@ Rounds node coordinates to integer values. Slightly improves performance. Enable
 Shows the process of simulation where the nodes are moved by the physics engine until they
 converge to a stable position. If disabled, the graph will suddenly appear in its final position.
 Enabled by default (`true`).
-
-### Property `areCollapsedContainerDimensionsAllowed`
-
-Enables setting the dimensions of the Orb container element to zero.
-If the container element of Orb has collapsed dimensions (`width: 0;` or `height: 0;`),
-Orb will expand the container by setting the values to `100%`.
-If that doesn't work (the parent of the container also has collapsed dimensions),
-Orb will set an arbitrary fixed dimension to the container.
-Disabled by default (`false`).
 
 ## Settings
 

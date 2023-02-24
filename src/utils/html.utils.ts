@@ -17,7 +17,7 @@ export const setupContainer = (container: HTMLElement, areCollapsedDimensionsAll
         "[Orb] The graph container element and its parent don't have defined width properties.",
         'If you are using percentage values,',
         'please make sure that the parent element of the graph container has a defined position and width.',
-        "Setting the width of the graph container to an arbirtrary value of '400px'...",
+        "Setting the width of the graph container to an arbitrary value of '400px'...",
       );
     } else {
       console.warn("[Orb] The graph container element doesn't have defined width. Setting width to 100%...");
@@ -54,7 +54,32 @@ export const appendCanvas = (container: HTMLElement): HTMLCanvasElement => {
   canvas.style.position = 'absolute';
   canvas.style.top = '0';
   canvas.style.left = '0';
-
   container.appendChild(canvas);
   return canvas;
+};
+
+export type IObserveDPRCallback = (devicePixelRatio: number) => void;
+export type IObserveDPRUnsubscribe = () => void;
+
+export const observeDevicePixelRatioChanges = (callback: IObserveDPRCallback): IObserveDPRUnsubscribe => {
+  let currentDpr = window.devicePixelRatio;
+  let unsubscribe: IObserveDPRUnsubscribe = () => {
+    return;
+  };
+
+  const listenForDPRChanges = () => {
+    unsubscribe();
+
+    const media = matchMedia(`(resolution: ${currentDpr}dppx)`);
+    media.addEventListener('change', listenForDPRChanges);
+    unsubscribe = () => media.removeEventListener('change', listenForDPRChanges);
+
+    if (window.devicePixelRatio !== currentDpr) {
+      currentDpr = window.devicePixelRatio;
+      callback(currentDpr);
+    }
+  };
+
+  listenForDPRChanges();
+  return () => unsubscribe();
 };

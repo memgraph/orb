@@ -116,6 +116,7 @@ interface IOrbMapViewSettings {
   getGeoPosition(node: INode): { lat: number; lng: number } | undefined;
   // For canvas rendering and events
   render: {
+    devicePixelRatio: number | null;
     fps: number;
     minZoom: number;
     maxZoom: number;
@@ -147,6 +148,7 @@ The default settings that `OrbMapView` uses is:
 ```typescript
 const defaultSettings = {
   render: {
+    devicePixelRatio: window.devicePixelRatio,
     fps: 60,
     minZoom: 0.25,
     maxZoom: 8,
@@ -190,6 +192,26 @@ Optional property `map` has two properties that you can set which are:
 
 Optional property `render` has several rendering options that you can tweak. Read more about them
 on [Styling guide](./styles.md).
+
+#### Property `render.devicePixelRatio`
+
+`devicePixelRatio` is useful when dealing with the difference between rendering on a standard
+display versus a HiDPI or Retina display, which uses more screen pixels to draw the same
+objects, resulting in a sharper image. ([Reference: MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio)).
+Orb will listen for `devicePixelRatio` changes and handles them by default. You can override the
+value with a settings property `render.devicePixelRatio`. Once a custom value is provided, Orb will
+stop listening for `devicePixelRatio` changes.
+If you want to return automatic `devicePixelRatio` handling, just set `render.devicePixelRatio`
+to `null`.
+
+#### Property `render.areCollapsedContainerDimensionsAllowed`
+
+Enables setting the dimensions of the Orb container element to zero.
+If the container element of Orb has collapsed dimensions (`width: 0;` or `height: 0;`),
+Orb will expand the container by setting the values to `100%`.
+If that doesn't work (the parent of the container also has collapsed dimensions),
+Orb will set an arbitrary fixed dimension to the container.
+Disabled by default (`false`).
 
 ### Property `strategy`
 
@@ -242,15 +264,6 @@ orb.events.on(OrbEventType.MOUSE_CLICK, (event) => {
   }
 });
 ```
-
-### Property `areCollapsedContainerDimensionsAllowed`
-
-Enables setting the dimensions of the Orb container element to zero.
-If the container element of Orb has collapsed dimensions (`width: 0;` or `height: 0;`),
-Orb will expand the container by setting the values to `100%`.
-If that doesn't work (the parent of the container also has collapsed dimensions),
-Orb will set an arbitrary fixed dimension to the container.
-Disabled by default (`false`).
 
 ## Settings
 

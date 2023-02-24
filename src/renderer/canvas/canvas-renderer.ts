@@ -18,8 +18,14 @@ import {
 import { throttle } from '../../utils/function.utils';
 import { getThrottleMsFromFPS } from '../../utils/math.utils';
 import { copyObject } from '../../utils/object.utils';
-import { appendCanvas, setupContainer } from '../../utils/html.utils';
+import {
+  appendCanvas,
+  IObserveDPRUnsubscribe,
+  observeDevicePixelRatioChanges,
+  setupContainer,
+} from '../../utils/html.utils';
 import { OrbError } from '../../exceptions';
+import { isNumber } from '../../utils/type.utils';
 
 const DEBUG = false;
 const DEBUG_RED = '#FF5733';
@@ -50,12 +56,14 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
   private _isInitiallyRendered = false;
 
   private _throttleRender: (graph: IGraph<N, E>) => void;
+  private _dprObserveUnsubscribe?: IObserveDPRUnsubscribe;
 
   constructor(container: HTMLElement, settings?: Partial<IRendererSettings>) {
     super();
     setupContainer(container, settings?.areCollapsedContainerDimensionsAllowed);
     this._container = container;
     this._canvas = appendCanvas(container);
+
     const context = this._canvas.getContext('2d');
     if (!context) {
       throw new OrbError('Failed to create Canvas context.');
@@ -74,6 +82,10 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
     const resizeObs = new ResizeObserver(() => this._resize());
     resizeObs.observe(this._container);
     this._resize();
+
+    if (!isNumber(settings?.devicePixelRatio)) {
+      this._dprObserveUnsubscribe = observeDevicePixelRatioChanges(() => this._resize());
+    }
 
     this._throttleRender = throttle((graph: IGraph<N, E>) => {
       this._render(graph);
@@ -106,6 +118,9 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
 
   setSettings(settings: Partial<IRendererSettings>) {
     const isFpsChanged = settings.fps && settings.fps !== this._settings.fps;
+    const previousDprValue = this._settings.devicePixelRatio;
+    const newDprValue = settings.devicePixelRatio;
+
     this._settings = {
       ...this._settings,
       ...settings,
@@ -115,6 +130,17 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
       this._throttleRender = throttle((graph: IGraph<any, any>) => {
         this._render(graph);
       }, getThrottleMsFromFPS(this._settings.fps));
+    }
+
+    // Change DPR from automatic to manual handling or change DPR value manually
+    if (!isNumber(previousDprValue) && isNumber(newDprValue) && newDprValue !== previousDprValue) {
+      this._dprObserveUnsubscribe?.();
+      this._resize();
+    }
+
+    // Change DPR from manual to automatic handling
+    if (isNumber(previousDprValue) && newDprValue === null) {
+      this._dprObserveUnsubscribe = observeDevicePixelRatioChanges(() => this._resize());
     }
   }
 
@@ -230,9 +256,17 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
   }
 
   private _resize() {
+    const dpr = this._settings.devicePixelRatio || window.devicePixelRatio;
+
     const containerSize = this._container.getBoundingClientRect();
-    this._canvas.width = containerSize.width;
-    this._canvas.height = containerSize.height;
+    this._canvas.style.width = `${containerSize.width}px`;
+    this._canvas.style.height = `${containerSize.height}px`;
+    this._canvas.width = containerSize.width * dpr;
+    this._canvas.height = containerSize.height * dpr;
+
+    // Normalize coordinate system to use CSS pixels
+    this._context.scale(dpr, dpr);
+
     this._width = containerSize.width;
     this._height = containerSize.height;
     this.emit(RenderEventType.RESIZE, undefined);
@@ -321,6 +355,7 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
   }
 
   destroy(): void {
+    this._dprObserveUnsubscribe?.();
     this.removeAllListeners();
     this._canvas.outerHTML = '';
   }
