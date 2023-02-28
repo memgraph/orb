@@ -113,6 +113,22 @@
       console.log('Event: edge-click', event);
       output.innerHTML = `Edge with id <b>${event.edge.data.id}</b> clicked!`;
     });
+
+    orb.events.on(Orb.OrbEventType.NODE_RIGHT_CLICK, (data) => {
+      data.event.preventDefault();
+      console.log("Node Right Clicked", data);
+    })
+
+    orb.events.on(Orb.OrbEventType.EDGE_RIGHT_CLICK, (data) => {
+      data.event.preventDefault();
+      console.log("Edge Right Clicked", data);
+    })
+
+    orb.events.on(Orb.OrbEventType.CANVAS_RIGHT_CLICK, (data) => {
+      data.event.preventDefault();
+      console.log("Canvas Right Clicked", data);
+    })
+
   </script>
 </body>
 </html>

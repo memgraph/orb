@@ -12,6 +12,7 @@ export interface IEventStrategyResponse<N extends INodeBase, E extends IEdgeBase
 export interface IEventStrategy<N extends INodeBase, E extends IEdgeBase> {
   onMouseClick: ((graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>) | null;
   onMouseMove: ((graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>) | null;
+  onMouseRightClick: ((graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>) | null;
 }
 
 export const getDefaultEventStrategy = <N extends INodeBase, E extends IEdgeBase>(): IEventStrategy<N, E> => {
@@ -73,6 +74,31 @@ class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> implements 
     }
 
     return { isStateChanged: false };
+  }
+
+  onMouseRightClick(graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> {
+    const node = graph.getNearestNode(point);
+    if (node) {
+      selectNode(graph, node);
+      return {
+        isStateChanged: true,
+        changedSubject: node,
+      };
+    }
+
+    const edge = graph.getNearestEdge(point);
+    if (edge) {
+      selectEdge(graph, edge);
+      return {
+        isStateChanged: true,
+        changedSubject: edge,
+      };
+    }
+
+    const { changedCount } = unselectAll(graph);
+    return {
+      isStateChanged: changedCount > 0,
+    };
   }
 }
 

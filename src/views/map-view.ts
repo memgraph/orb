@@ -252,10 +252,46 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
     // Leaflet doesn't have a valid type definition for click event
     // @ts-ignore
-    leaflet.on('click', (event: ILeafletEvent<PointerEvent>) => {
+    leaflet.on('click contextmenu', (event: ILeafletEvent<PointerEvent>) => {
       const point: IPosition = { x: event.layerPoint.x, y: event.layerPoint.y };
       const containerPoint: IPosition = { x: event.containerPoint.x, y: event.containerPoint.y };
 
+      if (event.type === 'contextmenu' && this._strategy.onMouseRightClick) {
+        const response = this._strategy.onMouseRightClick(this._graph, point);
+        const subject = response.changedSubject;
+
+        if (subject) {
+          if (isNode(subject)) {
+            this._events.emit(OrbEventType.NODE_RIGHT_CLICK, {
+              node: subject,
+              event: event.originalEvent,
+              localPoint: point,
+              globalPoint: containerPoint,
+            });
+          }
+          if (isEdge(subject)) {
+            this._events.emit(OrbEventType.EDGE_RIGHT_CLICK, {
+              edge: subject,
+              event: event.originalEvent,
+              localPoint: point,
+              globalPoint: containerPoint,
+            });
+          }
+        } else {
+          this._events.emit(OrbEventType.CANVAS_RIGHT_CLICK, {
+            event: event.originalEvent,
+            localPoint: point,
+            globalPoint: containerPoint,
+          });
+        }
+
+        
+
+        if (response.isStateChanged) {
+          this._renderer.render(this._graph);
+        }
+        return;
+      }
       if (this._strategy.onMouseClick) {
         const response = this._strategy.onMouseClick(this._graph, point);
         const subject = response.changedSubject;
