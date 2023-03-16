@@ -313,7 +313,16 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   private _initializeNewData(data: Partial<ISimulationGraph>) {
     if (data.nodes) {
       data.nodes = this._fixDefinedNodes(data.nodes);
-      this._nodes = this._nodes.concat(data.nodes);
+      for (let i = 0; i < data.nodes.length; i += 1) {
+        if (this._nodeIndexByNodeId[data.nodes[i].id]) {
+          this._nodeIndexByNodeId = {
+            ...this._nodeIndexByNodeId,
+            ...data.nodes[i],
+          };
+        } else {
+          this._nodes.push(data.nodes[i]);
+        }
+      }
     } else {
       this._nodes = [];
     }
@@ -358,22 +367,12 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
    * @param {ISimulationGraph} data Nodes and edges that will be deleted
    */
   deleteData(data: Partial<{ nodeIds: number[] | undefined; edgeIds: number[] | undefined }>) {
-    const newNodes = [];
-    if (data.nodeIds) {
-      for (let i = 0; i < data.nodeIds.length; i++) {
-        const nodeId = data.nodeIds[i];
-        const nodeIndexByNodeId = this._nodeIndexByNodeId[nodeId];
-        if (nodeIndexByNodeId) {
-          delete this._nodeIndexByNodeId[nodeId];
-        } else {
-          newNodes.push(this._nodes[nodeIndexByNodeId]);
-        }
-      }
-    }
-
-    this._nodes = newNodes;
+    const nodeIds = new Set(data.nodeIds);
+    this._nodes = this._nodes.filter((node) => !nodeIds.has(node.id));
     const edgeIds = new Set(data.edgeIds);
-    this._edges = this._edges.filter((node) => !edgeIds.has(node.id));
+    this._edges = this._edges.filter((edge) => !edgeIds.has(edge.id));
+    this._setNodeIndexByNodeId();
+    this._updateSimulationData();
   }
 
   /**
@@ -439,7 +438,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this.simulation.on('end', () => {
       this._isDragging = false;
       this._isStabilizing = false;
-      this.emit(D3SimulatorEngineEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
+      // this.emit(D3SimulatorEngineEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
 
       if (!this.settings.isPhysicsEnabled) {
         this.fixNodes();

@@ -154,7 +154,8 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     });
     this._simulator.on(SimulatorEventType.SIMULATION_END, (data) => {
       this._graph.setNodePositions(data.nodes);
-      this._renderer.render(this._graph);
+      this.render();
+      this.recenter();
       this._isSimulating = false;
       this._onSimulationEnd?.();
       this._onSimulationEnd = undefined;
@@ -550,6 +551,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._renderer.height = containerSize.height;
     if (this._renderer.isInitiallyRendered) {
       this._renderer.render(this._graph);
+      this.recenter();
     }
   }
 
