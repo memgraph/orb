@@ -222,7 +222,9 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
     const hasPhysicsBeenDisabled = previousSettings.isPhysicsEnabled && !settings.isPhysicsEnabled;
 
-    if (this.settings.isSimulatingOnSettingsUpdate && !hasPhysicsBeenDisabled) {
+    if (hasPhysicsBeenDisabled) {
+      this.simulation.stop();
+    } else if (this.settings.isSimulatingOnSettingsUpdate) {
       // this.runSimulation({ isUpdatingSettings: true });
       this.activateSimulation();
     }
@@ -438,7 +440,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this.simulation.on('end', () => {
       this._isDragging = false;
       this._isStabilizing = false;
-      // this.emit(D3SimulatorEngineEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
+      this.emit(D3SimulatorEngineEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
 
       if (!this.settings.isPhysicsEnabled) {
         this.fixNodes();
