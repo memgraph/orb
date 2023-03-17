@@ -287,7 +287,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
    */
   activateSimulation() {
     this.unfixNodes(); // If physics is disabled, the nodes get fixed in the callback from the initial setup (`simulation.on('end', () => {})`).
-    this.simulation.alphaTarget(this.settings.alpha.alphaTarget).restart();
+    this.simulation.alpha(this.settings.alpha.alpha).alphaTarget(this.settings.alpha.alphaTarget).restart();
   }
 
   setupData(data: ISimulationGraph) {
