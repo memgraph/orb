@@ -286,9 +286,6 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
           globalPoint: containerPoint,
         });
 
-
-
-
         if (response.isStateChanged) {
           this._renderer.render(this._graph);
         }

@@ -116,7 +116,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       .call(this._d3Zoom)
       .on('click', this.mouseClicked)
       .on('mousemove', this.mouseMoved)
-      .on("contextmenu", this.mouseRightClicked);
+      .on('contextmenu', this.mouseRightClicked);
 
     this._simulator = SimulatorFactory.getSimulator();
     this._simulator.on(SimulatorEventType.SIMULATION_START, () => {
@@ -424,7 +424,7 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
         this._renderer.render(this._graph);
       }
     }
-  }
+  };
 
   private _initCanvas(): HTMLCanvasElement {
     const canvas = document.createElement('canvas');

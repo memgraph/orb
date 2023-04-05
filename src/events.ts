@@ -88,5 +88,5 @@ export class OrbEmitter<N extends INodeBase, E extends IEdgeBase> extends Emitte
   [OrbEventType.NODE_DRAG_END]: IOrbEventMouseNodeEvent<N, E> & IOrbEventMouseMoveEvent;
   [OrbEventType.NODE_RIGHT_CLICK]: IOrbEventMouseNodeEvent<N, E> & IOrbEventMouseClickEvent;
   [OrbEventType.EDGE_RIGHT_CLICK]: IOrbEventMouseEdgeEvent<N, E> & IOrbEventMouseClickEvent;
-  [OrbEventType.MOUSE_RIGHT_CLICK]:  IOrbEventMouseEvent<N, E> & IOrbEventMouseClickEvent;
+  [OrbEventType.MOUSE_RIGHT_CLICK]: IOrbEventMouseEvent<N, E> & IOrbEventMouseClickEvent;
 }> {}
