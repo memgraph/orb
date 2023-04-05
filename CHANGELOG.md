@@ -1,3 +1,9 @@
+## 0.2.0
+
+### New
+
+* Add support for context menu events (#46) - by @shashankshukla96
+
 ## 0.1.5
 
 ### Fix

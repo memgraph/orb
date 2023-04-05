@@ -24,6 +24,9 @@ export enum OrbEventType {
   NODE_DRAG_START = 'node-drag-start',
   NODE_DRAG = 'node-drag',
   NODE_DRAG_END = 'node-drag-end',
+  NODE_RIGHT_CLICK = 'node-right-click',
+  EDGE_RIGHT_CLICK = 'edge-right-click',
+  MOUSE_RIGHT_CLICK = 'mouse-right-click',
 }
 
 export interface IOrbEventDuration {
@@ -83,4 +86,7 @@ export class OrbEmitter<N extends INodeBase, E extends IEdgeBase> extends Emitte
   [OrbEventType.NODE_DRAG_START]: IOrbEventMouseNodeEvent<N, E> & IOrbEventMouseMoveEvent;
   [OrbEventType.NODE_DRAG]: IOrbEventMouseNodeEvent<N, E> & IOrbEventMouseMoveEvent;
   [OrbEventType.NODE_DRAG_END]: IOrbEventMouseNodeEvent<N, E> & IOrbEventMouseMoveEvent;
+  [OrbEventType.NODE_RIGHT_CLICK]: IOrbEventMouseNodeEvent<N, E> & IOrbEventMouseClickEvent;
+  [OrbEventType.EDGE_RIGHT_CLICK]: IOrbEventMouseEdgeEvent<N, E> & IOrbEventMouseClickEvent;
+  [OrbEventType.MOUSE_RIGHT_CLICK]: IOrbEventMouseEvent<N, E> & IOrbEventMouseClickEvent;
 }> {}

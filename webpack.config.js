@@ -42,7 +42,12 @@ const commonConfiguration = {
         }
       ]
     })
-  ]
+  ],
+  performance: {
+    hints: false,
+    maxEntrypointSize: 512000, // 500kb
+    maxAssetSize: 512000, // 500kb
+  },
 };
 
 const developmentConfiguration = {
