@@ -115,7 +115,8 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       )
       .call(this._d3Zoom)
       .on('click', this.mouseClicked)
-      .on('mousemove', this.mouseMoved);
+      .on('mousemove', this.mouseMoved)
+      .on("contextmenu", this.mouseRightClicked);
 
     this._simulator = SimulatorFactory.getSimulator();
     this._simulator.on(SimulatorEventType.SIMULATION_START, () => {
@@ -384,6 +385,46 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       }
     }
   };
+
+  mouseRightClicked = (event: PointerEvent) => {
+    const mousePoint = this.getCanvasMousePosition(event);
+    const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
+
+    if (this._strategy.onMouseRightClick) {
+      const response = this._strategy.onMouseRightClick(this._graph, simulationPoint);
+      const subject = response.changedSubject;
+
+      if (subject) {
+        if (isNode(subject)) {
+          this._events.emit(OrbEventType.NODE_RIGHT_CLICK, {
+            node: subject,
+            event,
+            localPoint: simulationPoint,
+            globalPoint: mousePoint,
+          });
+        }
+        if (isEdge(subject)) {
+          this._events.emit(OrbEventType.EDGE_RIGHT_CLICK, {
+            edge: subject,
+            event,
+            localPoint: simulationPoint,
+            globalPoint: mousePoint,
+          });
+        }
+      }
+
+      this._events.emit(OrbEventType.MOUSE_RIGHT_CLICK, {
+        subject,
+        event,
+        localPoint: simulationPoint,
+        globalPoint: mousePoint,
+      });
+
+      if (response.isStateChanged || response.changedSubject) {
+        this._renderer.render(this._graph);
+      }
+    }
+  }
 
   private _initCanvas(): HTMLCanvasElement {
     const canvas = document.createElement('canvas');

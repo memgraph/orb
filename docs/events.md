@@ -31,6 +31,9 @@ export enum OrbEventType {
   NODE_DRAG_START = 'node-drag-start',
   NODE_DRAG = 'node-drag',
   NODE_DRAG_END = 'node-drag-end',
+  NODE_RIGHT_CLICK = 'node-right-click',
+  EDGE_RIGHT_CLICK = 'edge-right-click',
+  CANVAS_RIGHT_CLICK = 'canvas-right-click',
 }
 ```
 
