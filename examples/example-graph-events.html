@@ -116,17 +116,22 @@
 
     orb.events.on(Orb.OrbEventType.NODE_RIGHT_CLICK, (data) => {
       data.event.preventDefault();
-      console.log("Node Right Clicked", data);
+      console.log("Event: node-right-click", data);
+      output.innerHTML = `<b>${data.node.data.label}</b> right clicked!`;
     })
 
     orb.events.on(Orb.OrbEventType.EDGE_RIGHT_CLICK, (data) => {
       data.event.preventDefault();
-      console.log("Edge Right Clicked", data);
+      console.log("Event: edge-right-click", data);
+      output.innerHTML = `Edge with id <b>${data.edge.data.id}</b> right clicked!`;
     })
 
-    orb.events.on(Orb.OrbEventType.CANVAS_RIGHT_CLICK, (data) => {
+    orb.events.on(Orb.OrbEventType.MOUSE_RIGHT_CLICK, (data) => {
       data.event.preventDefault();
-      console.log("Canvas Right Clicked", data);
+      console.log("Event: mouse-right-click (canvas)", data);
+      if (!data.subject) {
+        output.innerHTML = `Canvas right clicked!`;
+      }
     })
 
   </script>

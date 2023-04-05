@@ -387,7 +387,6 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
   };
 
   mouseRightClicked = (event: PointerEvent) => {
-    // event.preventDefault();
     const mousePoint = this.getCanvasMousePosition(event);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
@@ -395,7 +394,6 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       const response = this._strategy.onMouseRightClick(this._graph, simulationPoint);
       const subject = response.changedSubject;
 
-      
       if (subject) {
         if (isNode(subject)) {
           this._events.emit(OrbEventType.NODE_RIGHT_CLICK, {
@@ -413,19 +411,18 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
             globalPoint: mousePoint,
           });
         }
-      } else {
-        this._events.emit(OrbEventType.CANVAS_RIGHT_CLICK, {
-          event,
-          localPoint: simulationPoint,
-          globalPoint: mousePoint,
-        });
       }
 
-      
+      this._events.emit(OrbEventType.MOUSE_RIGHT_CLICK, {
+        subject,
+        event,
+        localPoint: simulationPoint,
+        globalPoint: mousePoint,
+      });
 
-      // if (response.isStateChanged || response.changedSubject) {
-      //   this._renderer.render(this._graph);
-      // }
+      if (response.isStateChanged || response.changedSubject) {
+        this._renderer.render(this._graph);
+      }
     }
   }
 

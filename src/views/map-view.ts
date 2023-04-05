@@ -277,22 +277,24 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
               globalPoint: containerPoint,
             });
           }
-        } else {
-          this._events.emit(OrbEventType.CANVAS_RIGHT_CLICK, {
-            event: event.originalEvent,
-            localPoint: point,
-            globalPoint: containerPoint,
-          });
         }
 
-        
+        this._events.emit(OrbEventType.MOUSE_RIGHT_CLICK, {
+          subject,
+          event: event.originalEvent,
+          localPoint: point,
+          globalPoint: containerPoint,
+        });
+
+
+
 
         if (response.isStateChanged) {
           this._renderer.render(this._graph);
         }
         return;
       }
-      if (this._strategy.onMouseClick) {
+      if (event.type === 'click' && this._strategy.onMouseClick) {
         const response = this._strategy.onMouseClick(this._graph, point);
         const subject = response.changedSubject;
 
