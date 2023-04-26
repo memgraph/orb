@@ -197,7 +197,9 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   }
 
   private _initLeaflet() {
-    const leaflet = L.map(this._map).setView([0, 0], this._settings.map.zoomLevel);
+    const leaflet = L.map(this._map, {
+      doubleClickZoom: false,
+    }).setView([0, 0], this._settings.map.zoomLevel);
 
     leaflet.on('zoomstart', () => {
       this._renderer.reset();
@@ -289,7 +291,6 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         if (response.isStateChanged) {
           this._renderer.render(this._graph);
         }
-        return;
       } else if (event.type === 'click' && this._strategy.onMouseClick) {
         const response = this._strategy.onMouseClick(this._graph, point);
         const subject = response.changedSubject;
@@ -344,14 +345,17 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
               globalPoint: containerPoint,
             });
           }
+        } else {
+          this._events.emit(OrbEventType.MOUSE_DOUBLE_CLICK, {
+            subject,
+            event: event.originalEvent,
+            localPoint: point,
+            globalPoint: containerPoint,
+          });
+          // zoom in on double click
+          const zoom = event.target._zoom + 1;
+          event.target.setZoomAround(event.layerPoint, zoom);
         }
-
-        this._events.emit(OrbEventType.MOUSE_DOUBLE_CLICK, {
-          subject,
-          event: event.originalEvent,
-          localPoint: point,
-          globalPoint: containerPoint,
-        });
 
         if (response.isStateChanged || response.changedSubject) {
           this._renderer.render(this._graph);

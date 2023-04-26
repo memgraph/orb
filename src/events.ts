@@ -30,7 +30,7 @@ export enum OrbEventType {
   // Double click events
   NODE_DOUBLE_CLICK = 'node-double-click',
   EDGE_DOUBLE_CLICK = 'edge-double-click',
-  MOUSE_DOUBLE_CLICK = 'mouse-double-click'
+  MOUSE_DOUBLE_CLICK = 'mouse-double-click',
 }
 
 export interface IOrbEventDuration {
