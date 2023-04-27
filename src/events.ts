@@ -27,6 +27,10 @@ export enum OrbEventType {
   NODE_RIGHT_CLICK = 'node-right-click',
   EDGE_RIGHT_CLICK = 'edge-right-click',
   MOUSE_RIGHT_CLICK = 'mouse-right-click',
+  // Double click events
+  NODE_DOUBLE_CLICK = 'node-double-click',
+  EDGE_DOUBLE_CLICK = 'edge-double-click',
+  MOUSE_DOUBLE_CLICK = 'mouse-double-click',
 }
 
 export interface IOrbEventDuration {
@@ -89,4 +93,7 @@ export class OrbEmitter<N extends INodeBase, E extends IEdgeBase> extends Emitte
   [OrbEventType.NODE_RIGHT_CLICK]: IOrbEventMouseNodeEvent<N, E> & IOrbEventMouseClickEvent;
   [OrbEventType.EDGE_RIGHT_CLICK]: IOrbEventMouseEdgeEvent<N, E> & IOrbEventMouseClickEvent;
   [OrbEventType.MOUSE_RIGHT_CLICK]: IOrbEventMouseEvent<N, E> & IOrbEventMouseClickEvent;
+  [OrbEventType.NODE_DOUBLE_CLICK]: IOrbEventMouseNodeEvent<N, E> & IOrbEventMouseClickEvent;
+  [OrbEventType.EDGE_DOUBLE_CLICK]: IOrbEventMouseEdgeEvent<N, E> & IOrbEventMouseClickEvent;
+  [OrbEventType.MOUSE_DOUBLE_CLICK]: IOrbEventMouseEvent<N, E> & IOrbEventMouseClickEvent;
 }> {}

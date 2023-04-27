@@ -116,7 +116,8 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       .call(this._d3Zoom)
       .on('click', this.mouseClicked)
       .on('mousemove', this.mouseMoved)
-      .on('contextmenu', this.mouseRightClicked);
+      .on('contextmenu', this.mouseRightClicked)
+      .on('dblclick.zoom', this.mouseDoubleClicked);
 
     this._simulator = SimulatorFactory.getSimulator();
     this._simulator.on(SimulatorEventType.SIMULATION_START, () => {
@@ -414,6 +415,46 @@ export class DefaultView<N extends INodeBase, E extends IEdgeBase> implements IO
       }
 
       this._events.emit(OrbEventType.MOUSE_RIGHT_CLICK, {
+        subject,
+        event,
+        localPoint: simulationPoint,
+        globalPoint: mousePoint,
+      });
+
+      if (response.isStateChanged || response.changedSubject) {
+        this._renderer.render(this._graph);
+      }
+    }
+  };
+
+  mouseDoubleClicked = (event: PointerEvent) => {
+    const mousePoint = this.getCanvasMousePosition(event);
+    const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
+
+    if (this._strategy.onMouseDoubleClick) {
+      const response = this._strategy.onMouseDoubleClick(this._graph, simulationPoint);
+      const subject = response.changedSubject;
+
+      if (subject) {
+        if (isNode(subject)) {
+          this._events.emit(OrbEventType.NODE_DOUBLE_CLICK, {
+            node: subject,
+            event,
+            localPoint: simulationPoint,
+            globalPoint: mousePoint,
+          });
+        }
+        if (isEdge(subject)) {
+          this._events.emit(OrbEventType.EDGE_DOUBLE_CLICK, {
+            edge: subject,
+            event,
+            localPoint: simulationPoint,
+            globalPoint: mousePoint,
+          });
+        }
+      }
+
+      this._events.emit(OrbEventType.MOUSE_DOUBLE_CLICK, {
         subject,
         event,
         localPoint: simulationPoint,
