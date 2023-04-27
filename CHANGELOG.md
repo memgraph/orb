@@ -1,3 +1,9 @@
+## 0.3.0
+
+### New
+
+* Added support for double click events (#50) - by @shashankshukla96
+
 ## 0.2.0
 
 ### New

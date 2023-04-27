@@ -134,6 +134,22 @@
       }
     })
 
+    orb.events.on(Orb.OrbEventType.NODE_DOUBLE_CLICK, (data) => {
+      console.log("Event: node-double-click", data);
+      output.innerHTML = `<b>${data.node.data.label}</b> double clicked!`;
+    })
+
+    orb.events.on(Orb.OrbEventType.EDGE_DOUBLE_CLICK, (data) => {
+      console.log("Event: edge-double-click", data);
+      output.innerHTML = `Edge with id <b>${data.edge.data.id}</b> double clicked!`;
+    })
+
+    orb.events.on(Orb.OrbEventType.MOUSE_DOUBLE_CLICK, (data) => {
+      console.log("Event: mouse-double-click (canvas)", data);
+      if (!data.subject) {
+        output.innerHTML = `Canvas double clicked!`;
+      }
+    })
   </script>
 </body>
 </html>

@@ -197,7 +197,9 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   }
 
   private _initLeaflet() {
-    const leaflet = L.map(this._map).setView([0, 0], this._settings.map.zoomLevel);
+    const leaflet = L.map(this._map, {
+      doubleClickZoom: false,
+    }).setView([0, 0], this._settings.map.zoomLevel);
 
     leaflet.on('zoomstart', () => {
       this._renderer.reset();
@@ -252,7 +254,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
     // Leaflet doesn't have a valid type definition for click event
     // @ts-ignore
-    leaflet.on('click contextmenu', (event: ILeafletEvent<PointerEvent>) => {
+    leaflet.on('click contextmenu dblclick', (event: ILeafletEvent<PointerEvent>) => {
       const point: IPosition = { x: event.layerPoint.x, y: event.layerPoint.y };
       const containerPoint: IPosition = { x: event.containerPoint.x, y: event.containerPoint.y };
 
@@ -289,9 +291,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         if (response.isStateChanged) {
           this._renderer.render(this._graph);
         }
-        return;
-      }
-      if (event.type === 'click' && this._strategy.onMouseClick) {
+      } else if (event.type === 'click' && this._strategy.onMouseClick) {
         const response = this._strategy.onMouseClick(this._graph, point);
         const subject = response.changedSubject;
 
@@ -320,6 +320,45 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
           localPoint: point,
           globalPoint: containerPoint,
         });
+
+        if (response.isStateChanged || response.changedSubject) {
+          this._renderer.render(this._graph);
+        }
+      } else if (event.type === 'dblclick' && this._strategy.onMouseDoubleClick) {
+        const response = this._strategy.onMouseDoubleClick(this._graph, point);
+        const subject = response.changedSubject;
+
+        if (subject) {
+          if (isNode(subject)) {
+            this._events.emit(OrbEventType.NODE_DOUBLE_CLICK, {
+              node: subject,
+              event: event.originalEvent,
+              localPoint: point,
+              globalPoint: containerPoint,
+            });
+          }
+          if (isEdge(subject)) {
+            this._events.emit(OrbEventType.EDGE_DOUBLE_CLICK, {
+              edge: subject,
+              event: event.originalEvent,
+              localPoint: point,
+              globalPoint: containerPoint,
+            });
+          }
+        }
+
+        this._events.emit(OrbEventType.MOUSE_DOUBLE_CLICK, {
+          subject,
+          event: event.originalEvent,
+          localPoint: point,
+          globalPoint: containerPoint,
+        });
+
+        // zoom in on double click if no subject underneath
+        if (!subject) {
+          const zoom = event.target._zoom + 1;
+          event.target.setZoomAround(event.layerPoint, zoom);
+        }
 
         if (response.isStateChanged || response.changedSubject) {
           this._renderer.render(this._graph);
