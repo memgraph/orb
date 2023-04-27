@@ -345,14 +345,17 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
               globalPoint: containerPoint,
             });
           }
-        } else {
-          this._events.emit(OrbEventType.MOUSE_DOUBLE_CLICK, {
-            subject,
-            event: event.originalEvent,
-            localPoint: point,
-            globalPoint: containerPoint,
-          });
-          // zoom in on double click
+        }
+        
+        this._events.emit(OrbEventType.MOUSE_DOUBLE_CLICK, {
+          subject,
+          event: event.originalEvent,
+          localPoint: point,
+          globalPoint: containerPoint,
+        });
+        
+        // zoom in on double click if no subject underneath
+        if (!subject) {
           const zoom = event.target._zoom + 1;
           event.target.setZoomAround(event.layerPoint, zoom);
         }
