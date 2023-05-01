@@ -132,8 +132,8 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
       this._context.fillRect(0, 0, this.width, this.height);
     }
 
-    this.drawObjects(graph.getEdges());
-    this.drawObjects(graph.getNodes());
+    this.drawObjects(sortObjectsByZIndex(graph.getEdges()));
+    this.drawObjects(sortObjectsByZIndex(graph.getNodes()));
 
     this._context.restore();
     this.emit(RenderEventType.RENDER_END, { durationMs: Date.now() - renderStartedAt });
@@ -273,3 +273,22 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
     this._isOriginCentered = true;
   }
 }
+
+const sortObjectsByZIndex = <N extends INodeBase, E extends IEdgeBase>(
+  objects: (INode<N, E> | IEdge<N, E>)[],
+): (INode<N, E> | IEdge<N, E>)[] => {
+  // Skip unnecessary sorting if there are no zIndexes set
+  let hasZIndex = false;
+  for (let i = 0; i < objects.length; i++) {
+    if (objects[i].style.zIndex) {
+      hasZIndex = true;
+      break;
+    }
+  }
+
+  if (hasZIndex) {
+    objects.sort((a, b) => (a.style.zIndex ?? 0) - (b.style.zIndex ?? 0));
+  }
+
+  return objects;
+};
