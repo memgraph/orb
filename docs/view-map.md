@@ -132,6 +132,7 @@ interface IMapViewSettings {
     shadowOnEventIsEnabled: boolean;
     contextAlphaOnEvent: number;
     contextAlphaOnEventIsEnabled: boolean;
+    backgroundColor: Color | string | null;
   };
   // Other map view parameters
   map: {
@@ -157,6 +158,7 @@ const defaultSettings = {
     shadowOnEventIsEnabled: true,
     contextAlphaOnEvent: 0.3,
     contextAlphaOnEventIsEnabled: true,
+    backgroundColor: null,
   },
   map: {
     zoomLevel: 2, // Default map zoom level

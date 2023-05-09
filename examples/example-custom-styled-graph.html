@@ -43,6 +43,11 @@
     ]
 
     const orb = new Orb.Orb(container);
+    orb.view.setSettings({
+      render: {
+        backgroundColor: '#DDDDDD',
+      },
+    });
 
     // Assign a basic style
     orb.data.setDefaultStyle({
