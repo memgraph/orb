@@ -28,12 +28,12 @@
     "build:release": "tsc && webpack",
     "webpack": "webpack",
     "webpack:watch": "webpack --watch",
-    "serve": "http-server ./dist/browser/",
+    "serve": "http-server ./dist/browser/ -o -c-1 -p 8082",
     "test": "jest --runInBand --detectOpenHandles --forceExit --verbose --useStderr",
     "coverage": "npm test -- --coverage --collectCoverageFrom='./src/**'",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
-    "release": "semantic-release --branches main",
+    "release": "semantic-release",
     "prepare": "husky install"
   },
   "dependencies": {
@@ -103,5 +103,10 @@
     "coverageDirectory": "coverage",
     "testEnvironment": "node",
     "testTimeout": 5000
+  },
+  "release": {
+    "branches": [
+      "main"
+    ]
   }
 }

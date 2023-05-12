@@ -1,5 +1,13 @@
 import { IPosition } from '../../../common';
-import { ISimulator, ISimulationNode, ISimulationEdge, SimulatorEventType, SimulatorEvents } from '../../shared';
+import {
+  ISimulator,
+  ISimulationNode,
+  ISimulationEdge,
+  SimulatorEventType,
+  SimulatorEvents,
+  ISimulationGraph,
+  ISimulationIds,
+} from '../../shared';
 import { ID3SimulatorEngineSettingsUpdate } from '../../engine/d3-simulator-engine';
 import { IWorkerInputPayload, WorkerInputType } from './message/worker-input';
 import { IWorkerOutputPayload, WorkerOutputType } from './message/worker-output';
@@ -12,8 +20,8 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     super();
     this.worker = new Worker(
       new URL(
-        /* webpackChunkName: 'process.worker' */
-        './process.worker',
+        /* webpackChunkName: 'simulator.worker' */
+        './simulator.worker',
         import.meta.url,
       ),
       { type: 'module' },
@@ -33,6 +41,10 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
           this.emit(SimulatorEventType.SIMULATION_END, data.data);
           break;
         }
+        case WorkerOutputType.SIMULATION_STEP: {
+          this.emit(SimulatorEventType.SIMULATION_STEP, data.data);
+          break;
+        }
         case WorkerOutputType.NODE_DRAG: {
           this.emit(SimulatorEventType.NODE_DRAG, data.data);
           break;
@@ -49,16 +61,31 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     };
   }
 
-  setData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.emitToWorker({ type: WorkerInputType.SetData, data: { nodes, edges } });
+  /**
+   * Creates a new graph with the specified data. Any existing data gets discarded.
+   * This action creates a new simulation object but keeps the existing simulation settings.
+   *
+   * @param {ISimulationGraph} data New graph (nodes and edges).
+   */
+  setupData(data: ISimulationGraph) {
+    this.emitToWorker({ type: WorkerInputType.SetupData, data });
   }
 
-  addData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.emitToWorker({ type: WorkerInputType.AddData, data: { nodes, edges } });
+  /**
+   * Inserts or updates data to an existing graph. (Also known as upsert)
+   *
+   * @param {ISimulationGraph} data Added graph data (nodes and edges).
+   */
+  mergeData(data: ISimulationGraph) {
+    this.emitToWorker({ type: WorkerInputType.MergeData, data });
   }
 
-  updateData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.emitToWorker({ type: WorkerInputType.UpdateData, data: { nodes, edges } });
+  updateData(data: ISimulationGraph) {
+    this.emitToWorker({ type: WorkerInputType.UpdateData, data });
+  }
+
+  deleteData(data: ISimulationIds) {
+    this.emitToWorker({ type: WorkerInputType.DeleteData, data });
   }
 
   clearData() {
@@ -73,8 +100,8 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     this.emitToWorker({ type: WorkerInputType.ActivateSimulation });
   }
 
-  startSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.emitToWorker({ type: WorkerInputType.StartSimulation, data: { nodes, edges } });
+  startSimulation() {
+    this.emitToWorker({ type: WorkerInputType.StartSimulation });
   }
 
   updateSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]) {

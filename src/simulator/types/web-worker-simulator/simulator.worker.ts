@@ -10,14 +10,6 @@ const emitToMain = (message: IWorkerOutputPayload) => {
   postMessage(message);
 };
 
-simulator.on(D3SimulatorEngineEventType.TICK, (data) => {
-  emitToMain({ type: WorkerOutputType.NODE_DRAG, data });
-});
-
-simulator.on(D3SimulatorEngineEventType.END, (data) => {
-  emitToMain({ type: WorkerOutputType.NODE_DRAG_END, data });
-});
-
 simulator.on(D3SimulatorEngineEventType.SIMULATION_START, () => {
   emitToMain({ type: WorkerOutputType.SIMULATION_START });
 });
@@ -31,9 +23,11 @@ simulator.on(D3SimulatorEngineEventType.SIMULATION_END, (data) => {
 });
 
 simulator.on(D3SimulatorEngineEventType.NODE_DRAG, (data) => {
-  // Notify the client that the node position changed.
-  // This is otherwise handled by the simulation tick if physics is enabled.
   emitToMain({ type: WorkerOutputType.NODE_DRAG, data });
+});
+
+simulator.on(D3SimulatorEngineEventType.SIMULATION_TICK, (data) => {
+  emitToMain({ type: WorkerOutputType.SIMULATION_STEP, data });
 });
 
 simulator.on(D3SimulatorEngineEventType.SETTINGS_UPDATE, (data) => {
@@ -47,13 +41,13 @@ addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {
       break;
     }
 
-    case WorkerInputType.SetData: {
-      simulator.setData(data.data);
+    case WorkerInputType.SetupData: {
+      simulator.setupData(data.data);
       break;
     }
 
-    case WorkerInputType.AddData: {
-      simulator.addData(data.data);
+    case WorkerInputType.MergeData: {
+      simulator.mergeData(data.data);
       break;
     }
 
@@ -62,23 +56,18 @@ addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {
       break;
     }
 
+    case WorkerInputType.DeleteData: {
+      simulator.deleteData(data.data);
+      break;
+    }
+
     case WorkerInputType.ClearData: {
       simulator.clearData();
       break;
     }
 
-    case WorkerInputType.Simulate: {
-      simulator.simulate();
-      break;
-    }
-
     case WorkerInputType.StartSimulation: {
-      simulator.startSimulation(data.data);
-      break;
-    }
-
-    case WorkerInputType.UpdateSimulation: {
-      simulator.updateSimulation(data.data);
+      simulator.startSimulation();
       break;
     }
 
@@ -98,12 +87,12 @@ addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {
     }
 
     case WorkerInputType.FixNodes: {
-      simulator.fixNodes(data.data.nodes);
+      simulator.stickNodes(data.data.nodes);
       break;
     }
 
     case WorkerInputType.ReleaseNodes: {
-      simulator.releaseNodes(data.data.nodes);
+      simulator.unstickNodes(data.data.nodes);
       break;
     }
 

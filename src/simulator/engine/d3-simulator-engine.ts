@@ -11,7 +11,7 @@ import {
   SimulationLinkDatum,
 } from 'd3-force';
 import { IPosition } from '../../common';
-import { ISimulationNode, ISimulationEdge } from '../shared';
+import { ISimulationNode, ISimulationEdge, ISimulationGraph } from '../shared';
 import { Emitter } from '../../utils/emitter.utils';
 import { isObjectEqual, copyObject } from '../../utils/object.utils';
 
@@ -19,11 +19,10 @@ const MANY_BODY_MAX_DISTANCE_TO_LINK_DISTANCE_RATIO = 100;
 const DEFAULT_LINK_DISTANCE = 30;
 
 export enum D3SimulatorEngineEventType {
-  TICK = 'tick',
-  END = 'end',
   SIMULATION_START = 'simulation-start',
   SIMULATION_PROGRESS = 'simulation-progress',
   SIMULATION_END = 'simulation-end',
+  SIMULATION_TICK = 'simulation-tick',
   NODE_DRAG = 'node-drag',
   SETTINGS_UPDATE = 'settings-update',
 }
@@ -72,6 +71,9 @@ export interface ID3SimulatorEngineSettingsPositioning {
 }
 
 export interface ID3SimulatorEngineSettings {
+  isSimulatingOnDataUpdate: boolean;
+  isSimulatingOnSettingsUpdate: boolean;
+  isSimulatingOnUnstick: boolean;
   isPhysicsEnabled: boolean;
   alpha: ID3SimulatorEngineSettingsAlpha;
   centering: ID3SimulatorEngineSettingsCentering | null;
@@ -89,12 +91,15 @@ export const getManyBodyMaxDistance = (linkDistance: number) => {
 };
 
 export const DEFAULT_SETTINGS: ID3SimulatorEngineSettings = {
+  isSimulatingOnDataUpdate: true,
+  isSimulatingOnSettingsUpdate: true,
+  isSimulatingOnUnstick: true,
   isPhysicsEnabled: false,
   alpha: {
     alpha: 1,
     alphaMin: 0.001,
     alphaDecay: 0.0228,
-    alphaTarget: 0.1,
+    alphaTarget: 0,
   },
   centering: {
     x: 0,
@@ -133,11 +138,6 @@ export interface ID3SimulatorProgress {
   progress: number;
 }
 
-export interface ID3SimulatorGraph {
-  nodes: ISimulationNode[];
-  edges: ISimulationEdge[];
-}
-
 export interface ID3SimulatorNodeId {
   id: number;
 }
@@ -151,19 +151,20 @@ interface IRunSimulationOptions {
 }
 
 export type D3SimulatorEvents = {
-  [D3SimulatorEngineEventType.TICK]: ID3SimulatorGraph;
-  [D3SimulatorEngineEventType.END]: ID3SimulatorGraph;
   [D3SimulatorEngineEventType.SIMULATION_START]: undefined;
-  [D3SimulatorEngineEventType.SIMULATION_PROGRESS]: ID3SimulatorGraph & ID3SimulatorProgress;
-  [D3SimulatorEngineEventType.SIMULATION_END]: ID3SimulatorGraph;
-  [D3SimulatorEngineEventType.NODE_DRAG]: ID3SimulatorGraph;
+  [D3SimulatorEngineEventType.SIMULATION_PROGRESS]: ISimulationGraph & ID3SimulatorProgress;
+  [D3SimulatorEngineEventType.SIMULATION_END]: ISimulationGraph;
+  [D3SimulatorEngineEventType.SIMULATION_TICK]: ISimulationGraph;
+  [D3SimulatorEngineEventType.NODE_DRAG]: ISimulationGraph;
   [D3SimulatorEngineEventType.SETTINGS_UPDATE]: ID3SimulatorSettings;
 };
 
 export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
-  protected readonly linkForce: ForceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>;
-  protected readonly simulation: Simulation<ISimulationNode, undefined>;
-  protected readonly settings: ID3SimulatorEngineSettings;
+  protected linkForce!: ForceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>;
+  protected simulation!: Simulation<ISimulationNode, undefined>;
+  // TODO(dlozic): Question: I removed readonly here since I'm using _initialSettings to reassign
+  // the settings in resetSettings(). Is this okay? Should I use Object.assign()?
+  protected settings: ID3SimulatorEngineSettings;
 
   protected _edges: ISimulationEdge[] = [];
   protected _nodes: ISimulationNode[] = [];
@@ -172,47 +173,71 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   protected _isDragging = false;
   protected _isStabilizing = false;
 
+  // These are settings provided during construction if they are specified,
+  // or during the first call of setSettings if unspecified during construction.
+  protected _initialSettings: ID3SimulatorEngineSettings | undefined;
+
   constructor(settings?: ID3SimulatorEngineSettings) {
     super();
 
-    this.linkForce = forceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>(this._edges).id(
-      (node) => node.id,
-    );
-    this.simulation = forceSimulation(this._nodes).force('link', this.linkForce).stop();
+    if (settings !== undefined) {
+      this._initialSettings = Object.assign(copyObject(DEFAULT_SETTINGS), settings);
+    }
 
-    this.settings = Object.assign(copyObject(DEFAULT_SETTINGS), settings);
-    this.initSimulation(this.settings);
-
-    this.simulation.on('tick', () => {
-      this.emit(D3SimulatorEngineEventType.TICK, { nodes: this._nodes, edges: this._edges });
-    });
-
-    this.simulation.on('end', () => {
-      this._isDragging = false;
-      this._isStabilizing = false;
-      this.emit(D3SimulatorEngineEventType.END, { nodes: this._nodes, edges: this._edges });
-    });
+    /*
+    // TODO(dlozic): Question: TLastre, settings! are initialized in here, so they are guaranteed
+    // to be defined, hence the (!). This isn't very readable though, but if not like this there would be
+    // code duplication.
+    this.reset();
+    */
+    // TODO(dlozic): Question2 (TLastre) I reverted this to the following and removed the (!) from settings:
+    this.settings = this.resetSettings();
+    this.clearData();
   }
 
   getSettings(): ID3SimulatorEngineSettings {
     return copyObject(this.settings);
   }
 
+  /**
+   * Applies the specified settings to the D3 simulator engine.
+   *
+   * @param {ID3SimulatorEngineSettingsUpdate} settings Partial D3 simulator engine settings (any property of settings)
+   */
   setSettings(settings: ID3SimulatorEngineSettingsUpdate) {
+    if (!this._initialSettings) {
+      this._initialSettings = Object.assign(copyObject(DEFAULT_SETTINGS), settings);
+    }
+
+    // TODO(dlozic): Question: (from line 166, 167) is this then necessary? Why not simple assign?
     const previousSettings = this.getSettings();
-    Object.keys(settings).forEach((key) => {
-      // @ts-ignore
-      this.settings[key] = settings[key];
-    });
+    Object.assign(this.settings, settings);
 
     if (isObjectEqual(this.settings, previousSettings)) {
       return;
     }
 
-    this.initSimulation(settings);
+    this._initSimulation(settings);
     this.emit(D3SimulatorEngineEventType.SETTINGS_UPDATE, { settings: this.settings });
 
-    this.runSimulation({ isUpdatingSettings: true });
+    const hasPhysicsBeenDisabled = previousSettings.isPhysicsEnabled && !settings.isPhysicsEnabled;
+
+    if (hasPhysicsBeenDisabled) {
+      this.simulation.stop();
+    } else if (this.settings.isSimulatingOnSettingsUpdate) {
+      // this.runSimulation({ isUpdatingSettings: true });
+      this.activateSimulation();
+    }
+  }
+
+  /**
+   * Restores simulator engine settings to the initial settings provided during construction.
+   *
+   * @return {ID3SimulatorEngineSettings} The default settings patched with the specified parameters in the
+   * initial settings provided in the constructor or during the first settings update.
+   */
+  resetSettings(): ID3SimulatorEngineSettings {
+    return Object.assign(copyObject(DEFAULT_SETTINGS), this._initialSettings);
   }
 
   startDragNode() {
@@ -239,161 +264,352 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     if (!this.settings.isPhysicsEnabled) {
       node.x = data.x;
       node.y = data.y;
-
-      // Notify the client that the node position changed.
-      // This is otherwise handled by the simulation tick if physics is enabled.
-      this.emit(D3SimulatorEngineEventType.NODE_DRAG, { nodes: this._nodes, edges: this._edges });
     }
+
+    // Notify the client that the node position changed.
+    this.emit(D3SimulatorEngineEventType.NODE_DRAG, { nodes: this._nodes, edges: this._edges });
   }
 
   endDragNode(data: ID3SimulatorNodeId) {
     this._isDragging = false;
 
-    this.simulation.alphaTarget(0);
-    const node = this._nodes[this._nodeIndexByNodeId[data.id]];
-    if (node && this.settings.isPhysicsEnabled) {
-      releaseNode(node);
-    }
-  }
-
-  // Re-heat simulation.
-  // This does not count as "stabilization" and won't emit any progress.
-  activateSimulation() {
     if (this.settings.isPhysicsEnabled) {
-      this.simulation.alphaTarget(this.settings.alpha.alphaTarget).restart();
-      this.releaseNodes();
+      this.simulation.alphaTarget(0);
+    }
+    const node = this._nodes[this._nodeIndexByNodeId[data.id]];
+    // TODO(dlozic): Add special behavior for sticky nodes that have been dragged
+    if (node && this.settings.isPhysicsEnabled) {
+      this.unfixNode(node);
     }
   }
 
-  private fixDefinedNodes(data: ID3SimulatorGraph) {
-    // Treat nodes that have existing coordinates as "fixed".
-    for (let i = 0; i < data.nodes.length; i++) {
-      if (data.nodes[i].x !== null && data.nodes[i].x !== undefined) {
-        data.nodes[i].fx = data.nodes[i].x;
-      }
-      if (data.nodes[i].y !== null && data.nodes[i].y !== undefined) {
-        data.nodes[i].fy = data.nodes[i].y;
-      }
-    }
-    return data;
+  /**
+   * Activates the simulation and "re-heats" the nodes so that they converge to a new layout.
+   * This does not count as "stabilization" and won't emit any progress.
+   */
+  activateSimulation() {
+    this.unfixNodes(); // If physics is disabled, the nodes get fixed in the callback from the initial setup (`simulation.on('end', () => {})`).
+    this.simulation.alpha(this.settings.alpha.alpha).alphaTarget(this.settings.alpha.alphaTarget).restart();
   }
 
-  addData(data: ID3SimulatorGraph) {
-    data = this.fixDefinedNodes(data);
-    this._nodes.concat(data.nodes);
-    this._edges.concat(data.edges);
-    this.setNodeIndexByNodeId();
-  }
-
-  clearData() {
-    this._nodes = [];
-    this._edges = [];
-    this.setNodeIndexByNodeId();
-  }
-
-  setData(data: ID3SimulatorGraph) {
-    data = this.fixDefinedNodes(data);
+  setupData(data: ISimulationGraph) {
     this.clearData();
-    this.addData(data);
+
+    this._initializeNewData(data);
+
+    if (this.settings.isSimulatingOnDataUpdate) {
+      this._updateSimulationData();
+      this._runSimulation();
+    }
   }
 
-  updateData(data: ID3SimulatorGraph) {
-    data = this.fixDefinedNodes(data);
+  mergeData(data: Partial<ISimulationGraph>) {
+    this._initializeNewData(data);
+
+    if (this.settings.isSimulatingOnDataUpdate) {
+      this._updateSimulationData();
+      this.activateSimulation();
+    }
+  }
+
+  private _initializeNewData(data: Partial<ISimulationGraph>) {
+    if (data.nodes) {
+      data.nodes = this._fixDefinedNodes(data.nodes);
+      for (let i = 0; i < data.nodes.length; i += 1) {
+        if (this._nodeIndexByNodeId[data.nodes[i].id]) {
+          this._nodeIndexByNodeId = {
+            ...this._nodeIndexByNodeId,
+            ...data.nodes[i],
+          };
+        } else {
+          this._nodes.push(data.nodes[i]);
+        }
+      }
+    } else {
+      this._nodes = [];
+    }
+    if (data.edges) {
+      this._edges = this._edges.concat(data.edges);
+    } else {
+      this._edges = [];
+    }
+    this._setNodeIndexByNodeId();
+  }
+
+  updateData(data: ISimulationGraph) {
+    data.nodes = this._fixDefinedNodes(data.nodes);
+
     // Keep existing nodes along with their (x, y, fx, fy) coordinates to avoid
     // rearranging the graph layout.
     // These nodes should not be reloaded into the array because the D3 simulation
     // will assign to them completely new coordinates, effectively restarting the animation.
     const newNodeIds = new Set(data.nodes.map((node) => node.id));
 
-    // Remove old nodes that aren't present in the new data.
+    // Keep old nodes that are present in the new data instead of reassigning them.
     const oldNodes = this._nodes.filter((node) => newNodeIds.has(node.id));
     const newNodes = data.nodes.filter((node) => this._nodeIndexByNodeId[node.id] === undefined);
 
     this._nodes = [...oldNodes, ...newNodes];
-    this.setNodeIndexByNodeId();
+    this._setNodeIndexByNodeId();
 
     // Only keep new links and discard all old links.
     // Old links won't work as some discrepancies arise between the D3 index property
     // and Memgraph's `id` property which affects the source->target mapping.
     this._edges = data.edges;
 
-    // Update simulation with new data.
-    this.simulation.nodes(this._nodes);
-    this.linkForce.links(this._edges);
-  }
-
-  simulate() {
-    // Update simulation with new data.
-    this.simulation.nodes(this._nodes);
-    this.linkForce.links(this._edges);
-
-    // Run simulation "physics".
-    this.runSimulation();
-
-    if (!this.settings.isPhysicsEnabled) {
-      this.fixNodes();
+    if (this.settings.isSimulatingOnSettingsUpdate) {
+      this._updateSimulationData();
+      this.activateSimulation();
     }
   }
 
-  startSimulation(data: ID3SimulatorGraph) {
-    this.setData(data);
+  /**
+   * Removes specified data from the simulation.
+   *
+   * @param {ISimulationGraph} data Nodes and edges that will be deleted
+   */
+  deleteData(data: Partial<{ nodeIds: number[] | undefined; edgeIds: number[] | undefined }>) {
+    const nodeIds = new Set(data.nodeIds);
+    this._nodes = this._nodes.filter((node) => !nodeIds.has(node.id));
+    const edgeIds = new Set(data.edgeIds);
+    this._edges = this._edges.filter((edge) => !edgeIds.has(edge.id));
+    this._setNodeIndexByNodeId();
+    this._updateSimulationData();
+  }
 
+  /**
+   * Removes all internal and D3 simulation node and relationship data.
+   */
+  clearData() {
+    // TODO(dlozic): Is it okay for this to also reset the simulation? Is the naming right?
+    this._nodes = [];
+    this._edges = [];
+    this._setNodeIndexByNodeId();
+    this.resetSimulation();
+    // TODO(dlozic): emit an event here (DATA_CLEARED)
+  }
+
+  /**
+   * Updates the internal D3 simulation data with the current data.
+   */
+  private _updateSimulationData() {
     // Update simulation with new data.
     this.simulation.nodes(this._nodes);
     this.linkForce.links(this._edges);
-
-    // Run simulation "physics".
-    this.runSimulation();
   }
 
-  updateSimulation(data: ID3SimulatorGraph) {
-    // To avoid rearranging the graph layout during node expand/collapse/hide,
-    // it is necessary to keep existing nodes along with their (x, y) coordinates.
-    // These nodes should not be reloaded into the array because the D3 simulation
-    // will assign to them completely new coordinates, effectively restarting the animation.
-    const newNodeIds = new Set(data.nodes.map((node) => node.id));
-
-    // const newNodes = data.nodes.filter((node) => !this.nodeIdentities.has(node.id));
-    const newNodes = data.nodes.filter((node) => this._nodeIndexByNodeId[node.id] === undefined);
-    const oldNodes = this._nodes.filter((node) => newNodeIds.has(node.id));
-
-    if (!this.settings.isPhysicsEnabled) {
-      oldNodes.forEach((node) => fixNode(node));
-    }
-
-    // Remove old nodes that aren't present in the new data.
-    this._nodes = [...oldNodes, ...newNodes];
-    this.setNodeIndexByNodeId();
-
-    // Only keep new links and discard all old links.
-    // Old links won't work as some discrepancies arise between the D3 index property
-    // and Memgraph's `id` property which affects the source->target mapping.
-    this._edges = data.edges;
-
-    // Update simulation with new data.
-    this.simulation.nodes(this._nodes);
-    this.linkForce.links(this._edges);
-
-    // If there are no new nodes, there is no need for the simulation
-    if (!this.settings.isPhysicsEnabled && !newNodes.length) {
-      this.emit(D3SimulatorEngineEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
-      return;
-    }
-
-    // Run simulation "physics".
-    this.runSimulation({ isUpdatingSettings: true });
+  // Restart vs start? re-heat is restart, start resumes stopped? can it perform both functions?
+  // !!! Yeah, pause and resume should have an effect on the progress, while start and stop resets the progress.
+  /**
+   * Starts the D3 simulation if it is stopped.
+   * If the simulation is already running, this action will do nothing.
+   */
+  startSimulation() {
+    // Consider `resumeSimulation()`
   }
 
+  /**
+   * If the simulation is running
+   * Call `startSimulation()` to resume
+   */
   stopSimulation() {
+    // Consider `pauseSimulation()`
     this.simulation.stop();
     this._nodes = [];
     this._edges = [];
-    this.setNodeIndexByNodeId();
-    this.simulation.nodes();
-    this.linkForce.links();
+    this._setNodeIndexByNodeId();
+    this._updateSimulationData();
   }
 
-  protected initSimulation(settings: ID3SimulatorEngineSettingsUpdate) {
+  /**
+   * Resets the simulator engine by discarding all existing simulator data (nodes and edges),
+   * and keeping the current simulator engine settings.
+   */
+  resetSimulation() {
+    this.linkForce = forceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>(this._edges).id(
+      (node) => node.id,
+    );
+    this.simulation = forceSimulation(this._nodes).force('link', this.linkForce).stop();
+
+    this._initSimulation(this.settings);
+
+    this.simulation.on('tick', () => {
+      this.emit(D3SimulatorEngineEventType.SIMULATION_TICK, { nodes: this._nodes, edges: this._edges });
+    });
+
+    this.simulation.on('end', () => {
+      this._isDragging = false;
+      this._isStabilizing = false;
+      this.emit(D3SimulatorEngineEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
+
+      if (!this.settings.isPhysicsEnabled) {
+        this.fixNodes();
+      }
+    });
+    // TODO(dlozic): emit an event here (SIMULATION_RESET)
+  }
+
+  /**
+   * Fixes all nodes by setting their `fx` and `fy` properties to `x` and `y`.
+   * If no nodes are provided, this function fixes all nodes.
+   *
+   * @param {ISimulationNode[]} nodes Nodes that are going to be fixed. If undefined, all nodes get fixed.
+   */
+  fixNodes(nodes?: ISimulationNode[]) {
+    if (!nodes) {
+      nodes = this._nodes;
+    }
+
+    for (let i = 0; i < nodes.length; i++) {
+      this.fixNode(this._nodes[i]);
+    }
+  }
+
+  /**
+   * Releases specified nodes.
+   * If no nodes are provided, this function releases all nodes.
+   *
+   * @param {ISimulationNode[]} nodes Nodes that are going to be released. If undefined, all nodes get released.
+   */
+  unfixNodes(nodes?: ISimulationNode[]) {
+    if (!nodes) {
+      nodes = this._nodes;
+    }
+
+    for (let i = 0; i < nodes.length; i++) {
+      this.unfixNode(this._nodes[i]);
+    }
+  }
+
+  /**
+   * Fixes a node by setting its `fx` and `fy` properties to `x` and `y`.
+   * This function is called when disabling physics.
+   *
+   * @param {ISimulationNode} node Simulation node that is going to be fixed
+   */
+  fixNode(node: ISimulationNode) {
+    if (node.sx === null || node.sx === undefined) {
+      node.fx = node.x;
+    }
+    if (node.sy === null || node.sy === undefined) {
+      node.fy = node.y;
+    }
+  }
+
+  /**
+   * Releases a node if it's not sticky by setting its `fx` and `fy` properties to `null`.
+   * This function is called when enabling physics but the sticky property overpowers physics.
+   *
+   * @param {ISimulationNode} node Simulation node that is going to be released
+   */
+  unfixNode(node: ISimulationNode) {
+    if (node.sx === null || node.sx === undefined) {
+      node.fx = null;
+    }
+    if (node.sy === null || node.sy === undefined) {
+      node.fy = null;
+    }
+  }
+
+  /**
+   * Sticks the specified nodes into place.
+   * This overpowers any physics state and also sticks the node to their current positions.
+   * If no nodes are provided, this function sticks all nodes.
+   *
+   * @param {ISimulationNode[]} nodes Nodes that are going to become sticky. If undefined, all nodes get sticked.
+   */
+  stickNodes(nodes?: ISimulationNode[]) {
+    if (!nodes) {
+      nodes = this._nodes;
+    }
+
+    for (let i = 0; i < nodes.length; i++) {
+      this.stickNode(this._nodes[i]);
+    }
+  }
+
+  /**
+   * Removes the sticky properties from all specified nodes.
+   * If physics is enabled, the nodes get unfixed as well.
+   * If no nodes are provided, this function unsticks all nodes.
+   *
+   * @param {ISimulationNode[]} nodes Nodes that are going to be unsticked. If undefined, all nodes get unsticked.
+   */
+  unstickNodes(nodes?: ISimulationNode[]) {
+    if (!nodes) {
+      nodes = this._nodes;
+    }
+
+    for (let i = 0; i < nodes.length; i++) {
+      this.unstickNode(this._nodes[i]);
+    }
+
+    if (this.settings.isSimulatingOnUnstick) {
+      this.activateSimulation();
+    }
+  }
+
+  /**
+   * Sticks a node into place.
+   * This function overpowers any physics state and also sticks the node to its current coordinates.
+   *
+   * @param {ISimulationNode} node Simulation node that is going to become sticky
+   */
+  stickNode(node: ISimulationNode) {
+    node.sx = node.x;
+    node.fx = node.x;
+    node.sy = node.y;
+    node.fy = node.y;
+  }
+
+  /**
+   * Removes the sticky properties from the node.
+   * If physics is enabled, the node gets released as well.
+   *
+   * @param {ISimulationNode} node Simulation node that gets unstuck
+   */
+  unstickNode(node: ISimulationNode) {
+    node.sx = null;
+    node.sy = null;
+
+    if (this.settings.isPhysicsEnabled) {
+      node.fx = null;
+      node.fy = null;
+    }
+  }
+
+  /**
+   * Sticks all nodes thath have a defined position (x and y coordinates).
+   * This function should be called when the user initially sets up or merges some data.
+   * If the user provided nodes already have defined `x` **or** `y` properties, they are treated as _"sticky"_.
+   * Only the specified axis gets immobilized.
+   *
+   * @param {ISimulationNode[]} nodes Graph nodes.
+   * @return {ISimulationNodes[]} Graph nodes with attached `{fx, sx}`, and/or `{fy, sy}` coordinates.
+   */
+  // _fixAndStick?
+  private _fixDefinedNodes(nodes: ISimulationNode[]): ISimulationNode[] {
+    // TODO(dlozic): Question: should this function be extracted or should i use `this.data` everywhere and remove inputs/outputs?
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].x !== null && nodes[i].x !== undefined) {
+        nodes[i].fx = nodes[i].x;
+        nodes[i].sx = nodes[i].x;
+      }
+      if (nodes[i].y !== null && nodes[i].y !== undefined) {
+        nodes[i].fy = nodes[i].y;
+        nodes[i].sy = nodes[i].y;
+      }
+    }
+    return nodes;
+  }
+
+  /**
+   * Initializes the D3 simulation by applying the provided settings.
+   *
+   * @param {ID3SimulatorEngineSettingsUpdate} settings Simulator engine settings
+   */
+  private _initSimulation(settings: ID3SimulatorEngineSettingsUpdate) {
+    // TODO(dlozic): Question: better naming - applySettingsToSimulation?
     if (settings.alpha) {
       this.simulation
         .alpha(settings.alpha.alpha)
@@ -450,12 +666,12 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
   // This is a blocking action - the user will not be able to interact with the graph
   // during the simulation process.
-  protected runSimulation(options?: IRunSimulationOptions) {
+  private _runSimulation(options?: IRunSimulationOptions) {
     if (this._isStabilizing) {
       return;
     }
     if (this.settings.isPhysicsEnabled || options?.isUpdatingSettings) {
-      this.releaseNodes();
+      this.unfixNodes();
     }
 
     this.emit(D3SimulatorEngineEventType.SIMULATION_START, undefined);
@@ -490,41 +706,10 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this.emit(D3SimulatorEngineEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
   }
 
-  protected setNodeIndexByNodeId() {
+  private _setNodeIndexByNodeId() {
     this._nodeIndexByNodeId = {};
     for (let i = 0; i < this._nodes.length; i++) {
       this._nodeIndexByNodeId[this._nodes[i].id] = i;
     }
   }
-
-  fixNodes(nodes?: ISimulationNode[]) {
-    if (!nodes) {
-      nodes = this._nodes;
-    }
-
-    for (let i = 0; i < nodes.length; i++) {
-      fixNode(this._nodes[i]);
-    }
-  }
-
-  releaseNodes(nodes?: ISimulationNode[]) {
-    if (!nodes) {
-      nodes = this._nodes;
-    }
-
-    for (let i = 0; i < nodes.length; i++) {
-      releaseNode(this._nodes[i]);
-    }
-  }
 }
-
-const fixNode = (node: ISimulationNode) => {
-  // fx and fy fix the node position in the D3 simulation.
-  node.fx = node.x;
-  node.fy = node.y;
-};
-
-const releaseNode = (node: ISimulationNode) => {
-  node.fx = null;
-  node.fy = null;
-};

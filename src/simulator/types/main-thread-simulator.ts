@@ -1,4 +1,11 @@
-import { ISimulationEdge, ISimulationNode, ISimulator, SimulatorEvents, SimulatorEventType } from '../shared';
+import {
+  ISimulationNode,
+  ISimulator,
+  SimulatorEvents,
+  SimulatorEventType,
+  ISimulationGraph,
+  ISimulationIds,
+} from '../shared';
 import { IPosition } from '../../common';
 import { Emitter } from '../../utils/emitter.utils';
 import {
@@ -23,29 +30,30 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
       this.emit(SimulatorEventType.SIMULATION_END, data);
     });
     this.simulator.on(D3SimulatorEngineEventType.NODE_DRAG, (data) => {
-      this.emit(SimulatorEventType.NODE_DRAG_END, data);
-    });
-    this.simulator.on(D3SimulatorEngineEventType.TICK, (data) => {
       this.emit(SimulatorEventType.NODE_DRAG, data);
     });
-    this.simulator.on(D3SimulatorEngineEventType.END, (data) => {
-      this.emit(SimulatorEventType.NODE_DRAG_END, data);
+    this.simulator.on(D3SimulatorEngineEventType.SIMULATION_TICK, (data) => {
+      this.emit(SimulatorEventType.SIMULATION_STEP, data);
     });
     this.simulator.on(D3SimulatorEngineEventType.SETTINGS_UPDATE, (data) => {
       this.emit(SimulatorEventType.SETTINGS_UPDATE, data);
     });
   }
 
-  setData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.simulator.setData({ nodes, edges });
+  setupData(data: ISimulationGraph) {
+    this.simulator.setupData(data);
   }
 
-  addData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.simulator.addData({ nodes, edges });
+  mergeData(data: ISimulationGraph) {
+    this.simulator.mergeData(data);
   }
 
-  updateData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.simulator.updateData({ nodes, edges });
+  updateData(data: ISimulationGraph) {
+    this.simulator.updateData(data);
+  }
+
+  deleteData(data: ISimulationIds) {
+    this.simulator.deleteData(data);
   }
 
   clearData() {
@@ -53,19 +61,16 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
   }
 
   simulate() {
-    this.simulator.simulate();
+    console.log('not implemented');
+    // this.simulator.runSimulation();
   }
 
   activateSimulation() {
     this.simulator.activateSimulation();
   }
 
-  startSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.simulator.startSimulation({ nodes, edges });
-  }
-
-  updateSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.simulator.updateSimulation({ nodes, edges });
+  startSimulation() {
+    this.simulator.startSimulation();
   }
 
   stopSimulation() {
@@ -85,11 +90,11 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
   }
 
   fixNodes(nodes: ISimulationNode[]) {
-    this.simulator.fixNodes(nodes);
+    this.simulator.stickNodes(nodes);
   }
 
   releaseNodes(nodes?: ISimulationNode[] | undefined): void {
-    this.simulator.releaseNodes(nodes);
+    this.simulator.unstickNodes(nodes);
   }
 
   setSettings(settings: ID3SimulatorEngineSettingsUpdate) {
@@ -99,6 +104,5 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
   terminate() {
     this.simulator.removeAllListeners();
     this.removeAllListeners();
-    // Do nothing
   }
 }

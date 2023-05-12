@@ -24,7 +24,7 @@ Orb is a graph visualization library. Read more about Orb in the following guide
 * [Styling nodes and edges](./docs/styles.md)
 * [Handling events](./docs/events.md)
 * Using different views
-  * [Default view](./docs/view-default.md) 
+  * [Default view](./docs/view-default.md)
   * [Map view](./docs/view-map.md)
 
 ## Install
@@ -106,7 +106,7 @@ free to check other Javascript examples in `examples/` directory.
     <div id="graph"></div>
     <script>
       const container = document.getElementById("graph");
-    
+
       const nodes = [
         { id: 1, label: "Orb" },
         { id: 2, label: "Graph" },
@@ -116,13 +116,13 @@ free to check other Javascript examples in `examples/` directory.
         { id: 1, start: 1, end: 2, label: "DRAWS" },
         { id: 2, start: 2, end: 3, label: "ON" },
       ];
-    
-      // First `Orb` is just a namespace of the JS package 
+
+      // First `Orb` is just a namespace of the JS package
       const orb = new Orb.OrbView(container);
-    
+
       // Initialize nodes and edges
       orb.data.setup({ nodes, edges });
-    
+
       // Render and recenter the view
       orb.render(() => {
         orb.recenter();
