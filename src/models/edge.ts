@@ -45,6 +45,7 @@ export type IEdgeStyle = Partial<{
   width: number;
   widthHover: number;
   widthSelected: number;
+  zIndex: number;
 }>;
 
 export interface IEdgeData<N extends INodeBase, E extends IEdgeBase> {

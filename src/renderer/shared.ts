@@ -1,5 +1,5 @@
 import { ZoomTransform } from 'd3-zoom';
-import { IPosition, IRectangle } from '../common';
+import { Color, IPosition, IRectangle } from '../common';
 import { INodeBase } from '../models/node';
 import { IEdgeBase } from '../models/edge';
 import { IGraph } from '../models/graph';
@@ -26,6 +26,7 @@ export interface IRendererSettings {
   shadowOnEventIsEnabled: boolean;
   contextAlphaOnEvent: number;
   contextAlphaOnEventIsEnabled: boolean;
+  backgroundColor: Color | string | null;
 }
 
 export interface IRendererSettingsInit extends IRendererSettings {
@@ -81,6 +82,7 @@ export const DEFAULT_RENDERER_SETTINGS: IRendererSettings = {
   shadowOnEventIsEnabled: true,
   contextAlphaOnEvent: 0.3,
   contextAlphaOnEventIsEnabled: true,
+  backgroundColor: null,
 };
 
 export const DEFAULT_RENDERER_WIDTH = 640;
