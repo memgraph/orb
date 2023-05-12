@@ -4,6 +4,7 @@ import { IPosition, IRectangle } from '../common';
 import { IGraphStyle } from './style';
 import { ImageHandler } from '../services/images';
 import { getEdgeOffsets } from './topology';
+import { IEntityState, EntityState } from '../utils/entity.utils';
 
 export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
   nodes: N[];
@@ -42,8 +43,13 @@ export interface IGraphSettings {
 }
 
 export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N, E> {
-  private _nodeById: { [id: number]: INode<N, E> } = {};
-  private _edgeById: { [id: number]: IEdge<N, E> } = {};
+  private _nodes: IEntityState<any, INode<N, E>> = new EntityState<any, INode<N, E>>({
+    getId: (node) => node.id,
+    sortBy: (node1, node2) => (node1.style.zIndex ?? 0) - (node2.style.zIndex ?? 0),
+  });
+  private _edges: IEntityState<any, IEdge<N, E>> = new EntityState<any, IEdge<N, E>>({
+    getId: (edge) => edge.id,
+  });
   private _defaultStyle?: Partial<IGraphStyle<N, E>>;
   private _onLoadedImages?: () => void;
 
@@ -61,18 +67,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
    * @return {INode[]} List of nodes
    */
   getNodes(filterBy?: INodeFilter<N, E>): INode<N, E>[] {
-    const nodes = Object.values(this._nodeById);
-    if (!filterBy) {
-      return nodes;
-    }
-
-    const filteredNodes: INode<N, E>[] = [];
-    for (let i = 0; i < nodes.length; i++) {
-      if (filterBy(nodes[i])) {
-        filteredNodes.push(nodes[i]);
-      }
-    }
-    return filteredNodes;
+    return this._nodes.getAll({ filterBy });
   }
 
   /**
@@ -82,18 +77,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
    * @return {IEdge[]} List of edges
    */
   getEdges(filterBy?: IEdgeFilter<N, E>): IEdge<N, E>[] {
-    const edges = Object.values(this._edgeById);
-    if (!filterBy) {
-      return edges;
-    }
-
-    const filteredEdges: IEdge<N, E>[] = [];
-    for (let i = 0; i < edges.length; i++) {
-      if (filterBy(edges[i])) {
-        filteredEdges.push(edges[i]);
-      }
-    }
-    return filteredEdges;
+    return this._edges.getAll({ filterBy });
   }
 
   /**
@@ -102,7 +86,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
    * @return {number} Total node count
    */
   getNodeCount(): number {
-    return Object.keys(this._nodeById).length;
+    return this._nodes.size;
   }
 
   /**
@@ -111,7 +95,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
    * @return {number} Total edge count
    */
   getEdgeCount(): number {
-    return Object.keys(this._edgeById).length;
+    return this._edges.size;
   }
 
   /**
@@ -121,7 +105,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
    * @return {Node | undefined} Node or undefined
    */
   getNodeById(id: any): INode<N, E> | undefined {
-    return this._nodeById[id];
+    return this._nodes.getOne(id);
   }
 
   /**
@@ -131,7 +115,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
    * @return {IEdge | undefined} Edge or undefined
    */
   getEdgeById(id: any): IEdge<N, E> | undefined {
-    return this._edgeById[id];
+    return this._edges.getOne(id);
   }
 
   /**
@@ -155,7 +139,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
    */
   setNodePositions(positions: INodePosition[]) {
     for (let i = 0; i < positions.length; i++) {
-      const node = this._nodeById[positions[i].id];
+      const node = this._nodes.getOne(positions[i].id);
       if (node) {
         node.position = positions[i];
       }
@@ -189,8 +173,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
   }
 
   setup(data: Partial<IGraphData<N, E>>) {
-    this._nodeById = {};
-    this._edgeById = {};
+    this._nodes.removeAll();
+    this._edges.removeAll();
 
     const nodes = data?.nodes ?? [];
     const edges = data?.edges ?? [];
@@ -228,7 +212,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     this._removeEdges(edgeIds);
 
     this._applyEdgeOffsets();
-    // this._applyStyle();
+    this._applyStyle();
   }
 
   isEqual<T extends INodeBase, K extends IEdgeBase>(graph: Graph<T, K>): boolean {
@@ -327,29 +311,34 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
   }
 
   private _insertNodes(nodes: N[]) {
+    const newNodes: INode<N, E>[] = new Array<INode<N, E>>(nodes.length);
     for (let i = 0; i < nodes.length; i++) {
-      const node = NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._onLoadedImages?.() });
-      this._nodeById[node.id] = node;
+      newNodes[i] = NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._onLoadedImages?.() });
     }
+    this._nodes.setMany(newNodes);
   }
 
   private _insertEdges(edges: E[]) {
+    const newEdges: IEdge<N, E>[] = [];
     for (let i = 0; i < edges.length; i++) {
       const startNode = this.getNodeById(edges[i].start);
       const endNode = this.getNodeById(edges[i].end);
 
       if (startNode && endNode) {
-        const edge = EdgeFactory.create<N, E>({
-          data: edges[i],
-          startNode,
-          endNode,
-        });
-        this._edgeById[edge.id] = edge;
+        newEdges.push(
+          EdgeFactory.create<N, E>({
+            data: edges[i],
+            startNode,
+            endNode,
+          }),
+        );
       }
     }
+    this._edges.setMany(newEdges);
   }
 
   private _upsertNodes(nodes: N[]) {
+    const newNodes: INode<N, E>[] = [];
     for (let i = 0; i < nodes.length; i++) {
       const existingNode = this.getNodeById(nodes[i].id);
       if (existingNode) {
@@ -357,12 +346,15 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
         continue;
       }
 
-      const node = NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._onLoadedImages?.() });
-      this._nodeById[node.id] = node;
+      newNodes.push(NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._onLoadedImages?.() }));
     }
+    this._nodes.setMany(newNodes);
   }
 
   private _upsertEdges(edges: E[]) {
+    const newEdges: IEdge<N, E>[] = [];
+    const removedEdgeIds: any[] = [];
+
     for (let i = 0; i < edges.length; i++) {
       const newEdgeData = edges[i];
       const existingEdge = this.getEdgeById(newEdgeData.id);
@@ -378,7 +370,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
             startNode,
             endNode,
           });
-          this._edgeById[edge.id] = edge;
+          newEdges.push(edge);
         }
         continue;
       }
@@ -392,26 +384,33 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
       // Edge connection (start or end node) has changed
       existingEdge.startNode.removeEdge(existingEdge);
       existingEdge.endNode.removeEdge(existingEdge);
-      delete this._edgeById[existingEdge.id];
-
       const startNode = this.getNodeById(newEdgeData.start);
       const endNode = this.getNodeById(newEdgeData.end);
 
-      if (startNode && endNode) {
-        const edge = EdgeFactory.create<N, E>({
-          data: newEdgeData,
-          offset: existingEdge.offset,
-          startNode,
-          endNode,
-        });
-        edge.state = existingEdge.state;
-        edge.style = existingEdge.style;
-        this._edgeById[existingEdge.id] = edge;
+      if (!startNode || !endNode) {
+        removedEdgeIds.push(existingEdge.id);
+        continue;
       }
+
+      const edge = EdgeFactory.create<N, E>({
+        data: newEdgeData,
+        offset: existingEdge.offset,
+        startNode,
+        endNode,
+      });
+      edge.state = existingEdge.state;
+      edge.style = existingEdge.style;
+      newEdges.push(edge);
     }
+
+    this._edges.setMany(newEdges);
+    this._edges.removeMany(removedEdgeIds);
   }
 
-  private _removeNodes(nodeIds: number[]) {
+  private _removeNodes(nodeIds: any[]) {
+    const removedNodeIds: any[] = [];
+    const removedEdgeIds: any[] = [];
+
     for (let i = 0; i < nodeIds.length; i++) {
       const node = this.getNodeById(nodeIds[i]);
       if (!node) {
@@ -423,14 +422,18 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
         const edge = edges[i];
         edge.startNode.removeEdge(edge);
         edge.endNode.removeEdge(edge);
-        delete this._edgeById[edge.id];
+        removedEdgeIds.push(edge.id);
       }
 
-      delete this._nodeById[node.id];
+      removedNodeIds.push(node.id);
     }
+    this._nodes.removeMany(removedNodeIds);
+    this._edges.removeMany(removedEdgeIds);
   }
 
-  private _removeEdges(edgeIds: number[]) {
+  private _removeEdges(edgeIds: any[]) {
+    const removedEdgeIds: any[] = [];
+
     for (let i = 0; i < edgeIds.length; i++) {
       const edge = this.getEdgeById(edgeIds[i]);
       if (!edge) {
@@ -439,18 +442,22 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
 
       edge.startNode.removeEdge(edge);
       edge.endNode.removeEdge(edge);
-      delete this._edgeById[edge.id];
+      removedEdgeIds.push(edge.id);
     }
+    this._edges.removeMany(removedEdgeIds);
   }
 
   private _applyEdgeOffsets() {
     const graphEdges = this.getEdges();
     const edgeOffsets = getEdgeOffsets<N, E>(graphEdges);
+    const updatedEdges: IEdge<N, E>[] = new Array<IEdge<N, E>>(edgeOffsets.length);
+
     for (let i = 0; i < edgeOffsets.length; i++) {
       const edge = graphEdges[i];
       const edgeOffset = edgeOffsets[i];
-      this._edgeById[edge.id] = EdgeFactory.copy(edge, { offset: edgeOffset });
+      updatedEdges[i] = EdgeFactory.copy(edge, { offset: edgeOffset });
     }
+    this._edges.setMany(updatedEdges);
   }
 
   private _applyStyle() {
@@ -496,5 +503,9 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
         this._onLoadedImages?.();
       });
     }
+
+    // Sort because of the possibility that style properties changed
+    this._nodes.sort();
+    this._edges.sort();
   }
 }
