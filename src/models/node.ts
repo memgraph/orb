@@ -58,6 +58,7 @@ export type INodeStyle = Partial<{
   shape: NodeShapeType;
   size: number;
   mass: number;
+  zIndex: number;
 }>;
 
 export interface INodeData<N extends INodeBase> {

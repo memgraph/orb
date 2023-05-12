@@ -1,3 +1,28 @@
+## 0.4.0
+
+### New
+
+* Add canvas background color (#55)
+* Add zIndex style property (#53)
+
+## 0.3.0
+
+### New
+
+* Added support for double click events (#50) - by @shashankshukla96
+
+## 0.2.0
+
+### New
+
+* Add support for context menu events (#46) - by @shashankshukla96
+
+## 0.1.5
+
+### Fix
+
+* Fix web worker build with parcel (#36) - by @jondlm
+
 ## 0.1.4
 
 ### Fix
@@ -39,4 +64,3 @@
 
 * Add pre commit hook (#11)
 * Fix docs and general orb API issues (#13)
-

@@ -46,6 +46,7 @@ the following properties:
 | `shape`               | NodeShapeType       | Node shape enum. Possible values are: `CIRCLE`, `DOT` (same as circle), `SQUARE`, `DIAMOND`, `TRIANGLE`, `TRIANGLE_DOWN`, `STAR`, `HEXAGON`. Default is `NodeShapeEnum.CIRCLE`. |
 | `size`                | number              | Node size (usually the radius). The default is `5`. |
 | `mass`                | number              | Node mass. _(Currently not used)_               |
+| `zIndex`              | number              | Specifies the stack order of an element during rendering. The default is `0`. |
 
 ## Shape enumeration
 
@@ -140,6 +141,7 @@ style properties:
 | `width`               | number              | Edge line width. If the width is `0`, the edge won't be drawn. The default is `0.3`. |
 | `widthHover`          | number              | Edge line width on mouse hover event. If not defined `width` is used. |
 | `widthSelected`       | number              | Edge line width on mouse click event. If not defined `width` is used. |
+| `zIndex`              | number              | Specifies the stack order of an element during rendering. The default is `0`. |
 
 ## Default style values
 
