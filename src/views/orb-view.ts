@@ -51,7 +51,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   private readonly _renderer: IRenderer<N, E>;
   private readonly _simulator: ISimulator;
 
-  private _isSimulating = false;
+  // private _isSimulating = false;
   private _onSimulationEnd: (() => void) | undefined;
   private _simulationStartedAt = Date.now();
   private _d3Zoom: ZoomBehavior<HTMLCanvasElement, any>;
@@ -141,7 +141,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
     this._simulator = SimulatorFactory.getSimulator();
     this._simulator.on(SimulatorEventType.SIMULATION_START, () => {
-      this._isSimulating = true;
+      // this._isSimulating = true;
       this._simulationStartedAt = Date.now();
       this._events.emit(OrbEventType.SIMULATION_START, undefined);
     });
@@ -156,7 +156,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       this._graph.setNodePositions(data.nodes);
       this.render();
       this.recenter();
-      this._isSimulating = false;
+      // this._isSimulating = false;
       this._onSimulationEnd?.();
       this._onSimulationEnd = undefined;
       this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
@@ -178,11 +178,11 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     // TODO(dlozic): Optimize crud operations here.
     this._graph.setSettings({
       onSetupData: () => {
-        if (this._isSimulating) {
-          console.warn('Already running a simulation. Discarding the setup data call.');
-          return;
-        }
-        this._isSimulating = true;
+        // if (this._isSimulating) {
+        //   console.warn('Already running a simulation. Discarding the setup data call.');
+        //   return;
+        // }
+        // this._isSimulating = true;
         this._assignPositions(this._graph.getNodes());
         const nodePositions = this._graph.getNodePositions();
         const edgePositions = this._graph.getEdgePositions();
