@@ -19,6 +19,8 @@ export interface IEventStrategy<N extends INodeBase, E extends IEdgeBase> {
   isHoverEnabled: boolean;
   onMouseClick: (graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>;
   onMouseMove: (graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>;
+  onMouseRightClick: (graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>;
+  onMouseDoubleClick: (graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>;
 }
 
 export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> implements IEventStrategy<N, E> {
@@ -37,6 +39,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
       if (this.isSelectEnabled) {
         selectNode(graph, node);
       }
+
       return {
         isStateChanged: true,
         changedSubject: node,
@@ -48,6 +51,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
       if (this.isSelectEnabled) {
         selectEdge(graph, edge);
       }
+
       return {
         isStateChanged: true,
         changedSubject: edge,
@@ -94,6 +98,76 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
     }
 
     return { isStateChanged: false };
+  }
+
+  onMouseRightClick(graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> {
+    const node = graph.getNearestNode(point);
+    if (node) {
+      if (this.isSelectEnabled) {
+        selectNode(graph, node);
+      }
+
+      return {
+        isStateChanged: true,
+        changedSubject: node,
+      };
+    }
+
+    const edge = graph.getNearestEdge(point);
+    if (edge) {
+      if (this.isSelectEnabled) {
+        selectEdge(graph, edge);
+      }
+
+      return {
+        isStateChanged: true,
+        changedSubject: edge,
+      };
+    }
+
+    if (!this.isSelectEnabled) {
+      return { isStateChanged: false };
+    }
+
+    const { changedCount } = unselectAll(graph);
+    return {
+      isStateChanged: changedCount > 0,
+    };
+  }
+
+  onMouseDoubleClick(graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> {
+    const node = graph.getNearestNode(point);
+    if (node) {
+      if (this.isSelectEnabled) {
+        selectNode(graph, node);
+      }
+
+      return {
+        isStateChanged: true,
+        changedSubject: node,
+      };
+    }
+
+    const edge = graph.getNearestEdge(point);
+    if (edge) {
+      if (this.isSelectEnabled) {
+        selectEdge(graph, edge);
+      }
+
+      return {
+        isStateChanged: true,
+        changedSubject: edge,
+      };
+    }
+
+    if (!this.isSelectEnabled) {
+      return { isStateChanged: false };
+    }
+
+    const { changedCount } = unselectAll(graph);
+    return {
+      isStateChanged: changedCount > 0,
+    };
   }
 }
 

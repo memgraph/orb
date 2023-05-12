@@ -42,7 +42,11 @@
       { id: 5, start: 0, end: 1, label: 'A -> B' },
     ]
 
-    const orb = new Orb.OrbView(container);
+    const orb = new Orb.OrbView(container, {
+      render: {
+        backgroundColor: '#DDDDDD',
+      },
+    });
 
     // Assign a basic style
     orb.data.setDefaultStyle({
@@ -63,6 +67,7 @@
             ...basicStyle,
             size: 10,
             color: '#00FF2B',
+            zIndex: 1,
           };
         }
 

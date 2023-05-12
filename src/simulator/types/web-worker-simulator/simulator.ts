@@ -16,6 +16,7 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
         './process.worker',
         import.meta.url,
       ),
+      { type: 'module' },
     );
 
     this.worker.onmessage = ({ data }: MessageEvent<IWorkerOutputPayload>) => {

@@ -126,6 +126,7 @@ interface IOrbMapViewSettings {
     shadowOnEventIsEnabled: boolean;
     contextAlphaOnEvent: number;
     contextAlphaOnEventIsEnabled: boolean;
+    backgroundColor: Color | string | null;
   };
   // For select and hover look-and-feel
   strategy: {
@@ -156,6 +157,7 @@ const defaultSettings = {
     shadowOnEventIsEnabled: true,
     contextAlphaOnEvent: 0.3,
     contextAlphaOnEventIsEnabled: true,
+    backgroundColor: null,
   },
   strategy: {
     isDefaultSelectEnabled: true,

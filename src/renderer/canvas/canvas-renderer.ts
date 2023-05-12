@@ -98,6 +98,10 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
 
     // Clear drawing.
     this._context.clearRect(0, 0, this.width, this.height);
+    if (this._settings.backgroundColor) {
+      this._context.fillStyle = this._settings.backgroundColor.toString();
+      this._context.fillRect(0, 0, this.width, this.height);
+    }
     this._context.save();
 
     if (DEBUG) {
