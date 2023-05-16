@@ -79,6 +79,7 @@ interface IDefaultViewSettings {
     shadowOnEventIsEnabled: boolean;
     contextAlphaOnEvent: number;
     contextAlphaOnEventIsEnabled: boolean;
+    backgroundColor: Color | string | null;
   };
   // Other default view parameters
   zoomFitTransitionMs: number;
@@ -143,6 +144,7 @@ const defaultSettings = {
     shadowOnEventIsEnabled: true,
     contextAlphaOnEvent: 0.3,
     contextAlphaOnEventIsEnabled: true,
+    backgroundColor: null,
   },
   zoomFitTransitionMs: 200,
   isOutOfBoundsDragEnabled: false,
