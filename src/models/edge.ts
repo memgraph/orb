@@ -34,6 +34,10 @@ export type IEdgeStyle = Partial<{
   colorHover: Color | string;
   colorSelected: Color | string;
   fontBackgroundColor: Color | string;
+  fontBackgroundBorderWidth: number;
+  fontBackgroundBorderColor: Color | string;
+  fontBackgroundBorderRadius: number;
+  fontBackgroundPadding: number;
   fontColor: Color | string;
   fontFamily: string;
   fontSize: number;

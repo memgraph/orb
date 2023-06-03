@@ -57,6 +57,10 @@ const drawEdgeLabel = <N extends INodeBase, E extends IEdgeBase>(
     textBaseline: LabelTextBaseline.MIDDLE,
     properties: {
       fontBackgroundColor: edge.style.fontBackgroundColor,
+      fontBackgroundBorderWidth: edge.style.fontBackgroundBorderWidth,
+      fontBackgroundBorderColor: edge.style.fontBackgroundBorderColor,
+      fontBackgroundBorderRadius: edge.style.fontBackgroundBorderRadius,
+      fontBackgroundPadding: edge.style.fontBackgroundPadding,
       fontColor: edge.style.fontColor,
       fontFamily: edge.style.fontFamily,
       fontSize: edge.style.fontSize,

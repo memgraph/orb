@@ -102,6 +102,10 @@ const drawNodeLabel = <N extends INodeBase, E extends IEdgeBase>(
     textBaseline: LabelTextBaseline.TOP,
     properties: {
       fontBackgroundColor: node.style.fontBackgroundColor,
+      fontBackgroundBorderWidth: node.style.fontBackgroundBorderWidth,
+      fontBackgroundBorderColor: node.style.fontBackgroundBorderColor,
+      fontBackgroundBorderRadius: node.style.fontBackgroundBorderRadius,
+      fontBackgroundPadding: node.style.fontBackgroundPadding,
       fontColor: node.style.fontColor,
       fontFamily: node.style.fontFamily,
       fontSize: node.style.fontSize,

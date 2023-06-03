@@ -33,6 +33,10 @@ the following properties:
 | `colorHover`          | Color &#124; string | Node background color on mouse hover event. If not defined `color` is used. |
 | `colorSelected`       | Color &#124; string | Node background color on mouse click event. If not defined `color` is used. |
 | `fontBackgroundColor` | Color &#124; string | Node text (label) background color.             |
+| `fontBackgroundBorderWidth` | number        | Node text (label) background border width.      |
+| `fontBackgroundBorderColor` | Color &#124; string | Node text (label) background border color.   |
+| `fontBackgroundBorderRadius` | number        | Node text (label) background border radius.     |
+| `fontBackgroundPadding` | number            | Node text (label) background padding.           |
 | `fontColor`           | Color &#124; string | Node text (label) font color. The default is `#000000`. |
 | `fontFamily`          | string              | Node text (label) font family. The default is `"Roboto, sans-serif"`. |
 | `fontSize`            | number              | Node text (label) font size. The default is `4`.    |
