@@ -183,7 +183,7 @@ const randomColor = Color.getRandomColor();
 ```
 
 If you would like to have a lighter/darker tone of a node on node select/hover, then you can easily do
-that with `getLigherColor` or `getDarkerColor` functions:
+that with `getLighterColor` or `getDarkerColor` functions:
 
 ```typescript
 const nodeBaseColor = new Color('#FF0000');
