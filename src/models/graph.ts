@@ -22,6 +22,8 @@ export interface IGraph<N extends INodeBase, E extends IEdgeBase> {
   getEdgeCount(): number;
   getNodeById(id: any): INode<N, E> | undefined;
   getEdgeById(id: any): IEdge<N, E> | undefined;
+  getSelectedNodes(): INode<N, E>[];
+  getSelectedEdges(): IEdge<N, E>[];
   getNodePositions(): INodePosition[];
   setNodePositions(positions: INodePosition[]): void;
   getEdgePositions(): IEdgePosition[];
@@ -116,6 +118,24 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
    */
   getEdgeById(id: any): IEdge<N, E> | undefined {
     return this._edges.getOne(id);
+  }
+
+  /**
+   * Returns a list of selected nodes.
+   *
+   * @return {INode[]} List of selected nodes
+   */
+  getSelectedNodes(): INode<N, E>[] {
+    return this.getNodes((node) => node.isSelected());
+  }
+
+  /**
+   * Returns a list of selected edges.
+   *
+   * @return {IEdge[]} List of selected edges
+   */
+  getSelectedEdges(): IEdge<N, E>[] {
+    return this.getEdges((edge) => edge.isSelected());
   }
 
   /**
