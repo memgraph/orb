@@ -24,6 +24,8 @@ export interface IGraph<N extends INodeBase, E extends IEdgeBase> {
   getEdgeById(id: any): IEdge<N, E> | undefined;
   getSelectedNodes(): INode<N, E>[];
   getSelectedEdges(): IEdge<N, E>[];
+  getHoveredNodes(): INode<N, E>[];
+  getHoveredEdges(): IEdge<N, E>[];
   getNodePositions(): INodePosition[];
   setNodePositions(positions: INodePosition[]): void;
   getEdgePositions(): IEdgePosition[];
@@ -136,6 +138,24 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
    */
   getSelectedEdges(): IEdge<N, E>[] {
     return this.getEdges((edge) => edge.isSelected());
+  }
+
+  /**
+   * Returns a list of hovered nodes.
+   *
+   * @return {INode[]} List of hovered nodes
+   */
+  getHoveredNodes(): INode<N, E>[] {
+    return this.getNodes((node) => node.isHovered());
+  }
+
+  /**
+   * Returns a list of hovered edges.
+   *
+   * @return {IEdge[]} List of hovered edges
+   */
+  getHoveredEdges(): IEdge<N, E>[] {
+    return this.getEdges((edge) => edge.isHovered());
   }
 
   /**
