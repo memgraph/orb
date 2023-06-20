@@ -1,8 +1,11 @@
 import { IPosition, Color } from '../../common';
+import { drawRoundRect } from './shapes';
 
 const DEFAULT_FONT_FAMILY = 'Roboto, sans-serif';
 const DEFAULT_FONT_SIZE = 4;
 const DEFAULT_FONT_COLOR = '#000000';
+const DEFAULT_FONT_BACKGROUND_COLOR = 'transparent';
+const DEFAULT_FONT_BORDER_COLOR = '#000000';
 
 const FONT_BACKGROUND_MARGIN = 0.12;
 const FONT_LINE_SPACING = 1.2;
@@ -28,6 +31,13 @@ export interface ILabelData {
   position: IPosition;
   properties: Partial<ILabelProperties>;
 }
+
+type BorderPoint = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 export class Label {
   public readonly text: string;
@@ -62,74 +72,160 @@ export class Label {
   }
 }
 
-export const drawLabel = (context: CanvasRenderingContext2D, label: Label) => {
+export const drawLabel = (context: CanvasRenderingContext2D, label: Label, type: 'node' | 'edge') => {
   const isDrawable = label.textLines.length > 0 && label.fontSize > 0;
   if (!isDrawable || !label.position) {
     return;
   }
 
-  drawTextBackground(context, label);
-  drawText(context, label);
-};
+  const borderPoints: BorderPoint[] | undefined = drawTextBackgroundAndBorder(context, label, type);
 
-const drawTextBackground = (context: CanvasRenderingContext2D, label: Label) => {
-  if (!label.properties.fontBackgroundColor || !label.position) {
+  if (!borderPoints) {
     return;
   }
 
-  context.fillStyle = label.properties.fontBackgroundColor.toString();
+  drawTextBackground(context, borderPoints, label);
+  drawTextBackgroundBorder(context, borderPoints, label);
+  drawText(context, borderPoints, label, type);
+};
+
+const drawTextBackgroundAndBorder = (
+  context: CanvasRenderingContext2D,
+  label: Label,
+  type: 'node' | 'edge',
+): BorderPoint[] | undefined => {
+  if (!label.position) {
+    return;
+  }
+
   const margin = label.fontSize * FONT_BACKGROUND_MARGIN;
 
-  let height = label.fontSize + 2 * margin;
   const lineHeight = label.fontSize * FONT_LINE_SPACING;
 
   const baselineHeight = label.textBaseline === LabelTextBaseline.MIDDLE ? label.fontSize / 2 : 0;
+
+  const borderPoints: BorderPoint[] = [];
 
   for (let i = 0; i < label.textLines.length; i++) {
     const line = label.textLines[i];
 
     let width = context.measureText(line).width + 2 * margin;
     let x = label.position.x - width / 2;
-    const y = label.position.y - baselineHeight - margin + i * lineHeight;
+    let y = label.position.y - baselineHeight - margin + i * lineHeight;
+    let height = label.fontSize + 2 * margin;
 
     if (label.properties.fontBackgroundPadding) {
       width += label.properties.fontBackgroundPadding * 2;
       height += label.properties.fontBackgroundPadding * 2;
       x -= label.properties.fontBackgroundPadding;
+
+      if (type === 'node') {
+        y += label.properties.fontBackgroundPadding * 2 * i;
+      } else {
+        if (i === 0) {
+          y -= label.properties.fontBackgroundPadding;
+        } else {
+          y += label.properties.fontBackgroundPadding;
+        }
+      }
     }
 
-    if (label.properties.fontBackgroundBorderRadius) {
-      const borderRadius = Math.min(label.properties.fontBackgroundBorderRadius, width / 2, height / 2);
+    borderPoints.push({ x, y, width, height });
+  }
 
-      context.beginPath();
-      context.lineWidth = label.properties.fontBackgroundBorderWidth ?? 0;
+  return borderPoints;
+};
 
-      context.moveTo(x + borderRadius, y);
-      context.lineTo(x + width - borderRadius, y);
-      context.quadraticCurveTo(x + width, y, x + width, y + borderRadius);
-      context.lineTo(x + width, y + height - borderRadius);
-      context.quadraticCurveTo(x + width, y + height, x + width - borderRadius, y + height);
-      context.lineTo(x + borderRadius, y + height);
-      context.quadraticCurveTo(x, y + height, x, y + height - borderRadius);
-      context.lineTo(x, y + borderRadius);
-      context.quadraticCurveTo(x, y, x + borderRadius, y);
-      context.closePath();
-      context.fillStyle = (label.properties.fontBackgroundColor ?? DEFAULT_FONT_COLOR).toString();
-      context.strokeStyle = (label.properties.fontBackgroundBorderColor ?? DEFAULT_FONT_COLOR).toString();
-      context.fill();
-      context.stroke();
-    } else if (label.properties.fontBackgroundBorderWidth && !label.properties.fontBackgroundBorderRadius) {
-      context.lineWidth = label.properties.fontBackgroundBorderWidth;
-      context.strokeStyle = (label.properties.fontBackgroundBorderColor ?? DEFAULT_FONT_COLOR).toString();
+const calculateBorderRadius = (borderRadius: number, width: number, height: number) => {
+  // ensure that the radius isn't too large for x
+  if (width - 2 * borderRadius < 0) {
+    borderRadius = width / 2;
+  }
 
-      context.strokeRect(x, y, width, height);
-    } else {
-      context.fillRect(x, y, width, height);
-    }
+  // ensure that the radius isn't too large for y
+  if (height - 2 * borderRadius < 0) {
+    borderRadius = height / 2;
+  }
+
+  return borderRadius;
+};
+
+const drawTextBackground = (context: CanvasRenderingContext2D, borderPoints: BorderPoint[], label: Label) => {
+  if (!label.properties.fontBackgroundColor) {
+    return;
+  }
+
+  const backgroundColor = label.properties.fontBackgroundColor ?? DEFAULT_FONT_BACKGROUND_COLOR;
+  const fontBorderRadius = label.properties.fontBackgroundBorderRadius ?? 0;
+
+  context.fillStyle = backgroundColor.toString();
+
+  for (let i = 0; i < borderPoints.length; i++) {
+    const { x, y, width, height } = borderPoints[i];
+    const borderRadius = calculateBorderRadius(fontBorderRadius, width, height);
+    drawRoundRect(context, x, y, width, height, borderRadius, i === 0, true);
+    context.fill();
   }
 };
 
-const drawText = (context: CanvasRenderingContext2D, label: Label) => {
+const drawTextBackgroundBorder = (context: CanvasRenderingContext2D, borderPoints: BorderPoint[], label: Label) => {
+  if (!label.properties.fontBackgroundBorderWidth) {
+    return;
+  }
+
+  const borderWidth = label.properties.fontBackgroundBorderWidth;
+  const borderColor = label.properties.fontBackgroundBorderColor ?? DEFAULT_FONT_BORDER_COLOR;
+  const fontBorderRadius = label.properties.fontBackgroundBorderRadius ?? 0;
+  context.lineWidth = borderWidth;
+  context.strokeStyle = borderColor.toString();
+
+  context.beginPath();
+
+  if (borderPoints.length === 1) {
+    const { x, y, height, width } = borderPoints[0];
+    const borderRadius = calculateBorderRadius(fontBorderRadius, width, height);
+    drawRoundRect(context, x, y, width, height, borderRadius);
+  } else {
+    for (let i = 0; i < borderPoints.length; i++) {
+      const { x, y, height, width } = borderPoints[i];
+      const { x: nextX, width: nextWidth } = i !== borderPoints.length - 1 ? borderPoints[i + 1] : { x: 0, width: 0 };
+      const borderRadius = calculateBorderRadius(fontBorderRadius, width, height);
+      if (i === 0) {
+        context.moveTo(x + borderRadius, y);
+        context.lineTo(x + width - borderRadius, y);
+        context.quadraticCurveTo(x + width, y, x + width, y + borderRadius);
+        context.lineTo(x + width, y + height - borderRadius);
+        context.quadraticCurveTo(x + width, y + height, x + width - borderRadius, y + height);
+        context.lineTo(nextX + nextWidth, y + height);
+        context.moveTo(x + borderRadius, y);
+        context.quadraticCurveTo(x, y, x, y + borderRadius);
+        context.lineTo(x, y + height - borderRadius);
+        context.quadraticCurveTo(x, y + height, x + borderRadius, y + height);
+        context.lineTo(nextX, y + height);
+      } else if (i === borderPoints.length - 1) {
+        context.moveTo(x + width, y);
+        context.lineTo(x + width, y + height - borderRadius);
+        context.quadraticCurveTo(x + width, y + height, x + width - borderRadius, y + height);
+        context.lineTo(x + borderRadius, y + height);
+        context.quadraticCurveTo(x, y + height, x, y + height - borderRadius);
+        context.lineTo(x, y);
+      } else {
+        context.moveTo(x + width, y);
+        context.lineTo(x + width, y + height - borderRadius);
+        context.quadraticCurveTo(x + width, y + height, x + width - borderRadius, y + height);
+        context.lineTo(nextX + nextWidth, y + height);
+        context.moveTo(x, y);
+        context.lineTo(x, y + height - borderRadius);
+        context.quadraticCurveTo(x, y + height, x + borderRadius, y + height);
+        context.lineTo(nextX, y + height);
+      }
+    }
+  }
+
+  context.stroke();
+};
+
+const drawText = (context: CanvasRenderingContext2D, borderPoints: BorderPoint[], label: Label, type: String) => {
   if (!label.position) {
     return;
   }
@@ -138,18 +234,19 @@ const drawText = (context: CanvasRenderingContext2D, label: Label) => {
   context.font = label.fontFamily;
   context.textBaseline = label.textBaseline;
   context.textAlign = 'center';
-  const lineHeight = label.fontSize * FONT_LINE_SPACING;
 
-  const x = label.position.x;
-  let y = label.position.y;
-
-  if (label.properties.fontBackgroundPadding) {
-    y += label.properties.fontBackgroundPadding;
+  if (label.textLines.includes('A -> B')) {
+    console.log(borderPoints, label);
   }
 
-  for (let i = 0; i < label.textLines.length; i++) {
-    const line = label.textLines[i];
-    context.fillText(line, x, y + i * lineHeight);
+  for (let i = 0; i < borderPoints.length; i++) {
+    const { x, y, width, height } = borderPoints[i];
+    const textLine = label.textLines[i];
+    if (type === 'node') {
+      context.fillText(textLine, x + width / 2, y + (label.properties.fontBackgroundPadding ?? 0));
+    } else {
+      context.fillText(textLine, x + width / 2, y + height / 2);
+    }
   }
 };
 

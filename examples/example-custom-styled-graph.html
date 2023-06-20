@@ -33,13 +33,13 @@
 
     const nodes = [
       { id: 0, label: 'Node A' },
-      { id: 1, label: 'Node B - A Special Node' },
+      { id: 1, label: 'Node B - A Special Node\nWith Some Special\nProperties' },
       { id: 2, label: 'Node C' },
     ];
     const edges = [
       { id: 0, start: 0, end: 0, label: 'A -> A' },
       { id: 1, start: 0, end: 1, label: 'A -> B' },
-      { id: 2, start: 0, end: 2, label: 'A -> C' },
+      { id: 2, start: 0, end: 2, label: 'New Property\nA -> C' },
       { id: 3, start: 1, end: 2, label: 'B -> C' },
       { id: 4, start: 2, end: 2, label: 'C -> C' },
       { id: 5, start: 0, end: 1, label: 'A -> B' },
@@ -57,7 +57,7 @@
       getNodeStyle(node) {
         const basicStyle = {
           borderColor: '#1d1d1d',
-          borderWidth: 0.6,
+          borderWidth: 0.1,
           color: '#DD2222',
           colorHover: '#e7644e',
           colorSelected: '#e7644e',
@@ -66,19 +66,20 @@
           size: 6,
         };
 
-        if (node.data.label === 'Node B - A Special Node') {
+        if (node.data.id === 1) {
           return {
             ...basicStyle,
             size: 4,
             borderWidth: 0.3,
             color: '#00FF2B',
+            borderColor: "purple",
             zIndex: 1,
             fontBackgroundColor: 'rgb(0, 255, 0)',
-            fontBackgroundBorderWidth: 0.1,
-            fontBackgroundBorderColor: 'grey',
-            fontBackgroundBorderRadius: 2,
-            fontBackgroundPadding: 0.5,
-            fontSize: 2,
+            fontBackgroundBorderWidth: 0.3,
+            fontBackgroundBorderColor: 'purple',
+            fontBackgroundBorderRadius: 1.5,
+            fontBackgroundPadding: 1,
+            fontSize: 1.5,
           };
         }
 
@@ -91,22 +92,22 @@
           color: '#999999',
           colorHover: '#1d1d1d',
           colorSelected: '#1d1d1d',
-          fontSize: 3,
+          fontSize: 2,
           width: 0.3,
           widthHover: 0.9,
           widthSelected: 0.9,
           label: edge.data.label,
         }
 
-        if (edge.data.label === 'A -> B') {
+        if (edge.data.id === 2) {
           return {
             ...basicStyles,
             fontBackgroundColor: 'rgb(0, 255, 0)',
-            fontBackgroundBorderWidth: 0.1,
+            fontBackgroundBorderWidth: 0.2,
             fontBackgroundBorderColor: 'grey',
             fontBackgroundBorderRadius: 10,
-            fontBackgroundPadding: 0.5,
-            fontSize: 2,
+            fontBackgroundPadding: 1,
+            fontSize: 1.5,
           }
         }
 
@@ -120,6 +121,8 @@
     orb.view.render(() => {
       orb.view.recenter();
     });
+
+
   </script>
 </body>
 

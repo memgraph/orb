@@ -66,7 +66,7 @@ const drawEdgeLabel = <N extends INodeBase, E extends IEdgeBase>(
       fontSize: edge.style.fontSize,
     },
   });
-  drawLabel(context, label);
+  drawLabel(context, label, 'edge');
 };
 
 const drawLine = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, edge: IEdge<N, E>) => {

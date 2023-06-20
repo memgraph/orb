@@ -143,6 +143,8 @@ export const drawDiamond = (context: CanvasRenderingContext2D, x: number, y: num
  * @param {number} w Width
  * @param {number} h Height
  * @param {number} r Border radius
+ * @param {boolean} [roundedTop=true] Whether the top corners should be rounded
+ * @param {boolean} [roundedBottom=true] Whether the bottom corners should be rounded
  */
 export const drawRoundRect = (
   context: CanvasRenderingContext2D,
@@ -151,6 +153,8 @@ export const drawRoundRect = (
   w: number,
   h: number,
   r: number,
+  roundedTop: Boolean = true,
+  roundedBottom: Boolean = true,
 ) => {
   const r2d = Math.PI / 180;
 
@@ -165,15 +169,30 @@ export const drawRoundRect = (
   }
 
   context.beginPath();
-  context.moveTo(x + r, y);
-  context.lineTo(x + w - r, y);
-  context.arc(x + w - r, y + r, r, r2d * 270, r2d * 360, false);
-  context.lineTo(x + w, y + h - r);
-  context.arc(x + w - r, y + h - r, r, 0, r2d * 90, false);
+  if (roundedTop) {
+    context.moveTo(x + r, y);
+    context.lineTo(x + w - r, y);
+    context.arc(x + w - r, y + r, r, r2d * 270, r2d * 360, false);
+  } else {
+    context.moveTo(x, y);
+    context.lineTo(x + w, y);
+  }
+  if (roundedBottom) {
+    context.lineTo(x + w, y + h - r);
+    context.arc(x + w - r, y + h - r, r, 0, r2d * 90, false);
+  } else {
+    context.lineTo(x + w, y + h);
+  }
   context.lineTo(x + r, y + h);
   context.arc(x + r, y + h - r, r, r2d * 90, r2d * 180, false);
-  context.lineTo(x, y + r);
-  context.arc(x + r, y + r, r, r2d * 180, r2d * 270, false);
+
+  if (roundedTop) {
+    context.lineTo(x, y + r);
+    context.arc(x + r, y + r, r, r2d * 180, r2d * 270, false);
+  } else {
+    context.lineTo(x, y);
+  }
+
   context.closePath();
 };
 
