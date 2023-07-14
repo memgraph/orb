@@ -2,7 +2,7 @@
  * A key-value model that keeps an order of the elements by
  * the input sort function.
  *
- * Insipration by NgRx/EntityState: https://github.com/ngrx/platform
+ * Inspired by NgRx/EntityState: https://github.com/ngrx/platform
  */
 export interface IEntityState<K, V> {
   getOne(id: K): V | undefined;

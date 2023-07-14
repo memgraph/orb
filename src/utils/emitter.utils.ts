@@ -16,13 +16,13 @@ export interface IEmitter<T extends IEventMap> {
   removeAllListeners<K extends IEventKey<T>>(eventName?: K): IEmitter<T>;
 }
 
-interface IEmmiterListener<T extends IEventMap> {
+interface IEmitterListener<T extends IEventMap> {
   callable: IEventReceiver<T[any]>;
   isOnce?: boolean;
 }
 
 export class Emitter<T extends IEventMap> implements IEmitter<T> {
-  private readonly _listeners = new Map<IEventKey<T>, IEmmiterListener<T>[]>();
+  private readonly _listeners = new Map<IEventKey<T>, IEmitterListener<T>[]>();
 
   /**
    * Adds a one-time listener function for the event named eventName. The next time eventName is
@@ -34,7 +34,7 @@ export class Emitter<T extends IEventMap> implements IEmitter<T> {
    * @return {IEmitter} Reference to the EventEmitter, so that calls can be chained
    */
   once<K extends IEventKey<T>>(eventName: K, func: IEventReceiver<T[K]>): IEmitter<T> {
-    const newListener: IEmmiterListener<T> = {
+    const newListener: IEmitterListener<T> = {
       callable: func,
       isOnce: true,
     };
@@ -61,7 +61,7 @@ export class Emitter<T extends IEventMap> implements IEmitter<T> {
    * @return {IEmitter} Reference to the EventEmitter, so that calls can be chained
    */
   on<K extends IEventKey<T>>(eventName: K, func: IEventReceiver<T[K]>): IEmitter<T> {
-    const newListener: IEmmiterListener<T> = {
+    const newListener: IEmitterListener<T> = {
       callable: func,
     };
 

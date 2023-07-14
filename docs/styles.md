@@ -168,7 +168,7 @@ import { Color } from '@memgraph/orb';
 // Constructor always receives a color HEX code
 const red = new Color('#FF0000');
 
-// Returns darker or ligher color by input factor (default is 0.3)
+// Returns darker or lighter color by input factor (default is 0.3)
 const darkerRed = red.getDarkerColor();
 const lighterRed = red.getLighterColor();
 
