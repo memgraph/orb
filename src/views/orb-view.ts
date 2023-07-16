@@ -23,11 +23,16 @@ import { SimulatorEventType } from '../simulator/shared';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
 
+export interface IGraphInteractionSettings {
+  isDragEnabled: boolean;
+}
+
 export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
   simulation: Partial<ID3SimulatorEngineSettings>;
   render: Partial<IRendererSettings>;
   strategy: Partial<IEventStrategySettings>;
+  interaction: Partial<IGraphInteractionSettings>;
   zoomFitTransitionMs: number;
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
@@ -90,6 +95,10 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         isDefaultSelectEnabled: true,
         ...settings?.strategy,
       },
+      interaction: {
+        isDragEnabled: true,
+        ...settings?.interaction
+      }
     };
 
     this._strategy = new DefaultEventStrategy<N, E>({
@@ -263,6 +272,11 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   };
 
   dragStarted = (event: D3DragEvent<any, any, INode<N, E>>) => {
+    // If drag is disabled then return
+    if(!this._settings.interaction.isDragEnabled) {
+      return;
+    }
+
     const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
@@ -278,6 +292,11 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   };
 
   dragged = (event: D3DragEvent<any, any, INode<N, E>>) => {
+    // If drag is disabled then return
+    if(!this._settings.interaction.isDragEnabled) {
+      return;
+    }
+
     const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
@@ -296,6 +315,11 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   };
 
   dragEnded = (event: D3DragEvent<any, any, INode<N, E>>) => {
+    // If drag is disabled then return
+    if(!this._settings.interaction.isDragEnabled) {
+      return;
+    }
+
     const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
