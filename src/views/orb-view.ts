@@ -221,6 +221,16 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         this._strategy.isSelectEnabled = this._settings.strategy.isDefaultSelectEnabled;
       }
     }
+
+    // Check if interaction settings are provided
+    if (settings.interaction) {
+      // Check if isDragEnabled is a boolean value
+      if (isBoolean(settings.interaction.isDragEnabled)) {
+        // Update the internal isDragEnabled setting based on the provided value
+        this._settings.interaction.isDragEnabled =
+          settings.interaction.isDragEnabled;
+      }
+    }
   }
 
   render(onRendered?: () => void) {
