@@ -25,6 +25,7 @@ import { isBoolean } from '../utils/type.utils';
 
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;
+  isZoomEnabled: boolean;
 }
 
 export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
@@ -97,6 +98,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       },
       interaction: {
         isDragEnabled: true,
+        isZoomEnabled: true,
         ...settings?.interaction
       }
     };
@@ -230,6 +232,13 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         this._settings.interaction.isDragEnabled =
           settings.interaction.isDragEnabled;
       }
+
+      // Check if isZoomEnabled is a boolean value
+      if (isBoolean(settings.interaction.isZoomEnabled)) {
+        // Update the internal isZoomEnabled setting based on the provided value
+        this._settings.interaction.isZoomEnabled =
+          settings.interaction.isZoomEnabled;
+      }
     }
   }
 
@@ -346,6 +355,10 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   };
 
   zoomed = (event: D3ZoomEvent<any, any>) => {
+    // If zoom is disabled then return
+    if(!this._settings.interaction.isZoomEnabled) {
+      return;
+    }
     this._renderer.transform = event.transform;
     setTimeout(() => {
       this._renderer.render(this._graph);
