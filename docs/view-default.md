@@ -83,6 +83,7 @@ interface IOrbViewSettings {
   // For graph interaction
   interaction: {
     isDragEnabled: boolean;
+    isZoomEnabled: boolean;
   };
   // Other default view parameters
   zoomFitTransitionMs: number;
@@ -155,6 +156,7 @@ const defaultSettings = {
   },
   interaction: {
     isDragEnabled: true;
+    isZoomEnabled:  true;
   },
   zoomFitTransitionMs: 200,
   isOutOfBoundsDragEnabled: false,
