@@ -269,7 +269,7 @@ settings in the future.
 
 ### Property `zoomFitTransitionMs`
 
-Use this property to adjust the transition time when recentering the graph. Defaults to `200ms`.
+Use this property to adjust the transition time when re-centering the graph. Defaults to `200ms`.
 
 ### Property `isOutOfBoundsDragEnabled`
 
@@ -326,7 +326,7 @@ orb.view.setSettings({
   getPosition: (node) => ({ x: node.data.posY, y: node.data.posX }),
 });
 
-// Change the zoom fit and transform time while recentering and disable shadows
+// Change the zoom fit and transform time while re-centering and disable shadows
 orb.view.setSettings({
   zoomFitTransformMs: 1000,
   render: {

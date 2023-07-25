@@ -17,7 +17,7 @@ export const setupContainer = (container: HTMLElement, areCollapsedDimensionsAll
         "[Orb] The graph container element and its parent don't have defined width properties.",
         'If you are using percentage values,',
         'please make sure that the parent element of the graph container has a defined position and width.',
-        "Setting the width of the graph container to an arbirtrary value of '400px'...",
+        "Setting the width of the graph container to an arbitrary value of '400px'...",
       );
     } else {
       console.warn("[Orb] The graph container element doesn't have defined width. Setting width to 100%...");

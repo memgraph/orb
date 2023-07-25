@@ -1,3 +1,17 @@
+## 0.4.1
+
+### Fix
+
+* Add the correct sort for the edge zIndex (#66)
+* Fix the spelling issues in the project (#65) - by @jsoref
+
+## 0.4.0
+
+### New
+
+* Add canvas background color (#55)
+* Add zIndex style property (#53)
+
 ## 0.3.0
 
 ### New
@@ -57,4 +71,3 @@
 
 * Add pre commit hook (#11)
 * Fix docs and general orb API issues (#13)
-
