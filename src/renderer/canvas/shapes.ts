@@ -132,6 +132,16 @@ export const drawDiamond = (context: CanvasRenderingContext2D, x: number, y: num
   context.closePath();
 };
 
+export interface IRoundRectOptions {
+  isTopRounded: boolean;
+  isBottomRounded: boolean;
+}
+
+const DEFAULT_ROUND_RECT_OPTIONS: IRoundRectOptions = {
+  isTopRounded: true,
+  isBottomRounded: true,
+};
+
 /**
  * Draws a rounded rectangle.
  * @see {@link https://github.com/almende/vis/blob/master/lib/network/shapes.js}
@@ -143,6 +153,7 @@ export const drawDiamond = (context: CanvasRenderingContext2D, x: number, y: num
  * @param {number} w Width
  * @param {number} h Height
  * @param {number} r Border radius
+ * @param {IRoundRectOptions} options
  */
 export const drawRoundRect = (
   context: CanvasRenderingContext2D,
@@ -151,7 +162,10 @@ export const drawRoundRect = (
   w: number,
   h: number,
   r: number,
+  options?: Partial<IRoundRectOptions>,
 ) => {
+  const config = { ...DEFAULT_ROUND_RECT_OPTIONS, ...options };
+
   const r2d = Math.PI / 180;
 
   // ensure that the radius isn't too large for x
@@ -165,15 +179,30 @@ export const drawRoundRect = (
   }
 
   context.beginPath();
-  context.moveTo(x + r, y);
-  context.lineTo(x + w - r, y);
-  context.arc(x + w - r, y + r, r, r2d * 270, r2d * 360, false);
-  context.lineTo(x + w, y + h - r);
-  context.arc(x + w - r, y + h - r, r, 0, r2d * 90, false);
+  if (config.isTopRounded) {
+    context.moveTo(x + r, y);
+    context.lineTo(x + w - r, y);
+    context.arc(x + w - r, y + r, r, r2d * 270, r2d * 360, false);
+  } else {
+    context.moveTo(x, y);
+    context.lineTo(x + w, y);
+  }
+  if (config.isBottomRounded) {
+    context.lineTo(x + w, y + h - r);
+    context.arc(x + w - r, y + h - r, r, 0, r2d * 90, false);
+  } else {
+    context.lineTo(x + w, y + h);
+  }
   context.lineTo(x + r, y + h);
   context.arc(x + r, y + h - r, r, r2d * 90, r2d * 180, false);
-  context.lineTo(x, y + r);
-  context.arc(x + r, y + r, r, r2d * 180, r2d * 270, false);
+
+  if (config.isTopRounded) {
+    context.lineTo(x, y + r);
+    context.arc(x + r, y + r, r, r2d * 180, r2d * 270, false);
+  } else {
+    context.lineTo(x, y);
+  }
+
   context.closePath();
 };
 
@@ -237,4 +266,25 @@ export const drawNgon = (context: CanvasRenderingContext2D, x: number, y: number
   }
 
   context.closePath();
+};
+
+/**
+ *
+ * @param {Number} borderRadius Border radius provided by the user
+ * @param {Number} width width of the container surrounding the label
+ * @param {Number} height height of the container surrounding the label
+ * @return {Number} The maximum valid border radius
+ */
+export const getMaxValidBorderRadius = (borderRadius: number, width: number, height: number) => {
+  // ensure that the radius isn't too large for x
+  if (width - 2 * borderRadius < 0) {
+    borderRadius = width / 2;
+  }
+
+  // ensure that the radius isn't too large for y
+  if (height - 2 * borderRadius < 0) {
+    borderRadius = height / 2;
+  }
+
+  return borderRadius;
 };
