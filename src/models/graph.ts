@@ -49,6 +49,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
   });
   private _edges: IEntityState<any, IEdge<N, E>> = new EntityState<any, IEdge<N, E>>({
     getId: (edge) => edge.id,
+    sortBy: (edge1, edge2) => (edge1.style.zIndex ?? 0) - (edge2.style.zIndex ?? 0),
   });
   private _defaultStyle?: Partial<IGraphStyle<N, E>>;
   private _onLoadedImages?: () => void;
