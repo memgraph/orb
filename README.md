@@ -40,7 +40,7 @@ npm install @memgraph/orb
 ```
 
 Below you can find a simple Typescript example using Orb to visualize a small graph. Feel
-free to check other Javascript examples in `examples/` directory.
+free to check other JavaScript examples in `examples/` directory.
 
 ```typescript
 import { OrbView } from '@memgraph/orb';
@@ -84,8 +84,8 @@ orb.render(() => {
 <script src="https://unpkg.com/@memgraph/orb/dist/browser/orb.min.js"></script>
 ```
 
-Below you can find a simple Javascript example using Orb to visualize a small graph. Feel
-free to check other Javascript examples in `examples/` directory.
+Below you can find a simple JavaScript example using Orb to visualize a small graph. Feel
+free to check other JavaScript examples in `examples/` directory.
 
 ```html
 <!DOCTYPE html>

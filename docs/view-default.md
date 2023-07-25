@@ -346,7 +346,7 @@ settings in the future.
 
 ### Property `zoomFitTransitionMs`
 
-Use this property to adjust the transition time when recentering the graph. Defaults to `200ms`.
+Use this property to adjust the transition time when re-centering the graph. Defaults to `200ms`.
 
 ### Property `isOutOfBoundsDragEnabled`
 

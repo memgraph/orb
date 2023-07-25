@@ -36,7 +36,7 @@ export const getCurvedArrowShape = <N extends INodeBase, E extends IEdgeBase>(ed
 
   const controlPoint = edge.getCurvedControlPoint();
   const arrowPoint = findBorderPoint(edge, target);
-  const guidePos = getPointBrezier(edge, Math.max(0.0, Math.min(1.0, arrowPoint.t + guideOffset)), controlPoint);
+  const guidePos = getPointBezier(edge, Math.max(0.0, Math.min(1.0, arrowPoint.t + guideOffset)), controlPoint);
   const angle = Math.atan2(arrowPoint.y - guidePos.y, arrowPoint.x - guidePos.x);
 
   const length = 1.5 * scaleFactor + 3 * lineWidth; // 3* lineWidth is the width of the edge.
@@ -55,10 +55,10 @@ export const getCurvedArrowShape = <N extends INodeBase, E extends IEdgeBase>(ed
  *
  * @param {EdgeCurved} edge Edge
  * @param {number} percentage Percentage of the line to get position from
- * @param {IPosition} viaNode Brezier node on the curved line
+ * @param {IPosition} viaNode Bezier node on the curved line
  * @return {IPosition} Position on the line
  */
-const getPointBrezier = <N extends INodeBase, E extends IEdgeBase>(
+const getPointBezier = <N extends INodeBase, E extends IEdgeBase>(
   edge: EdgeCurved<N, E>,
   percentage: number,
   viaNode: IPosition,
@@ -111,7 +111,7 @@ const findBorderPoint = <N extends INodeBase, E extends IEdgeBase>(
   while (low <= high && iteration < maxIterations) {
     middle = (low + high) * 0.5;
 
-    pos = { ...getPointBrezier(edge, middle, viaNode), t: 0 };
+    pos = { ...getPointBezier(edge, middle, viaNode), t: 0 };
     // angle = Math.atan2(nodePoints.y - pos.y, nodePoints.x - pos.x);
     // distanceToBorder = node.getDistanceToBorder(angle);
     distanceToBorder = node.getDistanceToBorder();

@@ -99,8 +99,8 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       interaction: {
         isDragEnabled: true,
         isZoomEnabled: true,
-        ...settings?.interaction
-      }
+        ...settings?.interaction,
+      },
     };
 
     this._strategy = new DefaultEventStrategy<N, E>({
@@ -229,15 +229,13 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       // Check if isDragEnabled is a boolean value
       if (isBoolean(settings.interaction.isDragEnabled)) {
         // Update the internal isDragEnabled setting based on the provided value
-        this._settings.interaction.isDragEnabled =
-          settings.interaction.isDragEnabled;
+        this._settings.interaction.isDragEnabled = settings.interaction.isDragEnabled;
       }
 
       // Check if isZoomEnabled is a boolean value
       if (isBoolean(settings.interaction.isZoomEnabled)) {
         // Update the internal isZoomEnabled setting based on the provided value
-        this._settings.interaction.isZoomEnabled =
-          settings.interaction.isZoomEnabled;
+        this._settings.interaction.isZoomEnabled = settings.interaction.isZoomEnabled;
       }
     }
   }
@@ -292,7 +290,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
   dragStarted = (event: D3DragEvent<any, any, INode<N, E>>) => {
     // If drag is disabled then return
-    if(!this._settings.interaction.isDragEnabled) {
+    if (!this._settings.interaction.isDragEnabled) {
       return;
     }
 
@@ -312,7 +310,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
   dragged = (event: D3DragEvent<any, any, INode<N, E>>) => {
     // If drag is disabled then return
-    if(!this._settings.interaction.isDragEnabled) {
+    if (!this._settings.interaction.isDragEnabled) {
       return;
     }
 
@@ -335,7 +333,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
   dragEnded = (event: D3DragEvent<any, any, INode<N, E>>) => {
     // If drag is disabled then return
-    if(!this._settings.interaction.isDragEnabled) {
+    if (!this._settings.interaction.isDragEnabled) {
       return;
     }
 
@@ -356,7 +354,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
   zoomed = (event: D3ZoomEvent<any, any>) => {
     // If zoom is disabled then return
-    if(!this._settings.interaction.isZoomEnabled) {
+    if (!this._settings.interaction.isZoomEnabled) {
       return;
     }
     this._renderer.transform = event.transform;
