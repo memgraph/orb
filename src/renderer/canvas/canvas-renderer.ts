@@ -256,7 +256,7 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
   /**
    * Returns the visible rectangle view in the simulation coordinates.
    *
-   * @return {IRectangle} Visible view in teh simulation coordinates
+   * @return {IRectangle} Visible view in the simulation coordinates
    */
   getSimulationViewRectangle(): IRectangle {
     const topLeftPosition = this.getSimulationPosition({ x: 0, y: 0 });

@@ -23,11 +23,17 @@ import { SimulatorEventType } from '../simulator/shared';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
 
+export interface IGraphInteractionSettings {
+  isDragEnabled: boolean;
+  isZoomEnabled: boolean;
+}
+
 export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
   simulation: Partial<ID3SimulatorEngineSettings>;
   render: Partial<IRendererSettings>;
   strategy: Partial<IEventStrategySettings>;
+  interaction: Partial<IGraphInteractionSettings>;
   zoomFitTransitionMs: number;
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
@@ -78,6 +84,11 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         isDefaultHoverEnabled: true,
         isDefaultSelectEnabled: true,
         ...settings?.strategy,
+      },
+      interaction: {
+        isDragEnabled: true,
+        isZoomEnabled: true,
+        ...settings?.interaction,
       },
     };
 
@@ -256,6 +267,21 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         this._strategy.isSelectEnabled = this._settings.strategy.isDefaultSelectEnabled;
       }
     }
+
+    // Check if interaction settings are provided
+    if (settings.interaction) {
+      // Check if isDragEnabled is a boolean value
+      if (isBoolean(settings.interaction.isDragEnabled)) {
+        // Update the internal isDragEnabled setting based on the provided value
+        this._settings.interaction.isDragEnabled = settings.interaction.isDragEnabled;
+      }
+
+      // Check if isZoomEnabled is a boolean value
+      if (isBoolean(settings.interaction.isZoomEnabled)) {
+        // Update the internal isZoomEnabled setting based on the provided value
+        this._settings.interaction.isZoomEnabled = settings.interaction.isZoomEnabled;
+      }
+    }
   }
 
   private _assignPositions = (nodes: INode<N, E>[]) => {
@@ -301,6 +327,11 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   };
 
   dragStarted = (event: D3DragEvent<any, any, INode<N, E>>) => {
+    // If drag is disabled then return
+    if (!this._settings.interaction.isDragEnabled) {
+      return;
+    }
+
     const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
@@ -316,6 +347,11 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   };
 
   dragged = (event: D3DragEvent<any, any, INode<N, E>>) => {
+    // If drag is disabled then return
+    if (!this._settings.interaction.isDragEnabled) {
+      return;
+    }
+
     const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
@@ -334,6 +370,11 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   };
 
   dragEnded = (event: D3DragEvent<any, any, INode<N, E>>) => {
+    // If drag is disabled then return
+    if (!this._settings.interaction.isDragEnabled) {
+      return;
+    }
+
     const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
@@ -350,6 +391,10 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   };
 
   zoomed = (event: D3ZoomEvent<any, any>) => {
+    // If zoom is disabled then return
+    if (!this._settings.interaction.isZoomEnabled) {
+      return;
+    }
     this._renderer.transform = event.transform;
     setTimeout(() => {
       this._renderer.render(this._graph);

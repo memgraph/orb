@@ -23,6 +23,10 @@ export interface IGraph<N extends INodeBase, E extends IEdgeBase> {
   getNodeById(id: any): INode<N, E> | undefined;
   getEdgeById(id: any): IEdge<N, E> | undefined;
   getNodePositions(filterBy?: INodeFilter<N, E>): INodePosition[];
+  getSelectedNodes(): INode<N, E>[];
+  getSelectedEdges(): IEdge<N, E>[];
+  getHoveredNodes(): INode<N, E>[];
+  getHoveredEdges(): IEdge<N, E>[];
   setNodePositions(positions: INodePosition[]): void;
   getEdgePositions(filterBy?: IEdgeFilter<N, E>): IEdgePosition[];
   setDefaultStyle(style: Partial<IGraphStyle<N, E>>): void;
@@ -53,6 +57,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
   });
   private _edges: IEntityState<any, IEdge<N, E>> = new EntityState<any, IEdge<N, E>>({
     getId: (edge) => edge.id,
+    sortBy: (edge1, edge2) => (edge1.style.zIndex ?? 0) - (edge2.style.zIndex ?? 0),
   });
   private _defaultStyle?: Partial<IGraphStyle<N, E>>;
   private _settings: IGraphSettings<N, E>;
@@ -128,6 +133,42 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
    */
   getEdgeById(id: any): IEdge<N, E> | undefined {
     return this._edges.getOne(id);
+  }
+
+  /**
+   * Returns a list of selected nodes.
+   *
+   * @return {INode[]} List of selected nodes
+   */
+  getSelectedNodes(): INode<N, E>[] {
+    return this.getNodes((node) => node.isSelected());
+  }
+
+  /**
+   * Returns a list of selected edges.
+   *
+   * @return {IEdge[]} List of selected edges
+   */
+  getSelectedEdges(): IEdge<N, E>[] {
+    return this.getEdges((edge) => edge.isSelected());
+  }
+
+  /**
+   * Returns a list of hovered nodes.
+   *
+   * @return {INode[]} List of hovered nodes
+   */
+  getHoveredNodes(): INode<N, E>[] {
+    return this.getNodes((node) => node.isHovered());
+  }
+
+  /**
+   * Returns a list of hovered edges.
+   *
+   * @return {IEdge[]} List of hovered edges
+   */
+  getHoveredEdges(): IEdge<N, E>[] {
+    return this.getEdges((edge) => edge.isHovered());
   }
 
   /**

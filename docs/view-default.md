@@ -80,6 +80,11 @@ interface IOrbViewSettings {
     isDefaultSelectEnabled: boolean;
     isDefaultHoverEnabled: boolean;
   };
+  // For graph interaction
+  interaction: {
+    isDragEnabled: boolean;
+    isZoomEnabled: boolean;
+  };
   // Other default view parameters
   zoomFitTransitionMs: number;
   isOutOfBoundsDragEnabled: boolean;
@@ -148,6 +153,10 @@ const defaultSettings = {
   strategy: {
     isDefaultSelectEnabled: true,
     isDefaultHoverEnabled: true,
+  },
+  interaction: {
+    isDragEnabled: true;
+    isZoomEnabled:  true;
   },
   zoomFitTransitionMs: 200,
   isOutOfBoundsDragEnabled: false,
@@ -312,6 +321,21 @@ orb.events.on(OrbEventType.MOUSE_CLICK, (event) => {
 });
 ```
 
+### Property `interaction`
+
+The optional property `interaction` has two properties that you can enable/disable:
+
+* `isDragEnabled` - property controls the dragging behavior within the application. When it is set to `true`, dragging is enabled, allowing users to interact with nodes and edges by dragging them to different positions within the graph. On the other hand, when `isDragEnabled`` is set to false, dragging functionality is disabled, preventing users from moving or repositioning nodes and edges through dragging interactions.
+
+* `isZoomEnabled` - This property controls the zooming behavior within the application. Setting it to `true` enables zooming, allowing users to interactively zoom in and out of the graph. Setting it to `false` disables zooming, restricting the user's ability to change the zoom level.
+
+These properties provide a straightforward way to enable or disable dragging and zooming features based on the needs and requirements of your application. By toggling the values of isDragEnabled and isZoomEnabled, you can easily control the interactivity options available to users. e.g:
+
+```typescript
+// Disable default drag interaction and enable zooming
+orb.setSettings({ interaction: { isDragEnabled: false, isZoomEnabled: true } });
+```
+
 ### Property `simulation`
 
 Fine-grained D3 simulation engine settings. They include `isPhysicsEnabled`, `alpha`,
@@ -322,7 +346,7 @@ settings in the future.
 
 ### Property `zoomFitTransitionMs`
 
-Use this property to adjust the transition time when recentering the graph. Defaults to `200ms`.
+Use this property to adjust the transition time when re-centering the graph. Defaults to `200ms`.
 
 ### Property `isOutOfBoundsDragEnabled`
 
