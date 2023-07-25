@@ -111,7 +111,7 @@ const drawNodeLabel = <N extends INodeBase, E extends IEdgeBase>(
       fontSize: node.style.fontSize,
     },
   });
-  drawLabel(context, label, 'node');
+  drawLabel(context, label);
 };
 
 const drawImage = <N extends INodeBase, E extends IEdgeBase>(
