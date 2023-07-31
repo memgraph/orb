@@ -66,6 +66,30 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     throw new Error('Method not implemented.');
   }
 
+  getZoomTransform(zoomFactor: number): ZoomTransform {
+    console.log("zoomFactor:", zoomFactor);
+    throw new Error("Method not implemented.");
+  }
+  getDragLeftTransform(draggingFactor: number): ZoomTransform {
+    console.log("draggingFactor:", draggingFactor);
+    throw new Error("Method not implemented.");
+  }
+
+  getDragRightTransform(draggingFactor: number): ZoomTransform {
+    console.log("draggingFactor:", draggingFactor);
+    throw new Error("Method not implemented.");
+  }
+
+  getDragUpTransform(draggingFactor: number): ZoomTransform {
+    console.log("draggingFactor:", draggingFactor);
+    throw new Error("Method not implemented.");
+  }
+
+  getDragDownTransform(draggingFactor: number): ZoomTransform {
+    console.log("draggingFactor:", draggingFactor);
+    throw new Error("Method not implemented.");
+  }
+
   getSimulationPosition(canvasPoint: IPosition): IPosition {
     console.log('canvasPoint:', canvasPoint);
     throw new Error('Method not implemented.');

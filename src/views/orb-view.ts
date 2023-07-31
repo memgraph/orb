@@ -4,7 +4,7 @@ import { easeLinear } from 'd3-ease';
 // @ts-ignore: Transition needs to be imported in order to be available to d3
 import transition from 'd3-transition';
 /* eslint-enable @typescript-eslint/no-unused-vars */
-import { D3ZoomEvent, zoom, ZoomBehavior } from 'd3-zoom';
+import { D3ZoomEvent, zoom, ZoomBehavior, ZoomTransform } from 'd3-zoom';
 import { select } from 'd3-selection';
 import { IPosition, isEqualPosition } from '../common';
 import { ISimulator, SimulatorFactory } from '../simulator';
@@ -26,7 +26,17 @@ import { isBoolean } from '../utils/type.utils';
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;
   isZoomEnabled: boolean;
+  keyboard: {
+    isKeyboardEnabled: boolean;
+    zoomInFactor: number;
+    zoomOutFactor: number;
+    draggingFactor: number;
+  };
 }
+
+const DEFAULT_ZOOM_IN_FACTOR = 1.2;
+const DEFAULT_ZOOM_OUT_FACTOR = 0.8;
+const DEFAULT_DRAGGING_FACTOR = 25;
 
 export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
@@ -100,6 +110,13 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         isDragEnabled: true,
         isZoomEnabled: true,
         ...settings?.interaction,
+        keyboard: {
+          isKeyboardEnabled: false,
+          zoomInFactor: DEFAULT_ZOOM_IN_FACTOR,
+          zoomOutFactor: DEFAULT_ZOOM_OUT_FACTOR,
+          draggingFactor: DEFAULT_DRAGGING_FACTOR,
+          ...settings?.interaction?.keyboard,
+        },
       },
     };
 
@@ -149,6 +166,8 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       .on('mousemove', this.mouseMoved)
       .on('contextmenu', this.mouseRightClicked)
       .on('dblclick.zoom', this.mouseDoubleClicked);
+    
+    document.addEventListener('keydown', this._handleKeyDown);
 
     this._simulator = SimulatorFactory.getSimulator();
     this._simulator.on(SimulatorEventType.SIMULATION_START, () => {
@@ -236,6 +255,13 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       if (isBoolean(settings.interaction.isZoomEnabled)) {
         // Update the internal isZoomEnabled setting based on the provided value
         this._settings.interaction.isZoomEnabled = settings.interaction.isZoomEnabled;
+      }
+
+      if (settings.interaction.keyboard) {
+        this._settings.interaction.keyboard = {
+          ...this._settings.interaction.keyboard,
+          ...settings.interaction.keyboard,
+        };
       }
     }
   }
@@ -362,6 +388,80 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       this._renderer.render(this._graph);
       this._events.emit(OrbEventType.TRANSFORM, { transform: event.transform });
     }, 1);
+  };
+
+  _handleKeyDown = (event: KeyboardEvent) => {
+    if (!this._settings.interaction.keyboard?.isKeyboardEnabled) {
+      return;
+    }
+
+    switch (event.key) {
+      case "-": {
+        const zoomOutFactor = this._settings.interaction.keyboard.zoomOutFactor;
+        this._zoomOut(zoomOutFactor);
+        break;
+      }
+      case "+": {
+        const zoomInFactor = this._settings.interaction.keyboard.zoomInFactor;
+        this._zoomIn(zoomInFactor);
+        break;
+      }
+      case "ArrowLeft": {
+        const draggingFactor =
+          this._settings.interaction.keyboard.draggingFactor;
+        const dragLeftTransform =
+          this._renderer.getDragLeftTransform(draggingFactor);
+        this._dragByArrowKey(dragLeftTransform);
+        break;
+      }
+      case "ArrowRight": {
+        const draggingFactor =
+          this._settings.interaction.keyboard.draggingFactor;
+        const dragRightTransform =
+          this._renderer.getDragRightTransform(draggingFactor);
+        this._dragByArrowKey(dragRightTransform);
+        break;
+      }
+      case "ArrowUp": {
+        const draggingFactor =
+          this._settings.interaction.keyboard.draggingFactor;
+        const dragUpTransform =
+          this._renderer.getDragUpTransform(draggingFactor);
+        this._dragByArrowKey(dragUpTransform);
+        break;
+      }
+      case "ArrowDown": {
+        const draggingFactor =
+          this._settings.interaction.keyboard.draggingFactor;
+        const dragDownTransform =
+          this._renderer.getDragDownTransform(draggingFactor);
+        this._dragByArrowKey(dragDownTransform);
+        break;
+      }
+      default:
+        break;
+    }
+  };
+
+  _zoomOut = (zoomOutFactor: number) => {
+    const transform = this._renderer.getZoomTransform(zoomOutFactor);
+    this._d3Zoom.scaleTo(select(this._canvas), transform.k);
+  };
+
+  _zoomIn = (zoomInFactor: number) => {
+    const transform = this._renderer.getZoomTransform(zoomInFactor);
+    this._d3Zoom.scaleTo(select(this._canvas), transform.k);
+  };
+
+  _dragByArrowKey = (transform: ZoomTransform) => {
+    select(this._canvas)
+      .transition()
+      .duration(this._settings.zoomFitTransitionMs)
+      .ease(easeLinear)
+      .call(this._d3Zoom.transform, transform)
+      .call(() => {
+        this._renderer.render(this._graph);
+      });
   };
 
   getCanvasMousePosition(event: MouseEvent): IPosition {

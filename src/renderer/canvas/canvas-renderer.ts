@@ -245,6 +245,47 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
     return zoomIdentity.translate(newX, newY).scale(newZoom);
   }
 
+  getZoomTransform(zoomFactor: number): ZoomTransform {
+    const previousZoom = this.transform.k;
+    const newZoom = Math.max(
+      Math.min(zoomFactor * previousZoom, this._settings.maxZoom),
+      this._settings.minZoom
+    );
+    return zoomIdentity.scale(newZoom);
+  }
+
+  getDragLeftTransform(draggingFactor: number): ZoomTransform {
+    const currentTransform = this.transform;
+    const newX = currentTransform.x + draggingFactor;
+    return zoomIdentity
+      .translate(newX, currentTransform.y)
+      .scale(currentTransform.k);
+  }
+
+  getDragRightTransform(draggingFactor: number): ZoomTransform {
+    const currentTransform = this.transform;
+    const newX = currentTransform.x - draggingFactor;
+    return zoomIdentity
+      .translate(newX, currentTransform.y)
+      .scale(currentTransform.k);
+  }
+
+  getDragUpTransform(draggingFactor: number): ZoomTransform {
+    const currentTransform = this.transform;
+    const newY = currentTransform.y + draggingFactor;
+    return zoomIdentity
+      .translate(currentTransform.x, newY)
+      .scale(currentTransform.k);
+  }
+
+  getDragDownTransform(draggingFactor: number): ZoomTransform {
+    const currentTransform = this.transform;
+    const newY = currentTransform.y - draggingFactor;
+    return zoomIdentity
+      .translate(currentTransform.x, newY)
+      .scale(currentTransform.k);
+  }
+
   getSimulationPosition(canvasPoint: IPosition): IPosition {
     // By default, the canvas is translated by (width/2, height/2) to center the graph.
     // The simulation is not, it's starting coordinates are at (0, 0).
