@@ -1,6 +1,7 @@
 import { INodeBase, INode } from './node';
 import { GraphObjectState } from './state';
 import { Color, IPosition, ICircle, getDistanceToLine } from '../common';
+import { isArrayOfNumbers } from '../utils/type.utils';
 
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
 const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;
@@ -25,6 +26,18 @@ export interface IEdgePosition {
   target: any;
 }
 
+export enum EdgeLineStyleType {
+  SOLID = "solid",
+  DASHED = "dashed",
+  DOTTED = "dotted",
+  CUSTOM = "custom",
+}
+
+export interface IEdgeLineStyle {
+  type: EdgeLineStyleType;
+  dashPattern: number[];
+}
+
 /**
  * Edge style properties used to style the edge (color, width, label, etc.).
  */
@@ -46,6 +59,7 @@ export type IEdgeStyle = Partial<{
   widthHover: number;
   widthSelected: number;
   zIndex: number;
+  edgeLineStyle: IEdgeLineStyle;
 }>;
 
 export interface IEdgeData<N extends INodeBase, E extends IEdgeBase> {
@@ -89,6 +103,7 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> {
   hasShadow(): boolean;
   getWidth(): number;
   getColor(): Color | string | undefined;
+  getEdgeLineStyle(): IEdgeLineStyle;
 }
 
 export class EdgeFactory {
@@ -255,6 +270,20 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
     }
 
     return color;
+  }
+
+  getEdgeLineStyle(): IEdgeLineStyle {
+    const edgeLineStyle: IEdgeLineStyle = {
+      type: EdgeLineStyleType.SOLID,
+      dashPattern: [],
+    };
+    if (this.style.edgeLineStyle !== undefined) {
+      edgeLineStyle.type = this.style.edgeLineStyle.type;
+      if (isArrayOfNumbers(this.style.edgeLineStyle.dashPattern)) {
+        edgeLineStyle.dashPattern = this.style.edgeLineStyle.dashPattern;
+      }
+    }
+    return edgeLineStyle;
   }
 }
 

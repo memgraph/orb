@@ -1,6 +1,16 @@
 import { INodeBase, INode } from '../../../../models/node';
-import { EdgeStraight, IEdgeBase } from '../../../../models/edge';
-import { IBorderPosition, IEdgeArrow } from '../shared';
+import {
+  EdgeLineStyleType,
+  EdgeStraight,
+  IEdgeBase,
+} from "../../../../models/edge";
+import {
+  DEFAULT_DASHED_LINE_PATTERN,
+  DEFAULT_DOTTED_LINE_PATTERN,
+  DEFAULT_SOLID_LINE_PATTERN,
+  IBorderPosition,
+  IEdgeArrow,
+} from "../shared";
 
 export const drawStraightLine = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
@@ -17,6 +27,28 @@ export const drawStraightLine = <N extends INodeBase, E extends IEdgeBase>(
   context.beginPath();
   context.moveTo(sourcePoint.x, sourcePoint.y);
   context.lineTo(targetPoint.x, targetPoint.y);
+
+  const edgeLineStyleType = edge.getEdgeLineStyle().type;
+  switch (edgeLineStyleType) {
+    case EdgeLineStyleType.DASHED:
+      context.setLineDash(DEFAULT_DASHED_LINE_PATTERN);
+      break;
+    case EdgeLineStyleType.DOTTED:
+      context.setLineDash(DEFAULT_DOTTED_LINE_PATTERN);
+      break;
+    case EdgeLineStyleType.SOLID:
+      context.setLineDash(DEFAULT_SOLID_LINE_PATTERN);
+      break;
+    case EdgeLineStyleType.CUSTOM: {
+      const dashPattern: number[] = edge.getEdgeLineStyle().dashPattern;
+      context.setLineDash(dashPattern);
+      break;
+    }
+    default:
+      context.setLineDash(DEFAULT_SOLID_LINE_PATTERN);
+      break;
+  }
+
   context.stroke();
 };
 

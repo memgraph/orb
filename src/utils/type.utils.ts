@@ -87,3 +87,18 @@ export const isNull = (value: any): value is null => {
 export const isFunction = (value: any): value is Function => {
   return typeof value === 'function';
 };
+
+/**
+ * Type check for array of numbers
+ *
+ * @param {any} value Any value
+ * @return {boolean} True if it is a array of numbers, false otherwise
+ */
+export const isArrayOfNumbers = (value: any): value is boolean => {
+  if (!isArray(value)) {
+    return false;
+  }
+
+  const isNotNumber = value.some((element) => !isNumber(element));
+  return !isNotNumber;
+};
