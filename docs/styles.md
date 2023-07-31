@@ -47,6 +47,7 @@ the following properties:
 | `size`                | number              | Node size (usually the radius). The default is `5`. |
 | `mass`                | number              | Node mass. _(Currently not used)_               |
 | `zIndex`              | number              | Specifies the stack order of an element during rendering. The default is `0`. |
+| `labelAlignment`      | NodeLabelAligment   | Node label alignment enum. Possible values are: `top`, `bottom`, `left`, `right`. Default is `NodeLabelAligment.BOTTOM` |
 
 ## Shape enumeration
 
@@ -62,6 +63,19 @@ export enum NodeShapeType {
   TRIANGLE_DOWN = 'triangleDown',
   STAR = 'star',
   HEXAGON = 'hexagon',
+}
+```
+
+## Label alignment enumeration
+
+The enum `NodeLabelAligment` which is used for the node `label alignment` property is defined as:
+
+```typescript
+export enum NodeLabelAligment {
+  TOP = 'top',
+  BOTTOM = 'bottom',
+  LEFT = 'left',
+  RIGHT = 'right',
 }
 ```
 

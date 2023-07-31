@@ -32,6 +32,13 @@ export enum NodeShapeType {
   HEXAGON = 'hexagon',
 }
 
+export enum NodeLabelAligment {
+  TOP = 'top',
+  BOTTOM = 'bottom',
+  LEFT = 'left',
+  RIGHT = 'right',
+}
+
 /**
  * Node style properties used to style the node (color, width, label, etc.).
  */
@@ -59,6 +66,7 @@ export type INodeStyle = Partial<{
   size: number;
   mass: number;
   zIndex: number;
+  labelAlignment: NodeLabelAligment;
 }>;
 
 export interface INodeData<N extends INodeBase> {
@@ -95,6 +103,7 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> {
   getBorderWidth(): number;
   getBorderColor(): Color | string | undefined;
   getBackgroundImage(): HTMLImageElement | undefined;
+  getLabelAlignment(): NodeLabelAligment;
 }
 
 // TODO: Dirty solution: Find another way to listen for global images, maybe through
@@ -361,6 +370,10 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
         this._onLoadedImage?.();
       }
     });
+  }
+
+  getLabelAlignment(): NodeLabelAligment {
+    return this.style.labelAlignment ?? NodeLabelAligment.BOTTOM;
   }
 
   protected _isPointInBoundingBox(point: IPosition): boolean {
