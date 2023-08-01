@@ -300,6 +300,18 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     onRendered?.();
   }
 
+  zoomIn(onRendered?: () => void) {
+    select(this._canvas)
+      .transition()
+      .duration(this._settings.zoomFitTransitionMs)
+      .ease(easeLinear)
+      .call(this._d3Zoom.scaleBy, 1.2)
+      .call(() => {
+        this._renderer.render(this._graph);
+        onRendered?.();
+      });
+  }
+
   recenter(onRendered?: () => void) {
     const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph);
 
@@ -308,6 +320,18 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       .duration(this._settings.zoomFitTransitionMs)
       .ease(easeLinear)
       .call(this._d3Zoom.transform, fitZoomTransform)
+      .call(() => {
+        this._renderer.render(this._graph);
+        onRendered?.();
+      });
+  }
+
+  zoomOut(onRendered?: () => void) {
+    select(this._canvas)
+      .transition()
+      .duration(this._settings.zoomFitTransitionMs)
+      .ease(easeLinear)
+      .call(this._d3Zoom.scaleBy, 0.8)
       .call(() => {
         this._renderer.render(this._graph);
         onRendered?.();
