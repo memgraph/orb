@@ -307,8 +307,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       .ease(easeLinear)
       .call(this._d3Zoom.scaleBy, 1.2)
       .call(() => {
-        this._renderer.render(this._graph);
-        onRendered?.();
+        this.render(onRendered);
       });
   }
 
@@ -321,8 +320,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       .ease(easeLinear)
       .call(this._d3Zoom.transform, fitZoomTransform)
       .call(() => {
-        this._renderer.render(this._graph);
-        onRendered?.();
+        this.render(onRendered);
       });
   }
 
