@@ -198,11 +198,21 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     onRendered?.();
   }
 
+  zoomIn(onRendered?: () => void) {
+    this._leaflet.zoomIn();
+    onRendered?.();
+  }
+
   recenter(onRendered?: () => void) {
     const view = this._graph.getBoundingBox();
     const topRightCoordinate = this._leaflet.layerPointToLatLng([view.x, view.y]);
     const bottomLeftCoordinate = this._leaflet.layerPointToLatLng([view.x + view.width, view.y + view.height]);
     this._leaflet.fitBounds(L.latLngBounds(topRightCoordinate, bottomLeftCoordinate));
+    onRendered?.();
+  }
+
+  zoomOut(onRendered?: () => void) {
+    this._leaflet.zoomOut();
     onRendered?.();
   }
 
@@ -240,6 +250,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
   private _initLeaflet() {
     const leaflet = L.map(this._map, {
       doubleClickZoom: false,
+      zoomControl: false,
     }).setView([0, 0], this._settings.map.zoomLevel);
 
     leaflet.on('zoomstart', () => {
