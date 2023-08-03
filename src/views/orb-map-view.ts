@@ -460,7 +460,6 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     if (this._renderer.isInitiallyRendered) {
       this._leaflet.invalidateSize(false);
       this._renderer.render(this._graph);
-      this.recenter();
     }
   }
 
