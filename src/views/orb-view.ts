@@ -211,16 +211,9 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         const edgePositions = this._graph.getEdgePositions(edgeFilter);
 
         this._simulator.mergeData({ nodes: nodePositions, edges: edgePositions });
-        // this._simulator.simulate();
       },
       onRemoveData: (data) => {
         this._simulator.deleteData(data);
-        /*
-        const nodePositions = this._graph.getNodePositions();
-        const edgePositions = this._graph.getEdgePositions();
-        this._simulator.updateData({ nodes: nodePositions, edges: edgePositions });
-        this.render();
-        */
       },
     });
   }
