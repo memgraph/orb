@@ -166,7 +166,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       .on('mousemove', this.mouseMoved)
       .on('contextmenu', this.mouseRightClicked)
       .on('dblclick.zoom', this.mouseDoubleClicked);
-    
+
     document.addEventListener('keydown', this._handleKeyDown);
 
     this._simulator = SimulatorFactory.getSimulator();
@@ -396,45 +396,37 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     }
 
     switch (event.key) {
-      case "-": {
+      case '-': {
         const zoomOutFactor = this._settings.interaction.keyboard.zoomOutFactor;
         this._zoomOut(zoomOutFactor);
         break;
       }
-      case "+": {
+      case '+': {
         const zoomInFactor = this._settings.interaction.keyboard.zoomInFactor;
         this._zoomIn(zoomInFactor);
         break;
       }
-      case "ArrowLeft": {
-        const draggingFactor =
-          this._settings.interaction.keyboard.draggingFactor;
-        const dragLeftTransform =
-          this._renderer.getDragLeftTransform(draggingFactor);
+      case 'ArrowLeft': {
+        const draggingFactor = this._settings.interaction.keyboard.draggingFactor;
+        const dragLeftTransform = this._renderer.getDragLeftTransform(draggingFactor);
         this._dragByArrowKey(dragLeftTransform);
         break;
       }
-      case "ArrowRight": {
-        const draggingFactor =
-          this._settings.interaction.keyboard.draggingFactor;
-        const dragRightTransform =
-          this._renderer.getDragRightTransform(draggingFactor);
+      case 'ArrowRight': {
+        const draggingFactor = this._settings.interaction.keyboard.draggingFactor;
+        const dragRightTransform = this._renderer.getDragRightTransform(draggingFactor);
         this._dragByArrowKey(dragRightTransform);
         break;
       }
-      case "ArrowUp": {
-        const draggingFactor =
-          this._settings.interaction.keyboard.draggingFactor;
-        const dragUpTransform =
-          this._renderer.getDragUpTransform(draggingFactor);
+      case 'ArrowUp': {
+        const draggingFactor = this._settings.interaction.keyboard.draggingFactor;
+        const dragUpTransform = this._renderer.getDragUpTransform(draggingFactor);
         this._dragByArrowKey(dragUpTransform);
         break;
       }
-      case "ArrowDown": {
-        const draggingFactor =
-          this._settings.interaction.keyboard.draggingFactor;
-        const dragDownTransform =
-          this._renderer.getDragDownTransform(draggingFactor);
+      case 'ArrowDown': {
+        const draggingFactor = this._settings.interaction.keyboard.draggingFactor;
+        const dragDownTransform = this._renderer.getDragDownTransform(draggingFactor);
         this._dragByArrowKey(dragDownTransform);
         break;
       }
