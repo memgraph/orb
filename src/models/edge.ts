@@ -5,6 +5,8 @@ import { isArrayOfNumbers } from '../utils/type.utils';
 
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
 const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;
+const DEFAULT_DASHED_LINE_PATTERN: number[] = [5, 5];
+const DEFAULT_DOTTED_LINE_PATTERN: number[] = [1, 1];
 
 /**
  * Edge baseline object with required fields
@@ -27,16 +29,17 @@ export interface IEdgePosition {
 }
 
 export enum EdgeLineStyleType {
-  SOLID = "solid",
-  DASHED = "dashed",
-  DOTTED = "dotted",
-  CUSTOM = "custom",
+  SOLID = 'solid',
+  DASHED = 'dashed',
+  DOTTED = 'dotted',
+  CUSTOM = 'custom',
 }
 
-export interface IEdgeLineStyle {
-  type: EdgeLineStyleType;
-  dashPattern: number[];
-}
+export type IEdgeLineStyle =
+  | { type: EdgeLineStyleType.SOLID }
+  | { type: EdgeLineStyleType.DASHED }
+  | { type: EdgeLineStyleType.DOTTED }
+  | { type: EdgeLineStyleType.CUSTOM; pattern: number[] };
 
 /**
  * Edge style properties used to style the edge (color, width, label, etc.).
@@ -59,7 +62,7 @@ export type IEdgeStyle = Partial<{
   widthHover: number;
   widthSelected: number;
   zIndex: number;
-  edgeLineStyle: IEdgeLineStyle;
+  lineStyle: IEdgeLineStyle;
 }>;
 
 export interface IEdgeData<N extends INodeBase, E extends IEdgeBase> {
@@ -103,7 +106,7 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> {
   hasShadow(): boolean;
   getWidth(): number;
   getColor(): Color | string | undefined;
-  getEdgeLineStyle(): IEdgeLineStyle;
+  getLineDashPattern(): number[] | null;
 }
 
 export class EdgeFactory {
@@ -272,18 +275,23 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
     return color;
   }
 
-  getEdgeLineStyle(): IEdgeLineStyle {
-    const edgeLineStyle: IEdgeLineStyle = {
-      type: EdgeLineStyleType.SOLID,
-      dashPattern: [],
-    };
-    if (this.style.edgeLineStyle !== undefined) {
-      edgeLineStyle.type = this.style.edgeLineStyle.type;
-      if (isArrayOfNumbers(this.style.edgeLineStyle.dashPattern)) {
-        edgeLineStyle.dashPattern = this.style.edgeLineStyle.dashPattern;
-      }
+  getLineDashPattern(): number[] | null {
+    const lineStyle: IEdgeLineStyle | undefined = this.style.lineStyle;
+
+    if (lineStyle === undefined || lineStyle.type === EdgeLineStyleType.SOLID) {
+      return null;
     }
-    return edgeLineStyle;
+
+    switch (lineStyle.type) {
+      case EdgeLineStyleType.DASHED:
+        return DEFAULT_DASHED_LINE_PATTERN;
+      case EdgeLineStyleType.DOTTED:
+        return DEFAULT_DOTTED_LINE_PATTERN;
+      case EdgeLineStyleType.CUSTOM:
+        return isArrayOfNumbers(lineStyle.pattern) ? lineStyle.pattern : null;
+      default:
+        return null;
+    }
   }
 }
 

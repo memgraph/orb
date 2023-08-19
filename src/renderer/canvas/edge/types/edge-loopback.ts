@@ -1,16 +1,6 @@
 import { INode, INodeBase } from '../../../../models/node';
-import {
-  EdgeLineStyleType,
-  EdgeLoopback,
-  IEdgeBase,
-} from "../../../../models/edge";
-import {
-  DEFAULT_DASHED_LINE_PATTERN,
-  DEFAULT_DOTTED_LINE_PATTERN,
-  DEFAULT_SOLID_LINE_PATTERN,
-  IBorderPosition,
-  IEdgeArrow,
-} from "../shared";
+import { EdgeLoopback, IEdgeBase } from '../../../../models/edge';
+import { IBorderPosition, IEdgeArrow } from '../shared';
 import { ICircle, IPosition } from '../../../../common';
 
 export const drawLoopbackLine = <N extends INodeBase, E extends IEdgeBase>(
@@ -24,26 +14,8 @@ export const drawLoopbackLine = <N extends INodeBase, E extends IEdgeBase>(
   context.arc(x, y, radius, 0, 2 * Math.PI, false);
   context.closePath();
 
-  const edgeLineStyleType = edge.getEdgeLineStyle().type;
-  switch (edgeLineStyleType) {
-    case EdgeLineStyleType.DASHED:
-      context.setLineDash(DEFAULT_DASHED_LINE_PATTERN);
-      break;
-    case EdgeLineStyleType.DOTTED:
-      context.setLineDash(DEFAULT_DOTTED_LINE_PATTERN);
-      break;
-    case EdgeLineStyleType.SOLID:
-      context.setLineDash(DEFAULT_SOLID_LINE_PATTERN);
-      break;
-    case EdgeLineStyleType.CUSTOM: {
-      const dashPattern: number[] = edge.getEdgeLineStyle().dashPattern;
-      context.setLineDash(dashPattern);
-      break;
-    }
-    default:
-      context.setLineDash(DEFAULT_SOLID_LINE_PATTERN);
-      break;
-  }
+  const lineDashPattern = edge.getLineDashPattern();
+  context.setLineDash(lineDashPattern ?? []);
 
   context.stroke();
 };
