@@ -22,21 +22,22 @@ import { setupContainer } from '../utils/html.utils';
 import { SimulatorEventType } from '../simulator/shared';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
+import { PanDirectionType } from '../renderer/canvas/canvas-renderer';
 
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;
   isZoomEnabled: boolean;
   keyboard: {
-    isKeyboardEnabled: boolean;
+    isEnabled: boolean;
     zoomInFactor: number;
     zoomOutFactor: number;
-    draggingFactor: number;
+    panFactor: number;
   };
 }
 
 const DEFAULT_ZOOM_IN_FACTOR = 1.2;
 const DEFAULT_ZOOM_OUT_FACTOR = 0.8;
-const DEFAULT_DRAGGING_FACTOR = 25;
+const DEFAULT_PAN_FACTOR = 25;
 
 export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
@@ -111,10 +112,10 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         isZoomEnabled: true,
         ...settings?.interaction,
         keyboard: {
-          isKeyboardEnabled: false,
+          isEnabled: false,
           zoomInFactor: DEFAULT_ZOOM_IN_FACTOR,
           zoomOutFactor: DEFAULT_ZOOM_OUT_FACTOR,
-          draggingFactor: DEFAULT_DRAGGING_FACTOR,
+          panFactor: DEFAULT_PAN_FACTOR,
           ...settings?.interaction?.keyboard,
         },
       },
@@ -290,16 +291,9 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
   recenter(onRendered?: () => void) {
     const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph);
-
-    select(this._canvas)
-      .transition()
-      .duration(this._settings.zoomFitTransitionMs)
-      .ease(easeLinear)
-      .call(this._d3Zoom.transform, fitZoomTransform)
-      .call(() => {
-        this._renderer.render(this._graph);
-        onRendered?.();
-      });
+    this._applyTransformation(fitZoomTransform, () => {
+      onRendered?.();
+    });
   }
 
   destroy() {
@@ -391,7 +385,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   };
 
   _handleKeyDown = (event: KeyboardEvent) => {
-    if (!this._settings.interaction.keyboard?.isKeyboardEnabled) {
+    if (!this._settings.interaction.keyboard?.isEnabled) {
       return;
     }
 
@@ -407,27 +401,27 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         break;
       }
       case 'ArrowLeft': {
-        const draggingFactor = this._settings.interaction.keyboard.draggingFactor;
-        const dragLeftTransform = this._renderer.getDragLeftTransform(draggingFactor);
-        this._dragByArrowKey(dragLeftTransform);
+        const panFactor = this._settings.interaction.keyboard.panFactor;
+        const dragLeftTransform = this._renderer.getPanTransform(PanDirectionType.LEFT, panFactor);
+        this._applyTransformation(dragLeftTransform);
         break;
       }
       case 'ArrowRight': {
-        const draggingFactor = this._settings.interaction.keyboard.draggingFactor;
-        const dragRightTransform = this._renderer.getDragRightTransform(draggingFactor);
-        this._dragByArrowKey(dragRightTransform);
+        const panFactor = this._settings.interaction.keyboard.panFactor;
+        const dragRightTransform = this._renderer.getPanTransform(PanDirectionType.RIGHT, panFactor);
+        this._applyTransformation(dragRightTransform);
         break;
       }
       case 'ArrowUp': {
-        const draggingFactor = this._settings.interaction.keyboard.draggingFactor;
-        const dragUpTransform = this._renderer.getDragUpTransform(draggingFactor);
-        this._dragByArrowKey(dragUpTransform);
+        const panFactor = this._settings.interaction.keyboard.panFactor;
+        const dragUpTransform = this._renderer.getPanTransform(PanDirectionType.UP, panFactor);
+        this._applyTransformation(dragUpTransform);
         break;
       }
       case 'ArrowDown': {
-        const draggingFactor = this._settings.interaction.keyboard.draggingFactor;
-        const dragDownTransform = this._renderer.getDragDownTransform(draggingFactor);
-        this._dragByArrowKey(dragDownTransform);
+        const panFactor = this._settings.interaction.keyboard.panFactor;
+        const dragDownTransform = this._renderer.getPanTransform(PanDirectionType.DOWN, panFactor);
+        this._applyTransformation(dragDownTransform);
         break;
       }
       default:
@@ -445,7 +439,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._d3Zoom.scaleTo(select(this._canvas), transform.k);
   };
 
-  _dragByArrowKey = (transform: ZoomTransform) => {
+  _applyTransformation = (transform: ZoomTransform, callback?: () => void) => {
     select(this._canvas)
       .transition()
       .duration(this._settings.zoomFitTransitionMs)
@@ -453,6 +447,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       .call(this._d3Zoom.transform, transform)
       .call(() => {
         this._renderer.render(this._graph);
+        callback?.();
       });
   };
 

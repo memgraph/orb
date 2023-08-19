@@ -25,6 +25,13 @@ const DEBUG_GREEN = '#3CFF33';
 const DEBUG_BLUE = '#3383FF';
 const DEBUG_PINK = '#F333FF';
 
+export enum PanDirectionType {
+  UP,
+  DOWN,
+  LEFT,
+  RIGHT,
+}
+
 export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Emitter<RE> implements IRenderer<N, E> {
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
   private readonly _context: CanvasRenderingContext2D;
@@ -251,28 +258,29 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
     return zoomIdentity.scale(newZoom);
   }
 
-  getDragLeftTransform(draggingFactor: number): ZoomTransform {
+  getPanTransform(panDirectionType: PanDirectionType, factor: number): ZoomTransform {
     const currentTransform = this.transform;
-    const newX = currentTransform.x + draggingFactor;
-    return zoomIdentity.translate(newX, currentTransform.y).scale(currentTransform.k);
-  }
+    let newX = currentTransform.x;
+    let newY = currentTransform.y;
 
-  getDragRightTransform(draggingFactor: number): ZoomTransform {
-    const currentTransform = this.transform;
-    const newX = currentTransform.x - draggingFactor;
-    return zoomIdentity.translate(newX, currentTransform.y).scale(currentTransform.k);
-  }
+    switch (panDirectionType) {
+      case PanDirectionType.UP:
+        newY += factor;
+        break;
+      case PanDirectionType.DOWN:
+        newY -= factor;
+        break;
+      case PanDirectionType.LEFT:
+        newX += factor;
+        break;
+      case PanDirectionType.RIGHT:
+        newX -= factor;
+        break;
+      default:
+        break;
+    }
 
-  getDragUpTransform(draggingFactor: number): ZoomTransform {
-    const currentTransform = this.transform;
-    const newY = currentTransform.y + draggingFactor;
-    return zoomIdentity.translate(currentTransform.x, newY).scale(currentTransform.k);
-  }
-
-  getDragDownTransform(draggingFactor: number): ZoomTransform {
-    const currentTransform = this.transform;
-    const newY = currentTransform.y - draggingFactor;
-    return zoomIdentity.translate(currentTransform.x, newY).scale(currentTransform.k);
+    return zoomIdentity.translate(newX, newY).scale(currentTransform.k);
   }
 
   getSimulationPosition(canvasPoint: IPosition): IPosition {

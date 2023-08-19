@@ -85,10 +85,10 @@ interface IOrbViewSettings {
     isDragEnabled: boolean;
     isZoomEnabled: boolean;
     keyboard: {
-      isKeyboardEnabled: boolean;
+      isEnabled: boolean;
       zoomInFactor: number;
       zoomOutFactor: number;
-      draggingFactor: number;
+      panFactor: number;
     };
   };
   // Other default view parameters
@@ -164,10 +164,10 @@ const defaultSettings = {
     isDragEnabled: true;
     isZoomEnabled:  true;
     keyboard: {
-      isKeyboardEnabled: true,
+      isEnabled: false,
       zoomInFactor: 1.2,
       zoomOutFactor: 0.8,
-      draggingFactor: 25
+      panFactor: 25
     }
   },
   zoomFitTransitionMs: 200,
@@ -342,10 +342,10 @@ The `interaction` property controls the interactivity options available to users
 * `isZoomEnabled` - This property controls the zooming behavior within the application. Setting it to `true` enables zooming, allowing users to interactively zoom in and out of the graph. Setting it to `false` disables zooming, restricting the user's ability to change the zoom level.
 
 * `keyboard` - This property allows you to define keyboard interaction settings:
-   * `isKeyboardEnabled` (boolean): Set this property to `true` to enable keyboard interaction within the graph visualization. When enabled, users can use keyboard shortcuts for certain interactions.
+   * `isEnabled` (boolean): Set this property to `true` to enable keyboard interaction within the graph visualization. When enabled, users can use keyboard shortcuts for certain interactions.
    * `zoomInFactor` (number): The zoom-in factor determines the extent to which the graph will zoom in when the user presses the zoom-in keyboard shortcut.
    * `zoomOutFactor` (number): The zoom-out factor determines the extent to which the graph will zoom out when the user presses the zoom-out keyboard shortcut.
-   * `draggingFactor` (number): The dragging factor specifies the speed at which nodes and edges will move when the user interacts with them using keyboard shortcuts for dragging.
+   * `panFactor` (number): The pan factor specifies the speed at which nodes and edges will move when the user interacts with them using keyboard shortcuts for dragging.
 
 By customizing the interaction property, you can enable or disable dragging and zooming features based on the needs and requirements of your graph visualization application. Additionally, you can also choose to enable keyboard interactions for further user control and convenience. e.g:
 

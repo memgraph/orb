@@ -4,6 +4,7 @@ import { INodeBase } from '../models/node';
 import { IEdgeBase } from '../models/edge';
 import { IGraph } from '../models/graph';
 import { IEmitter } from '../utils/emitter.utils';
+import { PanDirectionType } from './canvas/canvas-renderer';
 
 export enum RendererType {
   CANVAS = 'canvas',
@@ -61,13 +62,7 @@ export interface IRenderer<N extends INodeBase, E extends IEdgeBase> extends IEm
 
   getZoomTransform(zoomFactor: number): ZoomTransform;
 
-  getDragLeftTransform(draggingFactor: number): ZoomTransform;
-
-  getDragRightTransform(draggingFactor: number): ZoomTransform;
-
-  getDragUpTransform(draggingFactor: number): ZoomTransform;
-
-  getDragDownTransform(draggingFactor: number): ZoomTransform;
+  getPanTransform(panDirectionType: PanDirectionType, factor: number): ZoomTransform;
 
   getSimulationPosition(canvasPoint: IPosition): IPosition;
 

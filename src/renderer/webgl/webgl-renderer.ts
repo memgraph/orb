@@ -13,6 +13,7 @@ import {
   IRendererSettings,
 } from '../shared';
 import { copyObject } from '../../utils/object.utils';
+import { PanDirectionType } from '../canvas/canvas-renderer';
 
 export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emitter<RE> implements IRenderer<N, E> {
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
@@ -70,23 +71,10 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     console.log('zoomFactor:', zoomFactor);
     throw new Error('Method not implemented.');
   }
-  getDragLeftTransform(draggingFactor: number): ZoomTransform {
-    console.log('draggingFactor:', draggingFactor);
-    throw new Error('Method not implemented.');
-  }
 
-  getDragRightTransform(draggingFactor: number): ZoomTransform {
-    console.log('draggingFactor:', draggingFactor);
-    throw new Error('Method not implemented.');
-  }
-
-  getDragUpTransform(draggingFactor: number): ZoomTransform {
-    console.log('draggingFactor:', draggingFactor);
-    throw new Error('Method not implemented.');
-  }
-
-  getDragDownTransform(draggingFactor: number): ZoomTransform {
-    console.log('draggingFactor:', draggingFactor);
+  getPanTransform(panDirectionType: PanDirectionType, factor: number): ZoomTransform {
+    console.log('panDirectionType:', panDirectionType);
+    console.log('factor:', factor);
     throw new Error('Method not implemented.');
   }
 
