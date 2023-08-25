@@ -44,7 +44,11 @@ export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
 export type IOrbViewSettingsInit<N extends INodeBase, E extends IEdgeBase> = Omit<
   Partial<IOrbViewSettings<N, E>>,
   'render'
-> & { render?: Partial<IRendererSettingsInit> };
+> & { render?: Partial<IRendererSettingsInit> } & { 
+  instances: {
+    simulator?: ISimulator | (() => ISimulator);
+  };
+};
 
 export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E, IOrbViewSettings<N, E>> {
   private _container: HTMLElement;
@@ -150,7 +154,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       .on('contextmenu', this.mouseRightClicked)
       .on('dblclick.zoom', this.mouseDoubleClicked);
 
-    this._simulator = SimulatorFactory.getSimulator();
+    this._simulator = this._createSimulator(settings?.instances?.simulator);
     this._simulator.on(SimulatorEventType.SIMULATION_START, () => {
       this._isSimulating = true;
       this._simulationStartedAt = Date.now();
@@ -569,6 +573,12 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._simulator.simulate();
   }
 
+
+private _createSimulator(simulator: ISimulator | (() => ISimulator) | undefined): ISimulator {
+  if(typeof simulator === "function")  return simulator();
+  return simulator || SimulatorFactory.getSimulator();
+}
+
   // TODO: Do we keep these
   fixNodes() {
     this._simulator.fixNodes();
@@ -579,3 +589,4 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._simulator.releaseNodes();
   }
 }
+
