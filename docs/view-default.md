@@ -89,6 +89,7 @@ interface IOrbViewSettings {
       zoomInFactor: number;
       zoomOutFactor: number;
       panFactor: number;
+      transitionMs: number;
     };
   };
   // Other default view parameters
@@ -167,7 +168,8 @@ const defaultSettings = {
       isEnabled: false,
       zoomInFactor: 1.2,
       zoomOutFactor: 0.8,
-      panFactor: 25
+      panFactor: 25,
+      transitionMs: 100
     }
   },
   zoomFitTransitionMs: 200,
@@ -346,6 +348,8 @@ The `interaction` property controls the interactivity options available to users
    * `zoomInFactor` (number): The zoom-in factor determines the extent to which the graph will zoom in when the user presses the zoom-in keyboard shortcut.
    * `zoomOutFactor` (number): The zoom-out factor determines the extent to which the graph will zoom out when the user presses the zoom-out keyboard shortcut.
    * `panFactor` (number): The pan factor specifies the speed at which nodes and edges will move when the user interacts with them using keyboard shortcuts for dragging.
+   * `transitionMs` (number): The transitionMs parameter defines the duration of the transition animation in milliseconds (ms). It controls how long the animation takes to smoothly transform the visual state from one point to another. 
+
 
 By customizing the interaction property, you can enable or disable dragging and zooming features based on the needs and requirements of your graph visualization application. Additionally, you can also choose to enable keyboard interactions for further user control and convenience. e.g:
 

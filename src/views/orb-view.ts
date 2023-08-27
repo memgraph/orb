@@ -37,12 +37,14 @@ export interface IGraphInteractionSettings {
     zoomInFactor: number;
     zoomOutFactor: number;
     panFactor: number;
+    transitionMs: number;
   };
 }
 
 const DEFAULT_ZOOM_IN_FACTOR = 1.2;
 const DEFAULT_ZOOM_OUT_FACTOR = 0.8;
 const DEFAULT_PAN_FACTOR = 25;
+const DEFAULT_TRANSITION_MS = 200;
 
 export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
@@ -55,6 +57,11 @@ export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   areCoordinatesRounded: boolean;
   isSimulationAnimated: boolean;
   areCollapsedContainerDimensionsAllowed: boolean;
+}
+
+export interface IApplyTransitionOptions {
+  transitionMs: number;
+  callback: () => void;
 }
 
 export type IOrbViewSettingsInit<N extends INodeBase, E extends IEdgeBase> = Omit<
@@ -121,6 +128,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
           zoomInFactor: DEFAULT_ZOOM_IN_FACTOR,
           zoomOutFactor: DEFAULT_ZOOM_OUT_FACTOR,
           panFactor: DEFAULT_PAN_FACTOR,
+          transitionMs: 100,
           ...settings?.interaction?.keyboard,
         },
       },
@@ -296,9 +304,9 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
   recenter(onRendered?: () => void) {
     const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph);
-    this._applyTransformation(fitZoomTransform, () => {
-      onRendered?.();
-    });
+    const transitionMs = this._settings.zoomFitTransitionMs;
+
+    this._applyTransformation(fitZoomTransform, { transitionMs, callback: onRendered });
   }
 
   destroy() {
@@ -394,7 +402,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       return;
     }
 
-    const { zoomOutFactor, zoomInFactor, panFactor } = this._settings.interaction.keyboard;
+    const { zoomOutFactor, zoomInFactor, panFactor, transitionMs } = this._settings.interaction.keyboard;
 
     switch (event.key) {
       case '-': {
@@ -407,22 +415,22 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       }
       case 'ArrowLeft': {
         const dragLeftTransform = this._renderer.getPanTransform(PanDirectionType.LEFT, panFactor);
-        this._applyTransformation(dragLeftTransform);
+        this._applyTransformation(dragLeftTransform, { transitionMs: transitionMs });
         break;
       }
       case 'ArrowRight': {
         const dragRightTransform = this._renderer.getPanTransform(PanDirectionType.RIGHT, panFactor);
-        this._applyTransformation(dragRightTransform);
+        this._applyTransformation(dragRightTransform, { transitionMs: transitionMs });
         break;
       }
       case 'ArrowUp': {
         const dragUpTransform = this._renderer.getPanTransform(PanDirectionType.UP, panFactor);
-        this._applyTransformation(dragUpTransform);
+        this._applyTransformation(dragUpTransform, { transitionMs: transitionMs });
         break;
       }
       case 'ArrowDown': {
         const dragDownTransform = this._renderer.getPanTransform(PanDirectionType.DOWN, panFactor);
-        this._applyTransformation(dragDownTransform);
+        this._applyTransformation(dragDownTransform, { transitionMs: transitionMs });
         break;
       }
       default:
@@ -440,15 +448,17 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._d3Zoom.scaleTo(select(this._canvas), transform.k);
   };
 
-  _applyTransformation = (transform: ZoomTransform, callback?: () => void) => {
+  _applyTransformation = (transform: ZoomTransform, options?: Partial<IApplyTransitionOptions>) => {
+    const transitionMs = options?.transitionMs ?? DEFAULT_TRANSITION_MS;
+
     select(this._canvas)
       .transition()
-      .duration(this._settings.zoomFitTransitionMs)
+      .duration(transitionMs)
       .ease(easeLinear)
       .call(this._d3Zoom.transform, transform)
       .call(() => {
         this._renderer.render(this._graph);
-        callback?.();
+        options?.callback?.();
       });
   };
 
