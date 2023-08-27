@@ -16,13 +16,18 @@ import { DefaultEventStrategy, IEventStrategy, IEventStrategySettings } from '..
 import { ID3SimulatorEngineSettings } from '../simulator/engine/d3-simulator-engine';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
-import { IRenderer, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
+import {
+  IRenderer,
+  RenderEventType,
+  IRendererSettingsInit,
+  IRendererSettings,
+  PanDirectionType,
+} from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
 import { setupContainer } from '../utils/html.utils';
 import { SimulatorEventType } from '../simulator/shared';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
-import { PanDirectionType } from '../renderer/canvas/canvas-renderer';
 
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;
@@ -389,37 +394,33 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       return;
     }
 
+    const { zoomOutFactor, zoomInFactor, panFactor } = this._settings.interaction.keyboard;
+
     switch (event.key) {
       case '-': {
-        const zoomOutFactor = this._settings.interaction.keyboard.zoomOutFactor;
         this._zoomOut(zoomOutFactor);
         break;
       }
       case '+': {
-        const zoomInFactor = this._settings.interaction.keyboard.zoomInFactor;
         this._zoomIn(zoomInFactor);
         break;
       }
       case 'ArrowLeft': {
-        const panFactor = this._settings.interaction.keyboard.panFactor;
         const dragLeftTransform = this._renderer.getPanTransform(PanDirectionType.LEFT, panFactor);
         this._applyTransformation(dragLeftTransform);
         break;
       }
       case 'ArrowRight': {
-        const panFactor = this._settings.interaction.keyboard.panFactor;
         const dragRightTransform = this._renderer.getPanTransform(PanDirectionType.RIGHT, panFactor);
         this._applyTransformation(dragRightTransform);
         break;
       }
       case 'ArrowUp': {
-        const panFactor = this._settings.interaction.keyboard.panFactor;
         const dragUpTransform = this._renderer.getPanTransform(PanDirectionType.UP, panFactor);
         this._applyTransformation(dragUpTransform);
         break;
       }
       case 'ArrowDown': {
-        const panFactor = this._settings.interaction.keyboard.panFactor;
         const dragDownTransform = this._renderer.getPanTransform(PanDirectionType.DOWN, panFactor);
         this._applyTransformation(dragDownTransform);
         break;

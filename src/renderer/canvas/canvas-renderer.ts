@@ -12,6 +12,7 @@ import {
   DEFAULT_RENDERER_WIDTH,
   IRenderer,
   IRendererSettings,
+  PanDirectionType,
   RendererEvents as RE,
   RenderEventType,
 } from '../shared';
@@ -24,13 +25,6 @@ const DEBUG_RED = '#FF5733';
 const DEBUG_GREEN = '#3CFF33';
 const DEBUG_BLUE = '#3383FF';
 const DEBUG_PINK = '#F333FF';
-
-export enum PanDirectionType {
-  UP,
-  DOWN,
-  LEFT,
-  RIGHT,
-}
 
 export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Emitter<RE> implements IRenderer<N, E> {
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.

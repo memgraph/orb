@@ -4,7 +4,6 @@ import { INodeBase } from '../models/node';
 import { IEdgeBase } from '../models/edge';
 import { IGraph } from '../models/graph';
 import { IEmitter } from '../utils/emitter.utils';
-import { PanDirectionType } from './canvas/canvas-renderer';
 
 export enum RendererType {
   CANVAS = 'canvas',
@@ -14,6 +13,13 @@ export enum RendererType {
 export enum RenderEventType {
   RENDER_START = 'render-start',
   RENDER_END = 'render-end',
+}
+
+export enum PanDirectionType {
+  UP,
+  DOWN,
+  LEFT,
+  RIGHT,
 }
 
 export interface IRendererSettings {

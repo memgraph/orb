@@ -11,9 +11,9 @@ import {
   IRenderer,
   RendererEvents as RE,
   IRendererSettings,
+  PanDirectionType,
 } from '../shared';
 import { copyObject } from '../../utils/object.utils';
-import { PanDirectionType } from '../canvas/canvas-renderer';
 
 export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emitter<RE> implements IRenderer<N, E> {
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
