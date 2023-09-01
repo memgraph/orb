@@ -44,7 +44,7 @@ export interface IGraphInteractionSettings {
 const DEFAULT_ZOOM_IN_FACTOR = 1.2;
 const DEFAULT_ZOOM_OUT_FACTOR = 0.8;
 const DEFAULT_PAN_FACTOR = 25;
-const DEFAULT_TRANSITION_MS = 200;
+const DEFAULT_TRANSITION_MS = 0;
 
 export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
