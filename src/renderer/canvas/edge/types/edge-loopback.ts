@@ -13,6 +13,10 @@ export const drawLoopbackLine = <N extends INodeBase, E extends IEdgeBase>(
   context.beginPath();
   context.arc(x, y, radius, 0, 2 * Math.PI, false);
   context.closePath();
+
+  const lineDashPattern = edge.getLineDashPattern();
+  context.setLineDash(lineDashPattern ?? []);
+
   context.stroke();
 };
 

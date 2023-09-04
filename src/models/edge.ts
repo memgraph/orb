@@ -1,9 +1,12 @@
 import { INodeBase, INode } from './node';
 import { GraphObjectState } from './state';
 import { Color, IPosition, ICircle, getDistanceToLine } from '../common';
+import { isArrayOfNumbers } from '../utils/type.utils';
 
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
 const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;
+const DEFAULT_DASHED_LINE_PATTERN: number[] = [5, 5];
+const DEFAULT_DOTTED_LINE_PATTERN: number[] = [1, 1];
 
 /**
  * Edge baseline object with required fields
@@ -24,6 +27,19 @@ export interface IEdgePosition {
   source: any;
   target: any;
 }
+
+export enum EdgeLineStyleType {
+  SOLID = 'solid',
+  DASHED = 'dashed',
+  DOTTED = 'dotted',
+  CUSTOM = 'custom',
+}
+
+export type IEdgeLineStyle =
+  | { type: EdgeLineStyleType.SOLID }
+  | { type: EdgeLineStyleType.DASHED }
+  | { type: EdgeLineStyleType.DOTTED }
+  | { type: EdgeLineStyleType.CUSTOM; pattern: number[] };
 
 /**
  * Edge style properties used to style the edge (color, width, label, etc.).
@@ -46,6 +62,7 @@ export type IEdgeStyle = Partial<{
   widthHover: number;
   widthSelected: number;
   zIndex: number;
+  lineStyle: IEdgeLineStyle;
 }>;
 
 export interface IEdgeData<N extends INodeBase, E extends IEdgeBase> {
@@ -89,6 +106,7 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> {
   hasShadow(): boolean;
   getWidth(): number;
   getColor(): Color | string | undefined;
+  getLineDashPattern(): number[] | null;
 }
 
 export class EdgeFactory {
@@ -255,6 +273,25 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
     }
 
     return color;
+  }
+
+  getLineDashPattern(): number[] | null {
+    const lineStyle: IEdgeLineStyle | undefined = this.style.lineStyle;
+
+    if (lineStyle === undefined || lineStyle.type === EdgeLineStyleType.SOLID) {
+      return null;
+    }
+
+    switch (lineStyle.type) {
+      case EdgeLineStyleType.DASHED:
+        return DEFAULT_DASHED_LINE_PATTERN;
+      case EdgeLineStyleType.DOTTED:
+        return DEFAULT_DOTTED_LINE_PATTERN;
+      case EdgeLineStyleType.CUSTOM:
+        return isArrayOfNumbers(lineStyle.pattern) ? lineStyle.pattern : null;
+      default:
+        return null;
+    }
   }
 }
 

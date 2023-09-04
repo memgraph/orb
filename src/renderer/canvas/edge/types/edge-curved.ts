@@ -18,6 +18,10 @@ export const drawCurvedLine = <N extends INodeBase, E extends IEdgeBase>(
   context.beginPath();
   context.moveTo(sourcePoint.x, sourcePoint.y);
   context.quadraticCurveTo(controlPoint.x, controlPoint.y, targetPoint.x, targetPoint.y);
+
+  const lineDashPattern = edge.getLineDashPattern();
+  context.setLineDash(lineDashPattern ?? []);
+
   context.stroke();
 };
 

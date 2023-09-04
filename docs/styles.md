@@ -142,6 +142,7 @@ style properties:
 | `widthHover`          | number              | Edge line width on mouse hover event. If not defined `width` is used. |
 | `widthSelected`       | number              | Edge line width on mouse click event. If not defined `width` is used. |
 | `zIndex`              | number              | Specifies the stack order of an element during rendering. The default is `0`. |
+| `lineStyle`       | object              | Allows to customize the style of edges in the graph visualization. The default is `{type: 'solid'}` |
 
 ## Default style values
 
