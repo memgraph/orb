@@ -59,6 +59,7 @@ export type IMapViewSettingsUpdate<N extends INodeBase, E extends IEdgeBase> = P
 
 export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<IMapViewSettings<N, E>> {
   private _container: HTMLElement;
+  private _resizeObs: ResizeObserver;
   private _graph: IGraph<N, E>;
   private _events: OrbEmitter<N, E>;
   private _strategy: IEventStrategy<N, E>;
@@ -106,8 +107,8 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._settings.render = this._renderer.getSettings();
 
     // Resize the canvas based on the dimensions of it's parent container <div>.
-    const resizeObs = new ResizeObserver(() => this._handleResize());
-    resizeObs.observe(this._container);
+    this._resizeObs = new ResizeObserver(() => this._handleResize());
+    this._resizeObs.observe(this._container);
     this._handleResize();
 
     this._leaflet = this._initLeaflet();
@@ -166,6 +167,7 @@ export class MapView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   }
 
   destroy() {
+    this._resizeObs.unobserve(this._container);
     this._renderer.removeAllListeners();
     this._leaflet.off();
     this._leaflet.remove();
