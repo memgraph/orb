@@ -1,3 +1,9 @@
+## 0.4.2
+
+### Fix
+
+* Fix: resizeObserver is not unobserved (#82) (fixes #81) - by @markusnissl
+
 ## 0.4.1
 
 ### Fix

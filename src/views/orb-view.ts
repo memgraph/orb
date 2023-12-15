@@ -48,6 +48,7 @@ export type IOrbViewSettingsInit<N extends INodeBase, E extends IEdgeBase> = Omi
 
 export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E, IOrbViewSettings<N, E>> {
   private _container: HTMLElement;
+  private _resizeObs: ResizeObserver;
   private _graph: IGraph<N, E>;
   private _events: OrbEmitter<N, E>;
   private _strategy: IEventStrategy<N, E>;
@@ -127,8 +128,8 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._settings.render = this._renderer.getSettings();
 
     // Resize the canvas based on the dimensions of its parent container <div>.
-    const resizeObs = new ResizeObserver(() => this._handleResize());
-    resizeObs.observe(this._container);
+    this._resizeObs = new ResizeObserver(() => this._handleResize());
+    this._resizeObs.observe(this._container);
     this._handleResize();
 
     this._d3Zoom = zoom<HTMLCanvasElement, any>()
@@ -277,6 +278,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   }
 
   destroy() {
+    this._resizeObs.unobserve(this._container);
     this._renderer.removeAllListeners();
     this._simulator.terminate();
     this._canvas.outerHTML = '';
