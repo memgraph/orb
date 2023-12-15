@@ -17,6 +17,10 @@ export const drawStraightLine = <N extends INodeBase, E extends IEdgeBase>(
   context.beginPath();
   context.moveTo(sourcePoint.x, sourcePoint.y);
   context.lineTo(targetPoint.x, targetPoint.y);
+
+  const lineDashPattern = edge.getLineDashPattern();
+  context.setLineDash(lineDashPattern ?? []);
+
   context.stroke();
 };
 
