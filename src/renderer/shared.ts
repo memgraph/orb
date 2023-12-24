@@ -15,6 +15,13 @@ export enum RenderEventType {
   RENDER_END = 'render-end',
 }
 
+export enum PanDirectionType {
+  UP,
+  DOWN,
+  LEFT,
+  RIGHT,
+}
+
 export interface IRendererSettings {
   fps: number;
   minZoom: number;
@@ -58,6 +65,10 @@ export interface IRenderer<N extends INodeBase, E extends IEdgeBase> extends IEm
   reset(): void;
 
   getFitZoomTransform(graph: IGraph<N, E>): ZoomTransform;
+
+  getZoomTransform(zoomFactor: number): ZoomTransform;
+
+  getPanTransform(panDirectionType: PanDirectionType, factor: number): ZoomTransform;
 
   getSimulationPosition(canvasPoint: IPosition): IPosition;
 

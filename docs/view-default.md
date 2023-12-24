@@ -84,6 +84,13 @@ interface IOrbViewSettings {
   interaction: {
     isDragEnabled: boolean;
     isZoomEnabled: boolean;
+    keyboard: {
+      isEnabled: boolean;
+      zoomInFactor: number;
+      zoomOutFactor: number;
+      panFactor: number;
+      transitionMs: number;
+    };
   };
   // Other default view parameters
   zoomFitTransitionMs: number;
@@ -157,6 +164,13 @@ const defaultSettings = {
   interaction: {
     isDragEnabled: true;
     isZoomEnabled:  true;
+    keyboard: {
+      isEnabled: false,
+      zoomInFactor: 1.2,
+      zoomOutFactor: 0.8,
+      panFactor: 25,
+      transitionMs: 100
+    }
   },
   zoomFitTransitionMs: 200,
   isOutOfBoundsDragEnabled: false,
@@ -323,13 +337,21 @@ orb.events.on(OrbEventType.MOUSE_CLICK, (event) => {
 
 ### Property `interaction`
 
-The optional property `interaction` has two properties that you can enable/disable:
+The `interaction` property controls the interactivity options available to users when interacting with the graph visualization.
 
 * `isDragEnabled` - property controls the dragging behavior within the application. When it is set to `true`, dragging is enabled, allowing users to interact with nodes and edges by dragging them to different positions within the graph. On the other hand, when `isDragEnabled`` is set to false, dragging functionality is disabled, preventing users from moving or repositioning nodes and edges through dragging interactions.
 
 * `isZoomEnabled` - This property controls the zooming behavior within the application. Setting it to `true` enables zooming, allowing users to interactively zoom in and out of the graph. Setting it to `false` disables zooming, restricting the user's ability to change the zoom level.
 
-These properties provide a straightforward way to enable or disable dragging and zooming features based on the needs and requirements of your application. By toggling the values of isDragEnabled and isZoomEnabled, you can easily control the interactivity options available to users. e.g:
+* `keyboard` - This property allows you to define keyboard interaction settings:
+   * `isEnabled` (boolean): Set this property to `true` to enable keyboard interaction within the graph visualization. When enabled, users can use keyboard shortcuts for certain interactions.
+   * `zoomInFactor` (number): The zoom-in factor determines the extent to which the graph will zoom in when the user presses the zoom-in keyboard shortcut.
+   * `zoomOutFactor` (number): The zoom-out factor determines the extent to which the graph will zoom out when the user presses the zoom-out keyboard shortcut.
+   * `panFactor` (number): The pan factor specifies the speed at which nodes and edges will move when the user interacts with them using keyboard shortcuts for dragging.
+   * `transitionMs` (number): The transitionMs parameter defines the duration of the transition animation in milliseconds (ms). It controls how long the animation takes to smoothly transform the visual state from one point to another. 
+
+
+By customizing the interaction property, you can enable or disable dragging and zooming features based on the needs and requirements of your graph visualization application. Additionally, you can also choose to enable keyboard interactions for further user control and convenience. e.g:
 
 ```typescript
 // Disable default drag interaction and enable zooming

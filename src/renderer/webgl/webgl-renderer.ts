@@ -11,6 +11,7 @@ import {
   IRenderer,
   RendererEvents as RE,
   IRendererSettings,
+  PanDirectionType,
 } from '../shared';
 import { copyObject } from '../../utils/object.utils';
 
@@ -63,6 +64,17 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
 
   getFitZoomTransform(graph: IGraph<N, E>): ZoomTransform {
     console.log('graph:', graph);
+    throw new Error('Method not implemented.');
+  }
+
+  getZoomTransform(zoomFactor: number): ZoomTransform {
+    console.log('zoomFactor:', zoomFactor);
+    throw new Error('Method not implemented.');
+  }
+
+  getPanTransform(panDirectionType: PanDirectionType, factor: number): ZoomTransform {
+    console.log('panDirectionType:', panDirectionType);
+    console.log('factor:', factor);
     throw new Error('Method not implemented.');
   }
 

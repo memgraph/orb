@@ -12,6 +12,7 @@ import {
   DEFAULT_RENDERER_WIDTH,
   IRenderer,
   IRendererSettings,
+  PanDirectionType,
   RendererEvents as RE,
   RenderEventType,
 } from '../shared';
@@ -243,6 +244,37 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
     const newY = (simulationView.height / 2) * previousZoom * (1 - newZoom) - graphMiddleY * newZoom;
 
     return zoomIdentity.translate(newX, newY).scale(newZoom);
+  }
+
+  getZoomTransform(zoomFactor: number): ZoomTransform {
+    const previousZoom = this.transform.k;
+    const newZoom = Math.max(Math.min(zoomFactor * previousZoom, this._settings.maxZoom), this._settings.minZoom);
+    return zoomIdentity.scale(newZoom);
+  }
+
+  getPanTransform(panDirectionType: PanDirectionType, factor: number): ZoomTransform {
+    const currentTransform = this.transform;
+    let newX = currentTransform.x;
+    let newY = currentTransform.y;
+
+    switch (panDirectionType) {
+      case PanDirectionType.UP:
+        newY += factor;
+        break;
+      case PanDirectionType.DOWN:
+        newY -= factor;
+        break;
+      case PanDirectionType.LEFT:
+        newX += factor;
+        break;
+      case PanDirectionType.RIGHT:
+        newX -= factor;
+        break;
+      default:
+        break;
+    }
+
+    return zoomIdentity.translate(newX, newY).scale(currentTransform.k);
   }
 
   getSimulationPosition(canvasPoint: IPosition): IPosition {
