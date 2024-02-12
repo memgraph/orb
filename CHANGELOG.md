@@ -1,3 +1,11 @@
+## 0.4.3
+
+* Fix: Color class is incorrectly converting hex to rgb (#85) (fixes #84) - by @rgoewedky
+
+### Fix
+
+* Fix: resizeObserver is not unobserved (#82) (fixes #81) - by @markusnissl
+
 ## 0.4.2
 
 ### Fix
