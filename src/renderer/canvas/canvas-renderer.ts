@@ -36,6 +36,7 @@ const DEBUG_PINK = '#F333FF';
 export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Emitter<RE> implements IRenderer<N, E> {
   private readonly _container: HTMLElement;
   private readonly _canvas: HTMLCanvasElement;
+  private _resizeObs: ResizeObserver;
 
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
   private readonly _context: CanvasRenderingContext2D;
@@ -79,8 +80,8 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
     };
 
     // Resize the canvas based on the dimensions of its parent container <div>.
-    const resizeObs = new ResizeObserver(() => this._resize());
-    resizeObs.observe(this._container);
+    this._resizeObs = new ResizeObserver(() => this._resize());
+    this._resizeObs.observe(this._container);
     this._resize();
 
     if (!isNumber(settings?.devicePixelRatio)) {
@@ -337,7 +338,7 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
   /**
    * Returns the visible rectangle view in the simulation coordinates.
    *
-   * @return {IRectangle} Visible view in teh simulation coordinates
+   * @return {IRectangle} Visible view in the simulation coordinates
    */
   getSimulationViewRectangle(): IRectangle {
     const topLeftPosition = this.getSimulationPosition({ x: 0, y: 0 });
@@ -355,6 +356,7 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
   }
 
   destroy(): void {
+    this._resizeObs.unobserve(this._container);
     this._dprObserveUnsubscribe?.();
     this.removeAllListeners();
     this._canvas.outerHTML = '';

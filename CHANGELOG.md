@@ -1,3 +1,16 @@
+## 0.4.2
+
+### Fix
+
+* Fix: resizeObserver is not unobserved (#82) (fixes #81) - by @markusnissl
+
+## 0.4.1
+
+### Fix
+
+* Add the correct sort for the edge zIndex (#66)
+* Fix the spelling issues in the project (#65) - by @jsoref
+
 ## 0.4.0
 
 ### New

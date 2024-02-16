@@ -137,6 +137,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     this._renderer.canvas.style.pointerEvents = 'none';
 
     this._map = this._initMap();
+
     this._leaflet = this._initLeaflet();
     // Setting up leaflet map tile
     this._handleTileChange();

@@ -142,6 +142,7 @@ style properties:
 | `widthHover`          | number              | Edge line width on mouse hover event. If not defined `width` is used. |
 | `widthSelected`       | number              | Edge line width on mouse click event. If not defined `width` is used. |
 | `zIndex`              | number              | Specifies the stack order of an element during rendering. The default is `0`. |
+| `lineStyle`       | object              | Allows to customize the style of edges in the graph visualization. The default is `{type: 'solid'}` |
 
 ## Default style values
 
@@ -172,7 +173,7 @@ import { Color } from '@memgraph/orb';
 // Constructor always receives a color HEX code
 const red = new Color('#FF0000');
 
-// Returns darker or ligher color by input factor (default is 0.3)
+// Returns darker or lighter color by input factor (default is 0.3)
 const darkerRed = red.getDarkerColor();
 const lighterRed = red.getLighterColor();
 
@@ -187,7 +188,7 @@ const randomColor = Color.getRandomColor();
 ```
 
 If you would like to have a lighter/darker tone of a node on node select/hover, then you can easily do
-that with `getLigherColor` or `getDarkerColor` functions:
+that with `getLighterColor` or `getDarkerColor` functions:
 
 ```typescript
 const nodeBaseColor = new Color('#FF0000');

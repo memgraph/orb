@@ -66,7 +66,7 @@ export interface IRenderer<N extends INodeBase, E extends IEdgeBase> extends IEm
   /**
    * Returns the visible rectangle view in the simulation coordinates.
    *
-   * @return {IRectangle} Visible view in teh simulation coordinates
+   * @return {IRectangle} Visible view in the simulation coordinates
    */
   getSimulationViewRectangle(): IRectangle;
 
