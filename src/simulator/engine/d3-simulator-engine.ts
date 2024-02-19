@@ -217,7 +217,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
       return;
     }
 
-    this._initSimulation(settings);
+    this._applySettingsToSimulation(settings);
     this.emit(D3SimulatorEngineEventType.SETTINGS_UPDATE, { settings: this.settings });
 
     const hasPhysicsBeenDisabled = previousSettings.isPhysicsEnabled && !settings.isPhysicsEnabled;
@@ -431,7 +431,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     );
     this.simulation = forceSimulation(this._nodes).force('link', this.linkForce).stop();
 
-    this._initSimulation(this.settings);
+    this._applySettingsToSimulation(this.settings);
 
     this.simulation.on('tick', () => {
       this.emit(D3SimulatorEngineEventType.SIMULATION_TICK, { nodes: this._nodes, edges: this._edges });
@@ -604,12 +604,11 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   }
 
   /**
-   * Initializes the D3 simulation by applying the provided settings.
+   * Applies the provided settings to the D3 simulation.
    *
    * @param {ID3SimulatorEngineSettingsUpdate} settings Simulator engine settings
    */
-  private _initSimulation(settings: ID3SimulatorEngineSettingsUpdate) {
-    // TODO(dlozic): Question: better naming - applySettingsToSimulation?
+  private _applySettingsToSimulation(settings: ID3SimulatorEngineSettingsUpdate) {
     if (settings.alpha) {
       this.simulation
         .alpha(settings.alpha.alpha)
