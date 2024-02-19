@@ -23,8 +23,10 @@ export enum D3SimulatorEngineEventType {
   SIMULATION_PROGRESS = 'simulation-progress',
   SIMULATION_END = 'simulation-end',
   SIMULATION_TICK = 'simulation-tick',
+  SIMULATION_RESET = 'simulation-reset',
   NODE_DRAG = 'node-drag',
   SETTINGS_UPDATE = 'settings-update',
+  DATA_CLEARED = 'data-cleared',
 }
 
 export interface ID3SimulatorEngineSettingsAlpha {
@@ -155,8 +157,10 @@ export type D3SimulatorEvents = {
   [D3SimulatorEngineEventType.SIMULATION_PROGRESS]: ISimulationGraph & ID3SimulatorProgress;
   [D3SimulatorEngineEventType.SIMULATION_END]: ISimulationGraph;
   [D3SimulatorEngineEventType.SIMULATION_TICK]: ISimulationGraph;
+  [D3SimulatorEngineEventType.SIMULATION_RESET]: ISimulationGraph;
   [D3SimulatorEngineEventType.NODE_DRAG]: ISimulationGraph;
   [D3SimulatorEngineEventType.SETTINGS_UPDATE]: ID3SimulatorSettings;
+  [D3SimulatorEngineEventType.DATA_CLEARED]: ISimulationGraph;
 };
 
 export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
@@ -382,11 +386,13 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
    */
   clearData() {
     // TODO(dlozic): Is it okay for this to also reset the simulation? Is the naming right?
+    const nodes = this._nodes;
+    const edges = this._edges;
     this._nodes = [];
     this._edges = [];
     this._setNodeIndexByNodeId();
     this.resetSimulation();
-    // TODO(dlozic): emit an event here (DATA_CLEARED)
+    this.emit(D3SimulatorEngineEventType.DATA_CLEARED, { nodes: nodes, edges: edges });
   }
 
   /**
@@ -446,7 +452,8 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
         this.fixNodes();
       }
     });
-    // TODO(dlozic): emit an event here (SIMULATION_RESET)
+
+    this.emit(D3SimulatorEngineEventType.SIMULATION_RESET, { nodes: this._nodes, edges: this._edges });
   }
 
   /**
