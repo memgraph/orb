@@ -14,11 +14,11 @@ import { IWorkerOutputPayload, WorkerOutputType } from './message/worker-output'
 import { Emitter } from '../../../utils/emitter.utils';
 
 export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISimulator {
-  protected readonly worker: Worker;
+  protected readonly _worker: Worker;
 
   constructor() {
     super();
-    this.worker = new Worker(
+    this._worker = new Worker(
       new URL(
         /* webpackChunkName: 'simulator.worker' */
         './simulator.worker',
@@ -27,7 +27,7 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
       { type: 'module' },
     );
 
-    this.worker.onmessage = ({ data }: MessageEvent<IWorkerOutputPayload>) => {
+    this._worker.onmessage = ({ data }: MessageEvent<IWorkerOutputPayload>) => {
       switch (data.type) {
         case WorkerOutputType.SIMULATION_START: {
           this.emit(SimulatorEventType.SIMULATION_START, undefined);
@@ -137,11 +137,11 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
   }
 
   terminate() {
-    this.worker.terminate();
+    this._worker.terminate();
     this.removeAllListeners();
   }
 
   protected emitToWorker(message: IWorkerInputPayload) {
-    this.worker.postMessage(message);
+    this._worker.postMessage(message);
   }
 }
