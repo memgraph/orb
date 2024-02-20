@@ -393,29 +393,6 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     this._linkForce.links(this._edges);
   }
 
-  // Restart vs start? re-heat is restart, start resumes stopped? can it perform both functions?
-  // !!! Yeah, pause and resume should have an effect on the progress, while start and stop resets the progress.
-  /**
-   * Starts the D3 simulation if it is stopped.
-   * If the simulation is already running, this action will do nothing.
-   */
-  startSimulation() {
-    // Consider `resumeSimulation()`
-  }
-
-  /**
-   * If the simulation is running
-   * Call `startSimulation()` to resume
-   */
-  stopSimulation() {
-    // Consider `pauseSimulation()`
-    this._simulation.stop();
-    this._nodes = [];
-    this._edges = [];
-    this._setNodeIndexByNodeId();
-    this._updateSimulationData();
-  }
-
   /**
    * Resets the simulator engine by discarding all existing simulator data (nodes and edges),
    * and keeping the current simulator engine settings.

@@ -17,9 +17,7 @@ export enum WorkerInputType {
   // Simulation message types
   Simulate = 'Simulate',
   ActivateSimulation = 'Activate Simulation',
-  StartSimulation = 'Start Simulation',
   UpdateSimulation = 'Update Simulation',
-  StopSimulation = 'Stop Simulation',
 
   // Node dragging message types
   StartDragNode = 'Start Drag Node',
@@ -70,8 +68,6 @@ type IWorkerInputSimulatePayload = IWorkerPayload<WorkerInputType.Simulate>;
 
 type IWorkerInputActivateSimulationPayload = IWorkerPayload<WorkerInputType.ActivateSimulation>;
 
-type IWorkerInputStartSimulationPayload = IWorkerPayload<WorkerInputType.StartSimulation>;
-
 type IWorkerInputUpdateSimulationPayload = IWorkerPayload<
   WorkerInputType.UpdateSimulation,
   {
@@ -79,8 +75,6 @@ type IWorkerInputUpdateSimulationPayload = IWorkerPayload<
     edges: ISimulationEdge[];
   }
 >;
-
-type IWorkerInputStopSimulationPayload = IWorkerPayload<WorkerInputType.StopSimulation>;
 
 type IWorkerInputStartDragNodePayload = IWorkerPayload<WorkerInputType.StartDragNode>;
 
@@ -117,9 +111,7 @@ export type IWorkerInputPayload =
   | IWorkerInputClearDataPayload
   | IWorkerInputSimulatePayload
   | IWorkerInputActivateSimulationPayload
-  | IWorkerInputStartSimulationPayload
   | IWorkerInputUpdateSimulationPayload
-  | IWorkerInputStopSimulationPayload
   | IWorkerInputStartDragNodePayload
   | IWorkerInputDragNodePayload
   | IWorkerInputFixNodesPayload

@@ -63,8 +63,6 @@ export interface ISimulator extends IEmitter<SimulatorEvents> {
   // Simulation handlers
   simulate(): void;
   activateSimulation(): void;
-  startSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]): void;
-  stopSimulation(): void;
 
   // Node handlers
   startDragNode(): void;
