@@ -257,7 +257,7 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
   }
 
   private _resize() {
-    const dpr = this._settings.devicePixelRatio || window.devicePixelRatio;
+    const dpr = this._settings.devicePixelRatio || window.devicePixelRatio || 1;
 
     const containerSize = this._container.getBoundingClientRect();
     this._canvas.style.width = `${containerSize.width}px`;
