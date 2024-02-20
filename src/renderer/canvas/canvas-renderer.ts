@@ -134,7 +134,7 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
     }
 
     // Change DPR from automatic to manual handling or change DPR value manually
-    if (!isNumber(previousDprValue) && isNumber(newDprValue) && newDprValue !== previousDprValue) {
+    if (!isNumber(previousDprValue) && isNumber(newDprValue)) {
       this._dprObserveUnsubscribe?.();
       this._resize();
     }
