@@ -5,6 +5,7 @@ import { IGraphStyle } from './style';
 import { ImageHandler } from '../services/images';
 import { getEdgeOffsets } from './topology';
 import { IEntityState, EntityState } from '../utils/entity.utils';
+import { ISetStateOptions } from './state';
 
 export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
   nodes: N[];
@@ -351,10 +352,53 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     return nearestEdge;
   }
 
+  // Callback function to be passed to each Node and Edge instance
+  private _onStateChange = (
+    graphObject: INode<N, E> | IEdge<N, E>,
+    state: number,
+    options?: ISetStateOptions
+  ): void => {
+    if (options?.isSingle) {
+      this.setSingleState(graphObject, state);
+    } else if (options?.isToggle) {
+      this.toggleState(graphObject, state);
+    }
+  };
+
+  private toggleState(
+    graphObject: INode<N, E> | IEdge<N, E>,
+    state: number
+  ): void {
+    if (graphObject.state === state) {
+      graphObject.clearState();
+    } else {
+      graphObject.setState(state);
+    }
+  }
+
+  private setSingleState(
+    graphObject: INode<N, E> | IEdge<N, E>,
+    state: number
+  ): void {
+    const type = graphObject instanceof Node ? "node" : "edge";
+    const graphObjects: (INode<N, E> | IEdge<N, E>)[] =
+      type === "node"
+        ? this.getNodes((node) => node.state === state)
+        : this.getEdges((edge) => edge.state === state);
+    graphObjects.forEach((object) => {
+      object.clearState();
+    });
+    graphObject.setState(state);
+  }
+
   private _insertNodes(nodes: N[]) {
     const newNodes: INode<N, E>[] = new Array<INode<N, E>>(nodes.length);
     for (let i = 0; i < nodes.length; i++) {
-      newNodes[i] = NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._onLoadedImages?.() });
+      newNodes[i] = NodeFactory.create<N, E>(
+        { data: nodes[i] },
+        this._onStateChange,
+        { onLoadedImage: () => this._onLoadedImages?.() }
+      );
     }
     this._nodes.setMany(newNodes);
   }
@@ -367,11 +411,14 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
 
       if (startNode && endNode) {
         newEdges.push(
-          EdgeFactory.create<N, E>({
-            data: edges[i],
-            startNode,
-            endNode,
-          }),
+          EdgeFactory.create<N, E>(
+            {
+              data: edges[i],
+              startNode,
+              endNode,
+            },
+            this._onStateChange
+          )
         );
       }
     }
@@ -387,7 +434,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
         continue;
       }
 
-      newNodes.push(NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._onLoadedImages?.() }));
+      newNodes.push(NodeFactory.create<N, E>({ data: nodes[i] }, this._onStateChange, { onLoadedImage: () => this._onLoadedImages?.() }));
     }
     this._nodes.setMany(newNodes);
   }
@@ -406,11 +453,14 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
         const endNode = this.getNodeById(newEdgeData.end);
 
         if (startNode && endNode) {
-          const edge = EdgeFactory.create<N, E>({
-            data: newEdgeData,
-            startNode,
-            endNode,
-          });
+          const edge = EdgeFactory.create<N, E>(
+            {
+              data: newEdgeData,
+              startNode,
+              endNode,
+            },
+            this._onStateChange
+          );
           newEdges.push(edge);
         }
         continue;
@@ -438,8 +488,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
         offset: existingEdge.offset,
         startNode,
         endNode,
-      });
-      edge.state = existingEdge.state;
+      }, this._onStateChange);
+      edge.setState(existingEdge.state);
       edge.style = existingEdge.style;
       newEdges.push(edge);
     }
@@ -496,7 +546,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     for (let i = 0; i < edgeOffsets.length; i++) {
       const edge = graphEdges[i];
       const edgeOffset = edgeOffsets[i];
-      updatedEdges[i] = EdgeFactory.copy(edge, { offset: edgeOffset });
+      updatedEdges[i] = EdgeFactory.copy(edge, this._onStateChange, { offset: edgeOffset });
     }
     this._edges.setMany(updatedEdges);
   }

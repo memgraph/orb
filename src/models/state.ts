@@ -4,3 +4,8 @@ export const GraphObjectState = {
   SELECTED: 1,
   HOVERED: 2,
 };
+
+export interface ISetStateOptions {
+  isToggle?: boolean;
+  isSingle?: boolean;
+}

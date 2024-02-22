@@ -1,7 +1,7 @@
 import { IEdge, IEdgeBase } from './edge';
 import { Color, IPosition, IRectangle, isPointInRectangle } from '../common';
 import { ImageHandler } from '../services/images';
-import { GraphObjectState } from './state';
+import { GraphObjectState, ISetStateOptions } from './state';
 
 /**
  * Node baseline object with required fields
@@ -71,6 +71,7 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> {
   style: INodeStyle;
   state: number;
   readonly id: any;
+  setState(state: number, options?: ISetStateOptions): void;
   clearPosition(): void;
   getCenter(): IPosition;
   getRadius(): number;
@@ -106,9 +107,14 @@ export interface INodeSettings {
 export class NodeFactory {
   static create<N extends INodeBase, E extends IEdgeBase>(
     data: INodeData<N>,
+    onStateChange: (
+      graphObject: INode<N, E> | IEdge<N, E>,
+      state: number,
+      options?: ISetStateOptions
+    ) => void,
     settings?: Partial<INodeSettings>,
   ): INode<N, E> {
-    return new Node<N, E>(data, settings);
+    return new Node<N, E>(data, onStateChange, settings);
   }
 }
 
@@ -126,12 +132,34 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   private readonly _inEdgesById: { [id: number]: IEdge<N, E> } = {};
   private readonly _outEdgesById: { [id: number]: IEdge<N, E> } = {};
   private readonly _onLoadedImage?: () => void;
+  private readonly _onStateChange: (
+    graphObject: INode<N, E> | IEdge<N, E>,
+    state: number,
+    options?: ISetStateOptions
+  ) => void;
 
-  constructor(data: INodeData<N>, settings?: Partial<INodeSettings>) {
+  constructor(
+    data: INodeData<N>,
+    onStateChange: (
+      graphObject: INode<N, E> | IEdge<N, E>,
+      state: number,
+      options?: ISetStateOptions
+    ) => void,
+    settings?: Partial<INodeSettings>
+  ) {
     this.id = data.data.id;
     this.data = data.data;
     this.position = { id: this.id };
     this._onLoadedImage = settings?.onLoadedImage;
+    this._onStateChange = onStateChange;
+  }
+
+  setState(state: number, options?: ISetStateOptions): void {
+    if (options) {
+      this._onStateChange(this, state, options);
+    } else {
+      this.state = state;
+    }
   }
 
   clearPosition() {
@@ -242,7 +270,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   }
 
   clearState(): void {
-    this.state = GraphObjectState.NONE;
+    this.setState(GraphObjectState.NONE);
   }
 
   getDistanceToBorder(): number {

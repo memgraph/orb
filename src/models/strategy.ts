@@ -229,24 +229,24 @@ const setNodeState = <N extends INodeBase, E extends IEdgeBase>(
   options?: ISetShapeStateOptions,
 ): void => {
   if (isStateChangeable(node, options)) {
-    node.state = state;
+    node.setState(state);
   }
 
   node.getInEdges().forEach((edge) => {
     if (edge && isStateChangeable(edge, options)) {
-      edge.state = state;
+      edge.setState(state);;
     }
     if (edge.startNode && isStateChangeable(edge.startNode, options)) {
-      edge.startNode.state = state;
+      edge.startNode.setState(state);
     }
   });
 
   node.getOutEdges().forEach((edge) => {
     if (edge && isStateChangeable(edge, options)) {
-      edge.state = state;
+      edge.setState(state);;
     }
     if (edge.endNode && isStateChangeable(edge.endNode, options)) {
-      edge.endNode.state = state;
+      edge.endNode.setState(state);
     }
   });
 };
@@ -257,15 +257,15 @@ const setEdgeState = <N extends INodeBase, E extends IEdgeBase>(
   options?: ISetShapeStateOptions,
 ): void => {
   if (isStateChangeable(edge, options)) {
-    edge.state = state;
+    edge.setState(state);;
   }
 
   if (edge.startNode && isStateChangeable(edge.startNode, options)) {
-    edge.startNode.state = state;
+    edge.startNode.setState(state);
   }
 
   if (edge.endNode && isStateChangeable(edge.endNode, options)) {
-    edge.endNode.state = state;
+    edge.endNode.setState(state);
   }
 };
 
