@@ -1,7 +1,7 @@
 import { INodeBase } from '../../../models/node';
 import { IEdge, EdgeCurved, EdgeLoopback, EdgeStraight, IEdgeBase } from '../../../models/edge';
 import { IPosition } from '../../../common';
-import { drawLabel, Label, LabelTextBaseline } from '../label';
+import { drawLabel, Label, LabelTextAlign, LabelTextBaseline } from '../label';
 import { drawCurvedLine, getCurvedArrowShape } from './types/edge-curved';
 import { drawLoopbackLine, getLoopbackArrowShape } from './types/edge-loopback';
 import { drawStraightLine, getStraightArrowShape } from './types/edge-straight';
@@ -55,6 +55,7 @@ const drawEdgeLabel = <N extends INodeBase, E extends IEdgeBase>(
   const label = new Label(edgeLabel, {
     position: edge.getCenter(),
     textBaseline: LabelTextBaseline.MIDDLE,
+    textAlign: LabelTextAlign.CENTER,
     properties: {
       fontBackgroundColor: edge.style.fontBackgroundColor,
       fontColor: edge.style.fontColor,

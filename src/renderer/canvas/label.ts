@@ -10,6 +10,13 @@ const FONT_LINE_SPACING = 1.2;
 export enum LabelTextBaseline {
   TOP = 'top',
   MIDDLE = 'middle',
+  BOTTOM = 'bottom',
+}
+
+export enum LabelTextAlign {
+  LEFT = 'left',
+  RIGHT = 'right',
+  CENTER = 'center',
 }
 
 export interface ILabelProperties {
@@ -20,6 +27,7 @@ export interface ILabelProperties {
 }
 
 export interface ILabelData {
+  textAlign: LabelTextAlign;
   textBaseline: LabelTextBaseline;
   position: IPosition;
   properties: Partial<ILabelProperties>;
@@ -33,6 +41,7 @@ export class Label {
   public readonly fontSize: number = DEFAULT_FONT_SIZE;
   public readonly fontFamily: string = getFontFamily(DEFAULT_FONT_SIZE, DEFAULT_FONT_FAMILY);
   public readonly textBaseline: LabelTextBaseline;
+  public readonly textAlign: LabelTextAlign;
 
   constructor(text: string, data: ILabelData) {
     this.text = `${text === undefined ? '' : text}`;
@@ -40,6 +49,7 @@ export class Label {
     this.position = data.position;
     this.properties = data.properties;
     this.textBaseline = data.textBaseline;
+    this.textAlign = data.textAlign;
 
     if (this.properties.fontSize !== undefined || this.properties.fontFamily) {
       this.fontSize = Math.max(this.properties.fontSize ?? 0, 0);
@@ -99,7 +109,7 @@ const drawText = (context: CanvasRenderingContext2D, label: Label) => {
   context.fillStyle = (label.properties.fontColor ?? DEFAULT_FONT_COLOR).toString();
   context.font = label.fontFamily;
   context.textBaseline = label.textBaseline;
-  context.textAlign = 'center';
+  context.textAlign = label.textAlign;
   const lineHeight = label.fontSize * FONT_LINE_SPACING;
 
   for (let i = 0; i < label.textLines.length; i++) {

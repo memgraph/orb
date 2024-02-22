@@ -1,7 +1,20 @@
-import { INodeBase, INode, NodeShapeType } from '../../models/node';
-import { IEdgeBase } from '../../models/edge';
-import { drawDiamond, drawHexagon, drawSquare, drawStar, drawTriangleDown, drawTriangleUp, drawCircle } from './shapes';
-import { drawLabel, Label, LabelTextBaseline } from './label';
+import {
+  INodeBase,
+  INode,
+  NodeShapeType,
+  NodeLabelAligment,
+} from "../../models/node";
+import { IEdgeBase } from "../../models/edge";
+import {
+  drawDiamond,
+  drawHexagon,
+  drawSquare,
+  drawStar,
+  drawTriangleDown,
+  drawTriangleUp,
+  drawCircle,
+} from "./shapes";
+import { drawLabel, Label, LabelTextAlign, LabelTextBaseline } from "./label";
 
 // The label will be `X` of the size below the Node
 const DEFAULT_LABEL_DISTANCE_SIZE_FROM_NODE = 0.2;
@@ -97,9 +110,43 @@ const drawNodeLabel = <N extends INodeBase, E extends IEdgeBase>(
   const center = node.getCenter();
   const distance = node.getBorderedRadius() * (1 + DEFAULT_LABEL_DISTANCE_SIZE_FROM_NODE);
 
+  let labelX = center.x;
+  let labelY = center.y;
+  let labelTextAlign: LabelTextAlign;
+  let labelTextBaseline: LabelTextBaseline;
+
+  switch (node.getLabelAlignment()) {
+    case NodeLabelAligment.BOTTOM:
+      labelY += distance;
+      labelTextAlign = LabelTextAlign.CENTER;
+      labelTextBaseline = LabelTextBaseline.TOP;
+      break;
+    case NodeLabelAligment.TOP:
+      labelY -= distance;
+      labelTextAlign = LabelTextAlign.CENTER;
+      labelTextBaseline = LabelTextBaseline.BOTTOM;
+      break;
+    case NodeLabelAligment.LEFT:
+      labelX -= distance;
+      labelTextAlign = LabelTextAlign.RIGHT;
+      labelTextBaseline = LabelTextBaseline.MIDDLE;
+      break;
+    case NodeLabelAligment.RIGHT:
+      labelX += distance;
+      labelTextAlign = LabelTextAlign.LEFT;
+      labelTextBaseline = LabelTextBaseline.MIDDLE;
+      break;
+    default:
+      labelY += distance;
+      labelTextAlign = LabelTextAlign.CENTER;
+      labelTextBaseline = LabelTextBaseline.TOP;
+      break;
+  }
+
   const label = new Label(nodeLabel, {
-    position: { x: center.x, y: center.y + distance },
-    textBaseline: LabelTextBaseline.TOP,
+    position: { x: labelX, y: labelY },
+    textBaseline: labelTextBaseline,
+    textAlign: labelTextAlign,
     properties: {
       fontBackgroundColor: node.style.fontBackgroundColor,
       fontColor: node.style.fontColor,
