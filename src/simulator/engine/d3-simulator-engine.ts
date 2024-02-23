@@ -16,7 +16,7 @@ import { Emitter } from '../../utils/emitter.utils';
 import { isObjectEqual, copyObject } from '../../utils/object.utils';
 
 const MANY_BODY_MAX_DISTANCE_TO_LINK_DISTANCE_RATIO = 100;
-const DEFAULT_LINK_DISTANCE = 30;
+const DEFAULT_LINK_DISTANCE = 50;
 
 export enum D3SimulatorEngineEventType {
   SIMULATION_START = 'simulation-start',
@@ -113,7 +113,7 @@ export const DEFAULT_SETTINGS: ID3SimulatorEngineSettings = {
   },
   links: {
     distance: DEFAULT_LINK_DISTANCE,
-    strength: undefined,
+    strength: 1,
     iterations: 1,
   },
   manyBody: {
