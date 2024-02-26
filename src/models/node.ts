@@ -108,10 +108,14 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   getBackgroundImage(): HTMLImageElement | undefined;
   setData(data: N): void;
   setData(callback: (node: INode<N, E>) => N): void;
+  patchData(data: Partial<N>): void;
+  patchData(callback: (node: INode<N, E>) => Partial<N>): void;
   setPosition(position: INodeCoordinates | INodeMapCoordinates | INodePosition): void;
   setPosition(callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition): void;
   setStyle(style: INodeStyle): void;
   setStyle(callback: (node: INode<N, E>) => INodeStyle): void;
+  patchStyle(style: INodeStyle): void;
+  patchStyle(callback: (node: INode<N, E>) => INodeStyle): void;
   setState(state: number): void;
   setState(callback: (node: INode<N, E>) => number): void;
 }
@@ -446,6 +450,27 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
     this.notifyListeners();
   }
 
+  patchData(data: Partial<N>): void;
+
+  patchData(callback: (node: INode<N, E>) => Partial<N>): void;
+
+  patchData(arg: Partial<N> | ((node: INode<N, E>) => Partial<N>)) {
+    let data: Partial<N>;
+
+    if (typeof arg === 'function') {
+      data = (arg as (node: INode<N, E>) => Partial<N>)(this);
+    } else {
+      data = arg as Partial<N>;
+    }
+
+    Object.keys(data).forEach((key) => {
+      // @ts-ignore
+      this._data[key] = data[key];
+    });
+
+    this.notifyListeners();
+  }
+
   setPosition(position: INodeCoordinates | INodeMapCoordinates | INodePosition): void;
 
   setPosition(callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition): void;
@@ -494,6 +519,27 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
     } else {
       this._style = arg as INodeStyle;
     }
+    this.notifyListeners();
+  }
+
+  patchStyle(style: INodeStyle): void;
+
+  patchStyle(callback: (node: INode<N, E>) => INodeStyle): void;
+
+  patchStyle(arg: INodeStyle | ((node: INode<N, E>) => INodeStyle)) {
+    let style: INodeStyle;
+
+    if (typeof arg === 'function') {
+      style = (arg as (node: INode<N, E>) => INodeStyle)(this);
+    } else {
+      style = arg as INodeStyle;
+    }
+
+    Object.keys(style).forEach((key) => {
+      // @ts-ignore
+      this._style[key] = style[key];
+    });
+
     this.notifyListeners();
   }
 

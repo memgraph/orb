@@ -111,8 +111,12 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   getLineDashPattern(): number[] | null;
   setData(data: E): void;
   setData(callback: (edge: IEdge<N, E>) => E): void;
+  patchData(data: Partial<E>): void;
+  patchData(callback: (edge: IEdge<N, E>) => Partial<E>): void;
   setStyle(style: IEdgeStyle): void;
   setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
+  patchStyle(style: IEdgeStyle): void;
+  patchStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
   setState(state: number): void;
   setState(callback: (edge: IEdge<N, E>) => number): void;
 }
@@ -340,6 +344,27 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
     this.notifyListeners();
   }
 
+  patchData(data: Partial<E>): void;
+
+  patchData(callback: (edge: IEdge<N, E>) => Partial<E>): void;
+
+  patchData(arg: Partial<E> | ((edge: IEdge<N, E>) => Partial<E>)) {
+    let data: Partial<E>;
+
+    if (typeof arg === 'function') {
+      data = (arg as (edge: IEdge<N, E>) => Partial<E>)(this);
+    } else {
+      data = arg as Partial<E>;
+    }
+
+    Object.keys(data).forEach((key) => {
+      // @ts-ignore
+      this._data[key] = data[key];
+    });
+
+    this.notifyListeners();
+  }
+
   setStyle(style: IEdgeStyle): void;
 
   setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
@@ -350,6 +375,27 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
     } else {
       this._style = arg as IEdgeStyle;
     }
+    this.notifyListeners();
+  }
+
+  patchStyle(style: IEdgeStyle): void;
+
+  patchStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
+
+  patchStyle(arg: IEdgeStyle | ((edge: IEdge<N, E>) => IEdgeStyle)) {
+    let style: IEdgeStyle;
+
+    if (typeof arg === 'function') {
+      style = (arg as (edge: IEdge<N, E>) => IEdgeStyle)(this);
+    } else {
+      style = arg as IEdgeStyle;
+    }
+
+    Object.keys(style).forEach((key) => {
+      // @ts-ignore
+      this._style[key] = style[key];
+    });
+
     this.notifyListeners();
   }
 
