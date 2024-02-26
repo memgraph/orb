@@ -416,11 +416,14 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
 
       if (startNode && endNode) {
         newEdges.push(
-          EdgeFactory.create<N, E>({
-            data: edges[i],
-            startNode,
-            endNode,
-          }),
+          EdgeFactory.create<N, E>(
+            {
+              data: edges[i],
+              startNode,
+              endNode,
+            },
+            this,
+          ),
         );
       }
     }
@@ -457,11 +460,14 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
         const endNode = this.getNodeById(newEdgeData.end);
 
         if (startNode && endNode) {
-          const edge = EdgeFactory.create<N, E>({
-            data: newEdgeData,
-            startNode,
-            endNode,
-          });
+          const edge = EdgeFactory.create<N, E>(
+            {
+              data: newEdgeData,
+              startNode,
+              endNode,
+            },
+            this,
+          );
           newEdges.push(edge);
         }
         continue;
@@ -484,12 +490,15 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
         continue;
       }
 
-      const edge = EdgeFactory.create<N, E>({
-        data: newEdgeData,
-        offset: existingEdge.offset,
-        startNode,
-        endNode,
-      });
+      const edge = EdgeFactory.create<N, E>(
+        {
+          data: newEdgeData,
+          offset: existingEdge.offset,
+          startNode,
+          endNode,
+        },
+        this,
+      );
       edge.state = existingEdge.state;
       edge.style = existingEdge.style;
       newEdges.push(edge);

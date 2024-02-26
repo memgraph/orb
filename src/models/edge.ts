@@ -2,6 +2,7 @@ import { INodeBase, INode } from './node';
 import { GraphObjectState } from './state';
 import { Color, IPosition, ICircle, getDistanceToLine } from '../common';
 import { isArrayOfNumbers } from '../utils/type.utils';
+import { IObserver, ISubject } from './observer';
 
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
 const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;
@@ -81,7 +82,7 @@ export enum EdgeType {
   CURVED = 'curved',
 }
 
-export interface IEdge<N extends INodeBase, E extends IEdgeBase> {
+export interface IEdge<N extends INodeBase, E extends IEdgeBase> extends ISubject {
   data: E;
   position: IEdgePosition;
   style: IEdgeStyle;
@@ -107,20 +108,24 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> {
   getWidth(): number;
   getColor(): Color | string | undefined;
   getLineDashPattern(): number[] | null;
+  setStyle(style: IEdgeStyle): void;
+  setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
+  setState(state: number): void;
+  setState(callback: (edge: IEdge<N, E>) => number): void;
 }
 
 export class EdgeFactory {
-  static create<N extends INodeBase, E extends IEdgeBase>(data: IEdgeData<N, E>): IEdge<N, E> {
+  static create<N extends INodeBase, E extends IEdgeBase>(data: IEdgeData<N, E>, listener?: IObserver): IEdge<N, E> {
     const type = getEdgeType(data);
     switch (type) {
       case EdgeType.STRAIGHT:
-        return new EdgeStraight(data);
+        return new EdgeStraight(data, listener);
       case EdgeType.LOOPBACK:
-        return new EdgeLoopback(data);
+        return new EdgeLoopback(data, listener);
       case EdgeType.CURVED:
-        return new EdgeCurved(data);
+        return new EdgeCurved(data, listener);
       default:
-        return new EdgeStraight(data);
+        return new EdgeStraight(data, listener);
     }
   }
 
@@ -157,9 +162,10 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   public state = GraphObjectState.NONE;
   public position: IEdgePosition;
 
+  private readonly _listeners: IObserver[] = [];
   private _type: EdgeType = EdgeType.STRAIGHT;
 
-  constructor(data: IEdgeData<N, E>) {
+  constructor(data: IEdgeData<N, E>, listener?: IObserver) {
     this.id = data.data.id;
     this.data = data.data;
     this.offset = data.offset ?? 0;
@@ -170,6 +176,10 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
     this.position = { id: this.id, source: this.startNode.id, target: this.endNode.id };
     this.startNode.addEdge(this);
     this.endNode.addEdge(this);
+
+    if (listener) {
+      this._listeners.push(listener);
+    }
   }
 
   get type(): EdgeType {
@@ -292,6 +302,46 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
       default:
         return null;
     }
+  }
+
+  setStyle(style: IEdgeStyle): void;
+
+  setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
+
+  setStyle(arg: IEdgeStyle | ((edge: IEdge<N, E>) => IEdgeStyle)): void {
+    if (typeof arg === 'function') {
+      this.style = (arg as (edge: IEdge<N, E>) => IEdgeStyle)(this);
+    } else {
+      this.style = arg as IEdgeStyle;
+    }
+    this.notifyListeners();
+  }
+
+  setState(state: number): void;
+
+  setState(callback: (edge: IEdge<N, E>) => number): void;
+
+  setState(arg: number | ((edge: IEdge<N, E>) => number)): void {
+    if (typeof arg === 'function') {
+      this.state = (arg as (edge: IEdge<N, E>) => number)(this);
+    } else {
+      this.state = arg as number;
+    }
+    this.notifyListeners();
+  }
+
+  addListener(observer: IObserver): void {
+    this._listeners.push(observer);
+  }
+
+  removeListener(observer: IObserver): void {
+    this._listeners.splice(this._listeners.indexOf(observer), 1);
+  }
+
+  notifyListeners(): void {
+    this._listeners.forEach((listener) => {
+      listener.update();
+    });
   }
 }
 
