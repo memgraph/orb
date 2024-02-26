@@ -2,6 +2,7 @@ import { ISimulator } from './shared';
 import { MainThreadSimulator } from './types/main-thread-simulator';
 import { WebWorkerSimulator } from './types/web-worker-simulator/web-worker-simulator';
 
+// TODO(dlozic & Alex): CORS handling
 export class SimulatorFactory {
   static getSimulator(): ISimulator {
     try {

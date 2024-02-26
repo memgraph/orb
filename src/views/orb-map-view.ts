@@ -459,8 +459,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase>
       }
 
       const layerPoint = this._leaflet.latLngToLayerPoint([coordinates.lat, coordinates.lng]);
-      nodes[i].position.x = layerPoint.x;
-      nodes[i].position.y = layerPoint.y;
+      nodes[i].setPosition(layerPoint);
     }
   }
 

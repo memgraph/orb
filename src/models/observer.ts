@@ -1,4 +1,3 @@
-// TODO(Alex): Add patch and data parametrization
 export interface IObserver {
   update(): void;
 }

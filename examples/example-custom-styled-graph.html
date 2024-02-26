@@ -58,11 +58,11 @@
           colorHover: '#e7644e',
           colorSelected: '#e7644e',
           fontSize: 3,
-          label: node.data.label,
+          label: node.getData().label,
           size: 6,
         };
 
-        if (node.data.label === 'Node A') {
+        if (node.getData().label === 'Node A') {
           return {
             ...basicStyle,
             size: 10,
@@ -84,7 +84,7 @@
           width: 0.3,
           widthHover: 0.9,
           widthSelected: 0.9,
-          label: edge.data.label,
+          label: edge.getData().label,
         };
       },
     });

@@ -209,9 +209,9 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase>
       },
       onMergeData: (data) => {
         const nodeIds = new Set(data.nodes?.map((node) => node.id));
-        const nodeFilter: INodeFilter<N, E> = (node: INode<N, E>) => nodeIds.has(node.id);
+        const nodeFilter: INodeFilter<N, E> = (node: INode<N, E>) => nodeIds.has(node.getId());
         const edgeIds = new Set(data.edges?.map((edge) => edge.id));
-        const edgeFilter: IEdgeFilter<N, E> = (edge: IEdge<N, E>) => edgeIds.has(edge.id);
+        const edgeFilter: IEdgeFilter<N, E> = (edge: IEdge<N, E>) => edgeIds.has(edge.getId());
 
         this._assignPositions(this._graph.getNodes(nodeFilter));
 
@@ -289,7 +289,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase>
       for (let i = 0; i < nodes.length; i++) {
         const position = this._settings.getPosition(nodes[i]);
         if (position) {
-          nodes[i].position = { id: nodes[i].id, ...position };
+          nodes[i].setPosition({ id: nodes[i].getId(), ...position });
         }
       }
     }
@@ -383,7 +383,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase>
       this._dragStartPosition = undefined;
     }
 
-    this._simulator.dragNode(event.subject.id, simulationPoint);
+    this._simulator.dragNode(event.subject.getId(), simulationPoint);
     this._events.emit(OrbEventType.NODE_DRAG, {
       node: event.subject,
       event: event.sourceEvent,
@@ -402,7 +402,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase>
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
     if (!isEqualPosition(this._dragStartPosition, mousePoint)) {
-      this._simulator.endDragNode(event.subject.id);
+      this._simulator.endDragNode(event.subject.getId());
     }
 
     this._events.emit(OrbEventType.NODE_DRAG_END, {

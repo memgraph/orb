@@ -2417,7 +2417,7 @@
       })),
       edges: [...Array(newNodeCount).keys()].map((key) => ({
         id: oldNodeCount + key,
-        start: key ? oldNodeCount + key : (sourceNode?.id || 0),
+        start: key ? oldNodeCount + key : (sourceNode?.getId() || 0),
         end: oldNodeCount + key + 1
       })),
     });
@@ -2455,8 +2455,8 @@
 
     const graphStyle = {
       getNodeStyle(node) {
-        const isNewNode = node.id >= NODE_COUNT;
-        const isFixed = node.data.x !== undefined && node.data.y !== undefined;
+        const isNewNode = node.getId() >= NODE_COUNT;
+        const isFixed = node.getData().x !== undefined && node.getData().y !== undefined;
 
         // Old nodes
         let color = isFixed ? '#5B0078' : '#003A58';
@@ -2476,7 +2476,7 @@
           colorSelected,
           fontSize: 4,
           fontColor: '#000000',
-          label: node.data.label,
+          label: node.getData().label,
           size: 6,
         };
       },
@@ -2490,7 +2490,7 @@
           width: 1.2,
           widthHover: 1.3,
           widthSelected: 1.5,
-          label: edge.data.label,
+          label: edge.getData().label,
         };
       },
     };
@@ -2501,7 +2501,7 @@
       const container = document.getElementById(graphContainerId);
 
       let orb = new Orb.OrbView(container, {
-        getPosition: (node) => ({ x: node.data.x, y: node.data.y })
+        getPosition: (node) => ({ x: node.getData().x, y: node.getData().y })
       });
 
       // Assign a basic style
@@ -2603,7 +2603,7 @@
       const container = document.getElementById(graphContainerId);
 
       let orb = new Orb.OrbView(container, {
-        getPosition: (node) => ({ x: node.data.x, y: node.data.y }),
+        getPosition: (node) => ({ x: node.getData().x, y: node.getData().y }),
         simulation: {
           isPhysicsEnabled,
         }
@@ -2741,10 +2741,10 @@
 
     // Delete all nodes
     const deleteAllNodes = (orb) => {
-      console.log('orb', orb.data.getNodes(), orb.data.getNodes().map((node) => node.id))
+      console.log('orb', orb.data.getNodes(), orb.data.getNodes().map((node) => node.getId()))
       orb.data.remove({
-        nodeIds: orb.data.getNodes().map((node) => node.id),
-        edgeIds: orb.data.getEdges().map((edge) => edge.id),
+        nodeIds: orb.data.getNodes().map((node) => node.getId()),
+        edgeIds: orb.data.getEdges().map((edge) => edge.getId()),
       });
       orb.render(() => {
         setTimeout(() => {

@@ -83,10 +83,6 @@ export enum EdgeType {
 }
 
 export interface IEdge<N extends INodeBase, E extends IEdgeBase> extends ISubject {
-  data: E;
-  position: IEdgePosition;
-  style: IEdgeStyle;
-  state: number;
   readonly id: any;
   readonly offset: number;
   readonly start: any;
@@ -94,6 +90,11 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   readonly end: any;
   readonly endNode: INode<N, E>;
   readonly type: EdgeType;
+  getId(): any;
+  getData(): E;
+  getPosition(): IEdgePosition;
+  getStyle(): IEdgeStyle;
+  getState(): number;
   hasStyle(): boolean;
   isSelected(): boolean;
   isHovered(): boolean;
@@ -108,6 +109,8 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   getWidth(): number;
   getColor(): Color | string | undefined;
   getLineDashPattern(): number[] | null;
+  setData(data: E): void;
+  setData(callback: (edge: IEdge<N, E>) => E): void;
   setStyle(style: IEdgeStyle): void;
   setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
   setState(state: number): void;
@@ -134,13 +137,13 @@ export class EdgeFactory {
     data?: Omit<IEdgeData<N, E>, 'data' | 'startNode' | 'endNode'>,
   ): IEdge<N, E> {
     const newEdge = EdgeFactory.create<N, E>({
-      data: edge.data,
+      data: edge.getData(),
       offset: data?.offset !== undefined ? data.offset : edge.offset,
       startNode: edge.startNode,
       endNode: edge.endNode,
     });
-    newEdge.state = edge.state;
-    newEdge.style = edge.style;
+    newEdge.setState(edge.getState());
+    newEdge.setStyle(edge.getStyle());
 
     return newEdge;
   }
@@ -151,29 +154,29 @@ export const isEdge = <N extends INodeBase, E extends IEdgeBase>(obj: any): obj 
 };
 
 abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N, E> {
-  public data: E;
+  protected _data: E;
 
   public readonly id: number;
   public readonly offset: number;
   public readonly startNode: INode<N, E>;
   public readonly endNode: INode<N, E>;
 
-  public style: IEdgeStyle = {};
-  public state = GraphObjectState.NONE;
-  public position: IEdgePosition;
+  protected _style: IEdgeStyle = {};
+  protected _state = GraphObjectState.NONE;
+  protected _position: IEdgePosition;
 
   private readonly _listeners: IObserver[] = [];
   private _type: EdgeType = EdgeType.STRAIGHT;
 
   constructor(data: IEdgeData<N, E>, listener?: IObserver) {
     this.id = data.data.id;
-    this.data = data.data;
+    this._data = data.data;
     this.offset = data.offset ?? 0;
     this.startNode = data.startNode;
     this.endNode = data.endNode;
     this._type = getEdgeType(data);
 
-    this.position = { id: this.id, source: this.startNode.id, target: this.endNode.id };
+    this._position = { id: this.id, source: this.startNode.getId(), target: this.endNode.getId() };
     this.startNode.addEdge(this);
     this.endNode.addEdge(this);
 
@@ -182,32 +185,52 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
     }
   }
 
+  getId(): number {
+    return this.id;
+  }
+
+  getData(): E {
+    return this._data;
+  }
+
+  getPosition(): IEdgePosition {
+    return this._position;
+  }
+
+  getStyle(): IEdgeStyle {
+    return this._style;
+  }
+
+  getState(): number {
+    return this._state;
+  }
+
   get type(): EdgeType {
     return this._type;
   }
 
   get start(): number {
-    return this.data.start;
+    return this._data.start;
   }
 
   get end(): number {
-    return this.data.end;
+    return this._data.end;
   }
 
   hasStyle(): boolean {
-    return this.style && Object.keys(this.style).length > 0;
+    return this._style && Object.keys(this._style).length > 0;
   }
 
   isSelected(): boolean {
-    return this.state === GraphObjectState.SELECTED;
+    return this._state === GraphObjectState.SELECTED;
   }
 
   isHovered(): boolean {
-    return this.state === GraphObjectState.HOVERED;
+    return this._state === GraphObjectState.HOVERED;
   }
 
   clearState(): void {
-    this.state = GraphObjectState.NONE;
+    this._state = GraphObjectState.NONE;
   }
 
   isLoopback(): boolean {
@@ -246,25 +269,25 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   }
 
   getLabel(): string | undefined {
-    return this.style.label;
+    return this._style.label;
   }
 
   hasShadow(): boolean {
     return (
-      (this.style.shadowSize ?? 0) > 0 || (this.style.shadowOffsetX ?? 0) > 0 || (this.style.shadowOffsetY ?? 0) > 0
+      (this._style.shadowSize ?? 0) > 0 || (this._style.shadowOffsetX ?? 0) > 0 || (this._style.shadowOffsetY ?? 0) > 0
     );
   }
 
   getWidth(): number {
     let width = 0;
-    if (this.style.width !== undefined) {
-      width = this.style.width;
+    if (this._style.width !== undefined) {
+      width = this._style.width;
     }
-    if (this.isHovered() && this.style.widthHover !== undefined) {
-      width = this.style.widthHover;
+    if (this.isHovered() && this._style.widthHover !== undefined) {
+      width = this._style.widthHover;
     }
-    if (this.isSelected() && this.style.widthSelected !== undefined) {
-      width = this.style.widthSelected;
+    if (this.isSelected() && this._style.widthSelected !== undefined) {
+      width = this._style.widthSelected;
     }
     return width;
   }
@@ -272,21 +295,21 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   getColor(): Color | string | undefined {
     let color: Color | string | undefined = undefined;
 
-    if (this.style.color) {
-      color = this.style.color;
+    if (this._style.color) {
+      color = this._style.color;
     }
-    if (this.isHovered() && this.style.colorHover) {
-      color = this.style.colorHover;
+    if (this.isHovered() && this._style.colorHover) {
+      color = this._style.colorHover;
     }
-    if (this.isSelected() && this.style.colorSelected) {
-      color = this.style.colorSelected;
+    if (this.isSelected() && this._style.colorSelected) {
+      color = this._style.colorSelected;
     }
 
     return color;
   }
 
   getLineDashPattern(): number[] | null {
-    const lineStyle: IEdgeLineStyle | undefined = this.style.lineStyle;
+    const lineStyle: IEdgeLineStyle | undefined = this._style.lineStyle;
 
     if (lineStyle === undefined || lineStyle.type === EdgeLineStyleType.SOLID) {
       return null;
@@ -304,15 +327,28 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
     }
   }
 
+  setData(data: E): void;
+
+  setData(callback: (edge: IEdge<N, E>) => E): void;
+
+  setData(arg: E | ((edge: IEdge<N, E>) => E)) {
+    if (typeof arg === 'function') {
+      this._data = (arg as (edge: IEdge<N, E>) => E)(this);
+    } else {
+      this._data = arg as E;
+    }
+    this.notifyListeners();
+  }
+
   setStyle(style: IEdgeStyle): void;
 
   setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
 
   setStyle(arg: IEdgeStyle | ((edge: IEdge<N, E>) => IEdgeStyle)): void {
     if (typeof arg === 'function') {
-      this.style = (arg as (edge: IEdge<N, E>) => IEdgeStyle)(this);
+      this._style = (arg as (edge: IEdge<N, E>) => IEdgeStyle)(this);
     } else {
-      this.style = arg as IEdgeStyle;
+      this._style = arg as IEdgeStyle;
     }
     this.notifyListeners();
   }
@@ -323,9 +359,9 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
 
   setState(arg: number | ((edge: IEdge<N, E>) => number)): void {
     if (typeof arg === 'function') {
-      this.state = (arg as (edge: IEdge<N, E>) => number)(this);
+      this._state = (arg as (edge: IEdge<N, E>) => number)(this);
     } else {
-      this.state = arg as number;
+      this._state = arg as number;
     }
     this.notifyListeners();
   }
@@ -346,7 +382,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
 }
 
 const getEdgeType = <N extends INodeBase, E extends IEdgeBase>(data: IEdgeData<N, E>): EdgeType => {
-  if (data.startNode.id === data.endNode.id) {
+  if (data.startNode.getId() === data.endNode.getId()) {
     return EdgeType.LOOPBACK;
   }
   return (data.offset ?? 0) === 0 ? EdgeType.STRAIGHT : EdgeType.CURVED;

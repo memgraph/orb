@@ -1,6 +1,6 @@
 import { INodeBase } from '../../../models/node';
 import { IEdge, EdgeCurved, EdgeLoopback, EdgeStraight, IEdgeBase } from '../../../models/edge';
-import { IPosition } from '../../../common';
+import { Color, IPosition } from '../../../common';
 import { drawLabel, Label, LabelTextBaseline } from '../label';
 import { drawCurvedLine, getCurvedArrowShape } from './types/edge-curved';
 import { drawLoopbackLine, getLoopbackArrowShape } from './types/edge-loopback';
@@ -56,10 +56,10 @@ const drawEdgeLabel = <N extends INodeBase, E extends IEdgeBase>(
     position: edge.getCenter(),
     textBaseline: LabelTextBaseline.MIDDLE,
     properties: {
-      fontBackgroundColor: edge.style.fontBackgroundColor,
-      fontColor: edge.style.fontColor,
-      fontFamily: edge.style.fontFamily,
-      fontSize: edge.style.fontSize,
+      fontBackgroundColor: edge.getStyle().fontBackgroundColor,
+      fontColor: edge.getStyle().fontColor,
+      fontFamily: edge.getStyle().fontFamily,
+      fontSize: edge.getStyle().fontSize,
     },
   });
   drawLabel(context, label);
@@ -80,7 +80,7 @@ const drawLine = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRende
 };
 
 const drawArrow = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, edge: IEdge<N, E>) => {
-  if (edge.style.arrowSize === 0) {
+  if (edge.getStyle().arrowSize === 0) {
     return;
   }
 
@@ -145,17 +145,17 @@ const setupShadow = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
   edge: IEdge<N, E>,
 ) => {
-  if (edge.style.shadowColor) {
-    context.shadowColor = edge.style.shadowColor.toString();
+  if (edge.getStyle().shadowColor) {
+    context.shadowColor = (edge.getStyle().shadowColor as string | Color).toString();
   }
-  if (edge.style.shadowSize) {
-    context.shadowBlur = edge.style.shadowSize;
+  if (edge.getStyle().shadowSize) {
+    context.shadowBlur = edge.getStyle().shadowSize as number;
   }
-  if (edge.style.shadowOffsetX) {
-    context.shadowOffsetX = edge.style.shadowOffsetX;
+  if (edge.getStyle().shadowOffsetX) {
+    context.shadowOffsetX = edge.getStyle().shadowOffsetX as number;
   }
-  if (edge.style.shadowOffsetY) {
-    context.shadowOffsetY = edge.style.shadowOffsetY;
+  if (edge.getStyle().shadowOffsetY) {
+    context.shadowOffsetY = edge.getStyle().shadowOffsetY as number;
   }
 };
 
@@ -163,16 +163,16 @@ const clearShadow = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
   edge: IEdge<N, E>,
 ) => {
-  if (edge.style.shadowColor) {
+  if (edge.getStyle().shadowColor) {
     context.shadowColor = 'rgba(0,0,0,0)';
   }
-  if (edge.style.shadowSize) {
+  if (edge.getStyle().shadowSize) {
     context.shadowBlur = 0;
   }
-  if (edge.style.shadowOffsetX) {
+  if (edge.getStyle().shadowOffsetX) {
     context.shadowOffsetX = 0;
   }
-  if (edge.style.shadowOffsetY) {
+  if (edge.getStyle().shadowOffsetY) {
     context.shadowOffsetY = 0;
   }
 };

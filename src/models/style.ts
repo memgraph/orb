@@ -34,7 +34,7 @@ const getPredefinedLabel = <N extends INodeBase, E extends IEdgeBase>(
   obj: INode<N, E> | IEdge<N, E>,
 ): string | undefined => {
   for (let i = 0; i < LABEL_PROPERTY_NAMES.length; i++) {
-    const value = (obj.data as any)[LABEL_PROPERTY_NAMES[i]];
+    const value = (obj.getData() as any)[LABEL_PROPERTY_NAMES[i]];
     if (value !== undefined && value !== null) {
       return `${value}`;
     }
