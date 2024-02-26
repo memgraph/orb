@@ -5,6 +5,7 @@ import { IGraphStyle } from './style';
 import { ImageHandler } from '../services/images';
 import { getEdgeOffsets } from './topology';
 import { IEntityState, EntityState } from '../utils/entity.utils';
+import { IObserver, ISubject } from './observer';
 
 export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
   nodes: N[];
@@ -15,7 +16,7 @@ export type IEdgeFilter<N extends INodeBase, E extends IEdgeBase> = (edge: IEdge
 
 export type INodeFilter<N extends INodeBase, E extends IEdgeBase> = (node: INode<N, E>) => boolean;
 
-export interface IGraph<N extends INodeBase, E extends IEdgeBase> {
+export interface IGraph<N extends INodeBase, E extends IEdgeBase> extends IObserver, ISubject {
   getNodes(filterBy?: INodeFilter<N, E>): INode<N, E>[];
   getEdges(filterBy?: IEdgeFilter<N, E>): IEdge<N, E>[];
   getNodeCount(): number;
@@ -61,12 +62,16 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
   });
   private _defaultStyle?: Partial<IGraphStyle<N, E>>;
   private _settings: IGraphSettings<N, E>;
+  private _listeners: IObserver[] = [];
 
-  constructor(data?: Partial<IGraphData<N, E>>, settings?: Partial<IGraphSettings<N, E>>) {
+  constructor(data?: Partial<IGraphData<N, E>>, settings?: Partial<IGraphSettings<N, E>>, listener?: IObserver) {
     // TODO(dlozic): How to use object assign here? If I add add and export a default const here, it needs N, E.
     this._settings = settings || {};
     const nodes = data?.nodes ?? [];
     const edges = data?.edges ?? [];
+    if (listener) {
+      this._listeners.push(listener);
+    }
     this.setup({ nodes, edges });
   }
 
@@ -75,6 +80,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
       // @ts-ignore
       this._settings[key] = settings[key];
     });
+    this.notifyListeners();
   }
 
   /**
@@ -372,12 +378,31 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     return nearestEdge;
   }
 
+  addListener(observer: IObserver): void {
+    this._listeners.push(observer);
+  }
+
+  removeListener(observer: IObserver): void {
+    this._listeners.splice(this._listeners.indexOf(observer), 1);
+  }
+
+  notifyListeners(): void {
+    this._listeners.forEach((listener) => {
+      listener.update();
+    });
+  }
+
+  update(): void {
+    this.notifyListeners();
+  }
+
   private _insertNodes(nodes: N[]) {
     const newNodes: INode<N, E>[] = new Array<INode<N, E>>(nodes.length);
     for (let i = 0; i < nodes.length; i++) {
       newNodes[i] = NodeFactory.create<N, E>(
         { data: nodes[i] },
         { onLoadedImage: () => this._settings?.onLoadedImages?.() },
+        this,
       );
     }
     this._nodes.setMany(newNodes);
@@ -412,7 +437,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
       }
 
       newNodes.push(
-        NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._settings?.onLoadedImages?.() }),
+        NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._settings?.onLoadedImages?.() }, this),
       );
     }
     this._nodes.setMany(newNodes);

@@ -22,6 +22,7 @@ import { setupContainer } from '../utils/html.utils';
 import { SimulatorEventType } from '../simulator/shared';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
+import { IObserver } from '../models/observer';
 
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;
@@ -46,7 +47,9 @@ export type IOrbViewSettingsInit<N extends INodeBase, E extends IEdgeBase> = Omi
   'render'
 > & { render?: Partial<IRendererSettingsInit> };
 
-export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E, IOrbViewSettings<N, E>> {
+export class OrbView<N extends INodeBase, E extends IEdgeBase>
+  // eslint-disable-next-line prettier/prettier
+  implements IObserver, IOrbView<N, E, IOrbViewSettings<N, E>> {
   private _container: HTMLElement;
   private _resizeObs: ResizeObserver;
   private _graph: IGraph<N, E>;
@@ -93,14 +96,18 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       },
     };
 
-    this._graph = new Graph<N, E>(undefined, {
-      onLoadedImages: () => {
-        // Not to call render() before user's .render()
-        if (this._renderer.isInitiallyRendered) {
-          this.render();
-        }
+    this._graph = new Graph<N, E>(
+      undefined,
+      {
+        onLoadedImages: () => {
+          // Not to call render() before user's .render()
+          if (this._renderer.isInitiallyRendered) {
+            this.render();
+          }
+        },
       },
-    });
+      this,
+    );
     this._graph.setDefaultStyle(getDefaultGraphStyle());
     this._events = new OrbEmitter<N, E>();
 
@@ -593,6 +600,10 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       this._renderer.render(this._graph);
     }
   };
+
+  update(): void {
+    this.render();
+  }
 
   private _initCanvas(): HTMLCanvasElement {
     const canvas = document.createElement('canvas');

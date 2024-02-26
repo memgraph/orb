@@ -12,6 +12,7 @@ import { RendererFactory } from '../renderer/factory';
 import { setupContainer } from '../utils/html.utils';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
+import { IObserver } from '../models/observer';
 
 export interface ILeafletMapTile {
   instance: L.TileLayer;
@@ -65,7 +66,9 @@ export type IOrbMapViewSettingsUpdate<N extends INodeBase, E extends IEdgeBase> 
   IOrbMapViewSettingsInit<N, E>
 >;
 
-export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E, IOrbMapViewSettings<N, E>> {
+export class OrbMapView<N extends INodeBase, E extends IEdgeBase>
+  // eslint-disable-next-line prettier/prettier
+  implements IObserver, IOrbView<N, E, IOrbMapViewSettings<N, E>> {
   private _container: HTMLElement;
   private _resizeObs: ResizeObserver;
   private _graph: IGraph<N, E>;
@@ -82,14 +85,18 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
 
   constructor(container: HTMLElement, settings: IOrbMapViewSettingsInit<N, E>) {
     this._container = container;
-    this._graph = new Graph<N, E>(undefined, {
-      onLoadedImages: () => {
-        // Not to call render() before user's .render()
-        if (this._renderer.isInitiallyRendered) {
-          this.render();
-        }
+    this._graph = new Graph<N, E>(
+      undefined,
+      {
+        onLoadedImages: () => {
+          // Not to call render() before user's .render()
+          if (this._renderer.isInitiallyRendered) {
+            this.render();
+          }
+        },
       },
-    });
+      this,
+    );
     this._graph.setDefaultStyle(getDefaultGraphStyle());
     this._events = new OrbEmitter<N, E>();
 
@@ -224,6 +231,10 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     this._leaflet.remove();
     this._leaflet.getContainer().outerHTML = '';
     this._canvas.outerHTML = '';
+  }
+
+  update(): void {
+    this.render();
   }
 
   private _initCanvas() {

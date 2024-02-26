@@ -2,6 +2,7 @@ import { IEdge, IEdgeBase } from './edge';
 import { Color, IPosition, IRectangle, isPointInRectangle } from '../common';
 import { ImageHandler } from '../services/images';
 import { GraphObjectState } from './state';
+import { IObserver, ISubject } from './observer';
 
 /**
  * Node baseline object with required fields
@@ -19,6 +20,16 @@ export interface INodePosition {
   id: any;
   x?: number;
   y?: number;
+}
+
+export interface INodeCoordinates {
+  x: number;
+  y: number;
+}
+
+export interface INodeMapCoordinates {
+  lat: number;
+  lng: number;
 }
 
 export enum NodeShapeType {
@@ -65,7 +76,7 @@ export interface INodeData<N extends INodeBase> {
   data: N;
 }
 
-export interface INode<N extends INodeBase, E extends IEdgeBase> {
+export interface INode<N extends INodeBase, E extends IEdgeBase> extends ISubject {
   data: N;
   position: INodePosition;
   style: INodeStyle;
@@ -95,6 +106,14 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> {
   getBorderWidth(): number;
   getBorderColor(): Color | string | undefined;
   getBackgroundImage(): HTMLImageElement | undefined;
+  setData(data: N): void;
+  setData(callback: (node: INode<N, E>) => N): void;
+  setPosition(position: INodeCoordinates | INodeMapCoordinates): void;
+  setPosition(callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates): void;
+  setStyle(style: INodeStyle): void;
+  setStyle(callback: (node: INode<N, E>) => INodeStyle): void;
+  setState(state: number): void;
+  setState(callback: (node: INode<N, E>) => number): void;
 }
 
 // TODO: Dirty solution: Find another way to listen for global images, maybe through
@@ -107,8 +126,9 @@ export class NodeFactory {
   static create<N extends INodeBase, E extends IEdgeBase>(
     data: INodeData<N>,
     settings?: Partial<INodeSettings>,
+    listener?: IObserver,
   ): INode<N, E> {
-    return new Node<N, E>(data, settings);
+    return new Node<N, E>(data, settings, listener);
   }
 }
 
@@ -123,20 +143,34 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   public style: INodeStyle = {};
   public state = GraphObjectState.NONE;
 
+  private readonly _listeners: IObserver[] = [];
   private readonly _inEdgesById: { [id: number]: IEdge<N, E> } = {};
   private readonly _outEdgesById: { [id: number]: IEdge<N, E> } = {};
   private readonly _onLoadedImage?: () => void;
 
-  constructor(data: INodeData<N>, settings?: Partial<INodeSettings>) {
+  constructor(data: INodeData<N>, settings?: Partial<INodeSettings>, listener?: IObserver) {
     this.id = data.data.id;
     this.data = data.data;
     this.position = { id: this.id };
     this._onLoadedImage = settings?.onLoadedImage;
+    if (listener) {
+      this._listeners.push(listener);
+    }
   }
 
   clearPosition() {
     this.position.x = undefined;
     this.position.y = undefined;
+
+    if ('lng' in this.data) {
+      this.data.lng = undefined;
+    }
+
+    if ('lat' in this.data) {
+      this.data.lat = undefined;
+    }
+
+    this.notifyListeners();
   }
 
   getCenter(): IPosition {
@@ -242,7 +276,9 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   }
 
   clearState(): void {
-    this.state = GraphObjectState.NONE;
+    this.setState(GraphObjectState.NONE);
+
+    this.notifyListeners();
   }
 
   getDistanceToBorder(): number {
@@ -361,6 +397,89 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
         this._onLoadedImage?.();
       }
     });
+  }
+
+  addListener(observer: IObserver): void {
+    this._listeners.push(observer);
+  }
+
+  removeListener(observer: IObserver): void {
+    this._listeners.splice(this._listeners.indexOf(observer), 1);
+  }
+
+  notifyListeners(): void {
+    this._listeners.forEach((listener) => {
+      listener.update();
+    });
+  }
+
+  setData(data: N): void;
+
+  setData(callback: (node: INode<N, E>) => N): void;
+
+  setData(arg: N | ((node: INode<N, E>) => N)) {
+    if (typeof arg === 'function') {
+      this.data = (arg as (node: INode<N, E>) => N)(this);
+    } else {
+      this.data = arg as N;
+    }
+    this.notifyListeners();
+  }
+
+  setPosition(position: INodeCoordinates | INodeMapCoordinates): void;
+
+  setPosition(callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates): void;
+
+  setPosition(
+    arg: INodeCoordinates | INodeMapCoordinates | ((node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates),
+  ) {
+    let position: INodeCoordinates | INodeMapCoordinates;
+    if (typeof arg === 'function') {
+      position = (arg as (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates)(this);
+    } else {
+      position = arg;
+    }
+
+    if ('x' in position && 'y' in position) {
+      this.position.x = position.x;
+      this.position.y = position.y;
+    }
+
+    if ('lat' in position && 'lng' in position) {
+      this.data = {
+        ...this.data,
+        lat: position.lat,
+        lng: position.lng,
+      };
+
+      this.notifyListeners();
+    }
+  }
+
+  setStyle(style: INodeStyle): void;
+
+  setStyle(callback: (node: INode<N, E>) => INodeStyle): void;
+
+  setStyle(arg: INodeStyle | ((node: INode<N, E>) => INodeStyle)): void {
+    if (typeof arg === 'function') {
+      this.style = (arg as (node: INode<N, E>) => INodeStyle)(this);
+    } else {
+      this.style = arg as INodeStyle;
+    }
+    this.notifyListeners();
+  }
+
+  setState(state: number): void;
+
+  setState(callback: (node: INode<N, E>) => number): void;
+
+  setState(arg: number | ((node: INode<N, E>) => number)): void {
+    if (typeof arg === 'function') {
+      this.state = (arg as (node: INode<N, E>) => number)(this);
+    } else {
+      this.state = arg as number;
+    }
+    this.notifyListeners();
   }
 
   protected _isPointInBoundingBox(point: IPosition): boolean {
