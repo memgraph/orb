@@ -167,15 +167,15 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   }
 
   getData(): N {
-    return this._data;
+    return structuredClone(this._data);
   }
 
   getPosition(): INodePosition {
-    return this._position;
+    return structuredClone(this._position);
   }
 
   getStyle(): INodeStyle {
-    return this._style;
+    return structuredClone(this._style);
   }
 
   getState(): number {

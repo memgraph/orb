@@ -194,15 +194,15 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   }
 
   getData(): E {
-    return this._data;
+    return structuredClone(this._data);
   }
 
   getPosition(): IEdgePosition {
-    return this._position;
+    return structuredClone(this._position);
   }
 
   getStyle(): IEdgeStyle {
-    return this._style;
+    return structuredClone(this._style);
   }
 
   getState(): number {
