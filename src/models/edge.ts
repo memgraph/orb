@@ -95,6 +95,7 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   getPosition(): IEdgePosition;
   getStyle(): IEdgeStyle;
   getState(): number;
+  getListeners(): IObserver[];
   hasStyle(): boolean;
   isSelected(): boolean;
   isHovered(): boolean;
@@ -148,6 +149,9 @@ export class EdgeFactory {
     });
     newEdge.setState(edge.getState());
     newEdge.setStyle(edge.getStyle());
+    edge.getListeners().forEach((listener) => {
+      newEdge.addListener(listener);
+    });
 
     return newEdge;
   }
@@ -219,6 +223,10 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
 
   get end(): number {
     return this._data.end;
+  }
+
+  getListeners(): IObserver[] {
+    return [...this._listeners];
   }
 
   hasStyle(): boolean {
