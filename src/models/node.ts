@@ -158,7 +158,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
     this._position = { id: this._id };
     this._onLoadedImage = settings?.onLoadedImage;
     if (settings && settings.listeners) {
-      this._listeners.concat(settings.listeners);
+      this._listeners = settings.listeners;
     }
   }
 

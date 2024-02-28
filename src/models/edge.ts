@@ -196,7 +196,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
     this.endNode.addEdge(this);
 
     if (settings && settings.listeners) {
-      this._listeners.concat(settings.listeners);
+      this._listeners = settings.listeners;
     }
   }
 

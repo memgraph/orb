@@ -49,6 +49,7 @@ export interface IGraphSettings<N extends INodeBase, E extends IEdgeBase> {
   onSetupData?: (data: Partial<IGraphData<N, E>>) => void;
   onMergeData?: (data: Partial<IGraphData<N, E>>) => void;
   onRemoveData?: (data: Partial<{ nodeIds: number[]; edgeIds: number[] }>) => void;
+  listeners?: IObserver[];
 }
 
 export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N, E> {
@@ -64,13 +65,13 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
   private _settings: IGraphSettings<N, E>;
   private _listeners: IObserver[] = [];
 
-  constructor(data?: Partial<IGraphData<N, E>>, settings?: Partial<IGraphSettings<N, E>>, listener?: IObserver) {
+  constructor(data?: Partial<IGraphData<N, E>>, settings?: Partial<IGraphSettings<N, E>>) {
     // TODO(dlozic): How to use object assign here? If I add add and export a default const here, it needs N, E.
     this._settings = settings || {};
     const nodes = data?.nodes ?? [];
     const edges = data?.edges ?? [];
-    if (listener) {
-      this._listeners.push(listener);
+    if (settings && settings.listeners) {
+      this._listeners = settings.listeners;
     }
     this.setup({ nodes, edges });
   }

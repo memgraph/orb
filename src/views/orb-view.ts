@@ -96,18 +96,15 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase>
       },
     };
 
-    this._graph = new Graph<N, E>(
-      undefined,
-      {
-        onLoadedImages: () => {
-          // Not to call render() before user's .render()
-          if (this._renderer.isInitiallyRendered) {
-            this.render();
-          }
-        },
+    this._graph = new Graph<N, E>(undefined, {
+      onLoadedImages: () => {
+        // Not to call render() before user's .render()
+        if (this._renderer.isInitiallyRendered) {
+          this.render();
+        }
       },
-      this,
-    );
+      listeners: [this],
+    });
     this._graph.setDefaultStyle(getDefaultGraphStyle());
     this._events = new OrbEmitter<N, E>();
 
