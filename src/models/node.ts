@@ -185,13 +185,14 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   clearPosition() {
     this._position.x = undefined;
     this._position.y = undefined;
+    const data = this.getData();
 
     if ('lng' in this._data) {
-      this.setData({ ...this.getData(), lng: undefined });
+      this.setData({ ...data, lng: undefined });
     }
 
     if ('lat' in this._data) {
-      this.setData({ ...this.getData(), lat: undefined });
+      this.setData({ ...data, lat: undefined });
     }
 
     this.notifyListeners();

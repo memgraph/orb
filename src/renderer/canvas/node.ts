@@ -97,15 +97,16 @@ const drawNodeLabel = <N extends INodeBase, E extends IEdgeBase>(
 
   const center = node.getCenter();
   const distance = node.getBorderedRadius() * (1 + DEFAULT_LABEL_DISTANCE_SIZE_FROM_NODE);
+  const nodeStyle = node.getStyle();
 
   const label = new Label(nodeLabel, {
     position: { x: center.x, y: center.y + distance },
     textBaseline: LabelTextBaseline.TOP,
     properties: {
-      fontBackgroundColor: node.getStyle().fontBackgroundColor,
-      fontColor: node.getStyle().fontColor,
-      fontFamily: node.getStyle().fontFamily,
-      fontSize: node.getStyle().fontSize,
+      fontBackgroundColor: nodeStyle.fontBackgroundColor,
+      fontColor: nodeStyle.fontColor,
+      fontFamily: nodeStyle.fontFamily,
+      fontSize: nodeStyle.fontSize,
     },
   });
   drawLabel(context, label);
@@ -157,17 +158,19 @@ const setupShadow = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
   node: INode<N, E>,
 ) => {
-  if (node.getStyle().shadowColor) {
-    context.shadowColor = (node.getStyle().shadowColor as string | Color).toString();
+  const nodeStyle = node.getStyle();
+
+  if (nodeStyle.shadowColor) {
+    context.shadowColor = (nodeStyle.shadowColor as string | Color).toString();
   }
-  if (node.getStyle().shadowSize) {
-    context.shadowBlur = node.getStyle().shadowSize as number;
+  if (nodeStyle.shadowSize) {
+    context.shadowBlur = nodeStyle.shadowSize as number;
   }
-  if (node.getStyle().shadowOffsetX) {
-    context.shadowOffsetX = node.getStyle().shadowOffsetX as number;
+  if (nodeStyle.shadowOffsetX) {
+    context.shadowOffsetX = nodeStyle.shadowOffsetX as number;
   }
-  if (node.getStyle().shadowOffsetY) {
-    context.shadowOffsetY = node.getStyle().shadowOffsetY as number;
+  if (nodeStyle.shadowOffsetY) {
+    context.shadowOffsetY = nodeStyle.shadowOffsetY as number;
   }
 };
 
@@ -175,16 +178,18 @@ const clearShadow = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
   node: INode<N, E>,
 ) => {
-  if (node.getStyle().shadowColor) {
+  const nodeStyle = node.getStyle();
+
+  if (nodeStyle.shadowColor) {
     context.shadowColor = 'rgba(0,0,0,0)';
   }
-  if (node.getStyle().shadowSize) {
+  if (nodeStyle.shadowSize) {
     context.shadowBlur = 0;
   }
-  if (node.getStyle().shadowOffsetX) {
+  if (nodeStyle.shadowOffsetX) {
     context.shadowOffsetX = 0;
   }
-  if (node.getStyle().shadowOffsetY) {
+  if (nodeStyle.shadowOffsetY) {
     context.shadowOffsetY = 0;
   }
 };

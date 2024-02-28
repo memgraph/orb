@@ -52,14 +52,16 @@ const drawEdgeLabel = <N extends INodeBase, E extends IEdgeBase>(
     return;
   }
 
+  const edgeStyle = edge.getStyle();
+
   const label = new Label(edgeLabel, {
     position: edge.getCenter(),
     textBaseline: LabelTextBaseline.MIDDLE,
     properties: {
-      fontBackgroundColor: edge.getStyle().fontBackgroundColor,
-      fontColor: edge.getStyle().fontColor,
-      fontFamily: edge.getStyle().fontFamily,
-      fontSize: edge.getStyle().fontSize,
+      fontBackgroundColor: edgeStyle.fontBackgroundColor,
+      fontColor: edgeStyle.fontColor,
+      fontFamily: edgeStyle.fontFamily,
+      fontSize: edgeStyle.fontSize,
     },
   });
   drawLabel(context, label);
@@ -145,17 +147,19 @@ const setupShadow = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
   edge: IEdge<N, E>,
 ) => {
-  if (edge.getStyle().shadowColor) {
-    context.shadowColor = (edge.getStyle().shadowColor as string | Color).toString();
+  const edgeStyle = edge.getStyle();
+
+  if (edgeStyle.shadowColor) {
+    context.shadowColor = (edgeStyle.shadowColor as string | Color).toString();
   }
-  if (edge.getStyle().shadowSize) {
-    context.shadowBlur = edge.getStyle().shadowSize as number;
+  if (edgeStyle.shadowSize) {
+    context.shadowBlur = edgeStyle.shadowSize as number;
   }
-  if (edge.getStyle().shadowOffsetX) {
-    context.shadowOffsetX = edge.getStyle().shadowOffsetX as number;
+  if (edgeStyle.shadowOffsetX) {
+    context.shadowOffsetX = edgeStyle.shadowOffsetX as number;
   }
-  if (edge.getStyle().shadowOffsetY) {
-    context.shadowOffsetY = edge.getStyle().shadowOffsetY as number;
+  if (edgeStyle.shadowOffsetY) {
+    context.shadowOffsetY = edgeStyle.shadowOffsetY as number;
   }
 };
 
@@ -163,16 +167,18 @@ const clearShadow = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
   edge: IEdge<N, E>,
 ) => {
-  if (edge.getStyle().shadowColor) {
+  const edgeStyle = edge.getStyle();
+
+  if (edgeStyle.shadowColor) {
     context.shadowColor = 'rgba(0,0,0,0)';
   }
-  if (edge.getStyle().shadowSize) {
+  if (edgeStyle.shadowSize) {
     context.shadowBlur = 0;
   }
-  if (edge.getStyle().shadowOffsetX) {
+  if (edgeStyle.shadowOffsetX) {
     context.shadowOffsetX = 0;
   }
-  if (edge.getStyle().shadowOffsetY) {
+  if (edgeStyle.shadowOffsetY) {
     context.shadowOffsetY = 0;
   }
 };
