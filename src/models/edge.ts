@@ -3,6 +3,7 @@ import { GraphObjectState } from './state';
 import { Color, IPosition, ICircle, getDistanceToLine } from '../common';
 import { isArrayOfNumbers } from '../utils/type.utils';
 import { IObserver, ISubject } from '../utils/observer.utils';
+import { copyProperties } from '../utils/object.utils';
 
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
 const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;
@@ -368,10 +369,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
       data = arg as Partial<E>;
     }
 
-    Object.keys(data).forEach((key) => {
-      // @ts-ignore
-      this._data[key] = data[key];
-    });
+    copyProperties(data, this._data);
 
     this.notifyListeners();
   }
@@ -398,10 +396,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
       style = arg as IEdgeStyle;
     }
 
-    Object.keys(style).forEach((key) => {
-      // @ts-ignore
-      this._style[key] = style[key];
-    });
+    copyProperties(style, this._style);
 
     this.notifyListeners();
   }

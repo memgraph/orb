@@ -120,3 +120,11 @@ const copyPlainObject = <T>(obj: Record<string, T>): Record<string, T> => {
   });
   return newObject;
 };
+
+export const copyProperties = <T>(source: T, target: T): void => {
+  const keys = Object.keys(source as Object);
+
+  for (let i = 0; i < keys.length; i++) {
+    (target[keys[i] as keyof T] as T[keyof T]) = source[keys[i] as keyof T] as T[keyof T];
+  }
+};

@@ -3,6 +3,7 @@ import { Color, IPosition, IRectangle, isPointInRectangle } from '../common';
 import { ImageHandler } from '../services/images';
 import { GraphObjectState } from './state';
 import { IObserver, ISubject } from '../utils/observer.utils';
+import { copyProperties } from '../utils/object.utils';
 
 /**
  * Node baseline object with required fields
@@ -460,10 +461,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
       data = arg as Partial<N>;
     }
 
-    Object.keys(data).forEach((key) => {
-      // @ts-ignore
-      this._data[key] = data[key];
-    });
+    copyProperties(data, this._data);
 
     this.notifyListeners();
   }
@@ -526,10 +524,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
       style = arg as INodeStyle;
     }
 
-    Object.keys(style).forEach((key) => {
-      // @ts-ignore
-      this._style[key] = style[key];
-    });
+    copyProperties(style, this._style);
 
     this.notifyListeners();
   }
