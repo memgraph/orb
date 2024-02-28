@@ -2,7 +2,7 @@ import { INodeBase, INode } from './node';
 import { GraphObjectState } from './state';
 import { Color, IPosition, ICircle, getDistanceToLine } from '../common';
 import { isArrayOfNumbers } from '../utils/type.utils';
-import { IObserver, ISubject } from './observer';
+import { IObserver, ISubject } from '../utils/observer.utils';
 
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
 const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;

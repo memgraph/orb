@@ -2,7 +2,7 @@ import { IEdge, IEdgeBase } from './edge';
 import { Color, IPosition, IRectangle, isPointInRectangle } from '../common';
 import { ImageHandler } from '../services/images';
 import { GraphObjectState } from './state';
-import { IObserver, ISubject } from './observer';
+import { IObserver, ISubject } from '../utils/observer.utils';
 
 /**
  * Node baseline object with required fields

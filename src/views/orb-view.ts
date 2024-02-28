@@ -22,7 +22,7 @@ import { setupContainer } from '../utils/html.utils';
 import { SimulatorEventType } from '../simulator/shared';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
-import { IObserver } from '../models/observer';
+import { IObserver } from '../utils/observer.utils';
 
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;

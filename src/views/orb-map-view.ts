@@ -12,7 +12,7 @@ import { RendererFactory } from '../renderer/factory';
 import { setupContainer } from '../utils/html.utils';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
-import { IObserver } from '../models/observer';
+import { IObserver } from '../utils/observer.utils';
 
 export interface ILeafletMapTile {
   instance: L.TileLayer;
