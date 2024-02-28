@@ -2,7 +2,7 @@ import { IEdge, IEdgeBase } from './edge';
 import { Color, IPosition, IRectangle, isPointInRectangle } from '../common';
 import { ImageHandler } from '../services/images';
 import { GraphObjectState } from './state';
-import { IObserver, ISubject } from '../utils/observer.utils';
+import { IObserver, ISubject, Subject } from '../utils/observer.utils';
 import { copyProperties } from '../utils/object.utils';
 
 /**
@@ -141,25 +141,25 @@ export const isNode = <N extends INodeBase, E extends IEdgeBase>(obj: any): obj 
   return obj instanceof Node;
 };
 
-export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, E> {
+export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject implements INode<N, E> {
   protected readonly _id: number;
   protected _data: N;
   protected _position: INodePosition;
   protected _style: INodeStyle = {};
   protected _state = GraphObjectState.NONE;
 
-  private readonly _listeners: IObserver[] = [];
   private readonly _inEdgesById: { [id: number]: IEdge<N, E> } = {};
   private readonly _outEdgesById: { [id: number]: IEdge<N, E> } = {};
   private readonly _onLoadedImage?: () => void;
 
   constructor(data: INodeData<N>, settings?: Partial<INodeSettings>) {
+    super();
     this._id = data.data.id;
     this._data = data.data;
     this._position = { id: this._id };
     this._onLoadedImage = settings?.onLoadedImage;
     if (settings && settings.listeners) {
-      this._listeners = settings.listeners;
+      this.listeners = settings.listeners;
     }
   }
 
@@ -422,20 +422,6 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
       if (!error) {
         this._onLoadedImage?.();
       }
-    });
-  }
-
-  addListener(observer: IObserver): void {
-    this._listeners.push(observer);
-  }
-
-  removeListener(observer: IObserver): void {
-    this._listeners.splice(this._listeners.indexOf(observer), 1);
-  }
-
-  notifyListeners(): void {
-    this._listeners.forEach((listener) => {
-      listener.update();
     });
   }
 

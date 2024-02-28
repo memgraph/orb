@@ -2,7 +2,7 @@ import { INodeBase, INode } from './node';
 import { GraphObjectState } from './state';
 import { Color, IPosition, ICircle, getDistanceToLine } from '../common';
 import { isArrayOfNumbers } from '../utils/type.utils';
-import { IObserver, ISubject } from '../utils/observer.utils';
+import { IObserver, ISubject, Subject } from '../utils/observer.utils';
 import { copyProperties } from '../utils/object.utils';
 
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
@@ -157,9 +157,11 @@ export class EdgeFactory {
     });
     newEdge.setState(edge.getState());
     newEdge.setStyle(edge.getStyle());
-    edge.getListeners().forEach((listener) => {
-      newEdge.addListener(listener);
-    });
+    const listeners = edge.getListeners();
+
+    for (let i = 0; i < listeners.length; i++) {
+      newEdge.addListener(listeners[i]);
+    }
 
     return newEdge;
   }
@@ -169,7 +171,7 @@ export const isEdge = <N extends INodeBase, E extends IEdgeBase>(obj: any): obj 
   return obj instanceof EdgeStraight || obj instanceof EdgeCurved || obj instanceof EdgeLoopback;
 };
 
-abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N, E> {
+abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject implements IEdge<N, E> {
   protected _data: E;
 
   public readonly id: number;
@@ -181,10 +183,10 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   protected _state = GraphObjectState.NONE;
   protected _position: IEdgePosition;
 
-  private readonly _listeners: IObserver[] = [];
   private _type: EdgeType = EdgeType.STRAIGHT;
 
   constructor(data: IEdgeData<N, E>, settings?: IEdgeSettings) {
+    super();
     this.id = data.data.id;
     this._data = data.data;
     this.offset = data.offset ?? 0;
@@ -197,7 +199,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
     this.endNode.addEdge(this);
 
     if (settings && settings.listeners) {
-      this._listeners = settings.listeners;
+      this.listeners = settings.listeners;
     }
   }
 
@@ -231,10 +233,6 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
 
   get end(): number {
     return this._data.end;
-  }
-
-  getListeners(): IObserver[] {
-    return [...this._listeners];
   }
 
   hasStyle(): boolean {
@@ -410,20 +408,6 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
       this._state = arg as number;
     }
     this.notifyListeners();
-  }
-
-  addListener(observer: IObserver): void {
-    this._listeners.push(observer);
-  }
-
-  removeListener(observer: IObserver): void {
-    this._listeners.splice(this._listeners.indexOf(observer), 1);
-  }
-
-  notifyListeners(): void {
-    this._listeners.forEach((listener) => {
-      listener.update();
-    });
   }
 }
 

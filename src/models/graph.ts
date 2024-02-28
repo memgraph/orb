@@ -5,7 +5,7 @@ import { IGraphStyle } from './style';
 import { ImageHandler } from '../services/images';
 import { getEdgeOffsets } from './topology';
 import { IEntityState, EntityState } from '../utils/entity.utils';
-import { IObserver, ISubject } from '../utils/observer.utils';
+import { IObserver, ISubject, Subject } from '../utils/observer.utils';
 import { copyProperties } from '../utils/object.utils';
 
 export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
@@ -53,7 +53,7 @@ export interface IGraphSettings<N extends INodeBase, E extends IEdgeBase> {
   listeners?: IObserver[];
 }
 
-export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N, E> {
+export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject implements IGraph<N, E> {
   private _nodes: IEntityState<any, INode<N, E>> = new EntityState<any, INode<N, E>>({
     getId: (node) => node.getId(),
     sortBy: (node1, node2) => (node1.getStyle().zIndex ?? 0) - (node2.getStyle().zIndex ?? 0),
@@ -64,15 +64,15 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
   });
   private _defaultStyle?: Partial<IGraphStyle<N, E>>;
   private _settings: IGraphSettings<N, E>;
-  private _listeners: IObserver[] = [];
 
   constructor(data?: Partial<IGraphData<N, E>>, settings?: Partial<IGraphSettings<N, E>>) {
     // TODO(dlozic): How to use object assign here? If I add add and export a default const here, it needs N, E.
+    super();
     this._settings = settings || {};
     const nodes = data?.nodes ?? [];
     const edges = data?.edges ?? [];
     if (settings && settings.listeners) {
-      this._listeners = settings.listeners;
+      this.listeners = settings.listeners;
     }
     this.setup({ nodes, edges });
   }
@@ -375,20 +375,6 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
       }
     }
     return nearestEdge;
-  }
-
-  addListener(observer: IObserver): void {
-    this._listeners.push(observer);
-  }
-
-  removeListener(observer: IObserver): void {
-    this._listeners.splice(this._listeners.indexOf(observer), 1);
-  }
-
-  notifyListeners(): void {
-    this._listeners.forEach((listener) => {
-      listener.update();
-    });
   }
 
   update(): void {
