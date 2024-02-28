@@ -122,18 +122,25 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   setState(callback: (edge: IEdge<N, E>) => number): void;
 }
 
+export interface IEdgeSettings {
+  listeners: IObserver[];
+}
+
 export class EdgeFactory {
-  static create<N extends INodeBase, E extends IEdgeBase>(data: IEdgeData<N, E>, listener?: IObserver): IEdge<N, E> {
+  static create<N extends INodeBase, E extends IEdgeBase>(
+    data: IEdgeData<N, E>,
+    settings?: IEdgeSettings,
+  ): IEdge<N, E> {
     const type = getEdgeType(data);
     switch (type) {
       case EdgeType.STRAIGHT:
-        return new EdgeStraight(data, listener);
+        return new EdgeStraight(data, settings);
       case EdgeType.LOOPBACK:
-        return new EdgeLoopback(data, listener);
+        return new EdgeLoopback(data, settings);
       case EdgeType.CURVED:
-        return new EdgeCurved(data, listener);
+        return new EdgeCurved(data, settings);
       default:
-        return new EdgeStraight(data, listener);
+        return new EdgeStraight(data, settings);
     }
   }
 
@@ -176,7 +183,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   private readonly _listeners: IObserver[] = [];
   private _type: EdgeType = EdgeType.STRAIGHT;
 
-  constructor(data: IEdgeData<N, E>, listener?: IObserver) {
+  constructor(data: IEdgeData<N, E>, settings?: IEdgeSettings) {
     this.id = data.data.id;
     this._data = data.data;
     this.offset = data.offset ?? 0;
@@ -188,8 +195,8 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
     this.startNode.addEdge(this);
     this.endNode.addEdge(this);
 
-    if (listener) {
-      this._listeners.push(listener);
+    if (settings && settings.listeners) {
+      this._listeners.concat(settings.listeners);
     }
   }
 

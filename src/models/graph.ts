@@ -401,8 +401,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     for (let i = 0; i < nodes.length; i++) {
       newNodes[i] = NodeFactory.create<N, E>(
         { data: nodes[i] },
-        { onLoadedImage: () => this._settings?.onLoadedImages?.() },
-        this,
+        { onLoadedImage: () => this._settings?.onLoadedImages?.(), listeners: [this] },
       );
     }
     this._nodes.setMany(newNodes);
@@ -422,7 +421,9 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
               startNode,
               endNode,
             },
-            this,
+            {
+              listeners: [this],
+            },
           ),
         );
       }
@@ -440,7 +441,10 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
       }
 
       newNodes.push(
-        NodeFactory.create<N, E>({ data: nodes[i] }, { onLoadedImage: () => this._settings?.onLoadedImages?.() }, this),
+        NodeFactory.create<N, E>(
+          { data: nodes[i] },
+          { onLoadedImage: () => this._settings?.onLoadedImages?.(), listeners: [this] },
+        ),
       );
     }
     this._nodes.setMany(newNodes);
@@ -466,7 +470,9 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
               startNode,
               endNode,
             },
-            this,
+            {
+              listeners: [this],
+            },
           );
           newEdges.push(edge);
         }
@@ -497,7 +503,9 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
           startNode,
           endNode,
         },
-        this,
+        {
+          listeners: [this],
+        },
       );
       edge.setState(existingEdge.getState());
       edge.setStyle(existingEdge.getStyle());

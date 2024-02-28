@@ -124,15 +124,15 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> extends ISubjec
 //  events that user can listen for: images-load-start, images-load-end
 export interface INodeSettings {
   onLoadedImage: () => void;
+  listeners: IObserver[];
 }
 
 export class NodeFactory {
   static create<N extends INodeBase, E extends IEdgeBase>(
     data: INodeData<N>,
     settings?: Partial<INodeSettings>,
-    listener?: IObserver,
   ): INode<N, E> {
-    return new Node<N, E>(data, settings, listener);
+    return new Node<N, E>(data, settings);
   }
 }
 
@@ -152,13 +152,13 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   private readonly _outEdgesById: { [id: number]: IEdge<N, E> } = {};
   private readonly _onLoadedImage?: () => void;
 
-  constructor(data: INodeData<N>, settings?: Partial<INodeSettings>, listener?: IObserver) {
+  constructor(data: INodeData<N>, settings?: Partial<INodeSettings>) {
     this._id = data.data.id;
     this._data = data.data;
     this._position = { id: this._id };
     this._onLoadedImage = settings?.onLoadedImage;
-    if (listener) {
-      this._listeners.push(listener);
+    if (settings && settings.listeners) {
+      this._listeners.concat(settings.listeners);
     }
   }
 
