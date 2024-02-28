@@ -347,9 +347,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   }
 
   setData(data: E): void;
-
   setData(callback: (edge: IEdge<N, E>) => E): void;
-
   setData(arg: E | ((edge: IEdge<N, E>) => E)) {
     if (typeof arg === 'function') {
       this._data = (arg as (edge: IEdge<N, E>) => E)(this);
@@ -360,9 +358,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   }
 
   patchData(data: Partial<E>): void;
-
   patchData(callback: (edge: IEdge<N, E>) => Partial<E>): void;
-
   patchData(arg: Partial<E> | ((edge: IEdge<N, E>) => Partial<E>)) {
     let data: Partial<E>;
 
@@ -381,9 +377,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   }
 
   setStyle(style: IEdgeStyle): void;
-
   setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
-
   setStyle(arg: IEdgeStyle | ((edge: IEdge<N, E>) => IEdgeStyle)): void {
     if (typeof arg === 'function') {
       this._style = (arg as (edge: IEdge<N, E>) => IEdgeStyle)(this);
@@ -394,9 +388,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   }
 
   patchStyle(style: IEdgeStyle): void;
-
   patchStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
-
   patchStyle(arg: IEdgeStyle | ((edge: IEdge<N, E>) => IEdgeStyle)) {
     let style: IEdgeStyle;
 
@@ -415,9 +407,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   }
 
   setState(state: number): void;
-
   setState(callback: (edge: IEdge<N, E>) => number): void;
-
   setState(arg: number | ((edge: IEdge<N, E>) => number)): void {
     if (typeof arg === 'function') {
       this._state = (arg as (edge: IEdge<N, E>) => number)(this);

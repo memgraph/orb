@@ -438,9 +438,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   }
 
   setData(data: N): void;
-
   setData(callback: (node: INode<N, E>) => N): void;
-
   setData(arg: N | ((node: INode<N, E>) => N)) {
     if (typeof arg === 'function') {
       this._data = (arg as (node: INode<N, E>) => N)(this);
@@ -451,9 +449,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   }
 
   patchData(data: Partial<N>): void;
-
   patchData(callback: (node: INode<N, E>) => Partial<N>): void;
-
   patchData(arg: Partial<N> | ((node: INode<N, E>) => Partial<N>)) {
     let data: Partial<N>;
 
@@ -472,9 +468,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   }
 
   setPosition(position: INodeCoordinates | INodeMapCoordinates | INodePosition): void;
-
   setPosition(callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition): void;
-
   setPosition(
     arg:
       | INodeCoordinates
@@ -510,9 +504,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   }
 
   setStyle(style: INodeStyle): void;
-
   setStyle(callback: (node: INode<N, E>) => INodeStyle): void;
-
   setStyle(arg: INodeStyle | ((node: INode<N, E>) => INodeStyle)): void {
     if (typeof arg === 'function') {
       this._style = (arg as (node: INode<N, E>) => INodeStyle)(this);
@@ -523,9 +515,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   }
 
   patchStyle(style: INodeStyle): void;
-
   patchStyle(callback: (node: INode<N, E>) => INodeStyle): void;
-
   patchStyle(arg: INodeStyle | ((node: INode<N, E>) => INodeStyle)) {
     let style: INodeStyle;
 
@@ -544,9 +534,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   }
 
   setState(state: number): void;
-
   setState(callback: (node: INode<N, E>) => number): void;
-
   setState(arg: number | ((node: INode<N, E>) => number)): void {
     if (typeof arg === 'function') {
       this._state = (arg as (node: INode<N, E>) => number)(this);
