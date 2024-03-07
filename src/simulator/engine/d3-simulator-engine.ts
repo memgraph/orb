@@ -312,6 +312,27 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     }
   }
 
+  patchData(data: Partial<ISimulationGraph>) {
+    if (data.nodes) {
+      data.nodes = this._fixDefinedNodes(data.nodes);
+      const nodeIds = this._nodes.map((node) => node.id);
+      for (let i = 0; i < data.nodes.length; i += 1) {
+        if (nodeIds.includes(data.nodes[i].id)) {
+          this._nodeIndexByNodeId = {
+            ...this._nodeIndexByNodeId,
+            ...data.nodes[i],
+          };
+          const index = this._nodes.findIndex((node) => data.nodes && node.id === data.nodes[i].id);
+          this._nodes[index] = data.nodes[i];
+        }
+      }
+    }
+
+    if (data.edges) {
+      this._edges = this._edges.concat(data.edges);
+    }
+  }
+
   private _initializeNewData(data: Partial<ISimulationGraph>) {
     if (data.nodes) {
       data.nodes = this._fixDefinedNodes(data.nodes);

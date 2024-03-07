@@ -22,7 +22,7 @@ import { setupContainer } from '../utils/html.utils';
 import { SimulatorEventType } from '../simulator/shared';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
-import { IObserver } from '../utils/observer.utils';
+import { IObserver, IObserverDataPayload } from '../utils/observer.utils';
 
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;
@@ -286,7 +286,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase>
       for (let i = 0; i < nodes.length; i++) {
         const position = this._settings.getPosition(nodes[i]);
         if (position) {
-          nodes[i].setPosition({ id: nodes[i].getId(), ...position });
+          nodes[i].setPosition({ id: nodes[i].getId(), ...position }, true);
         }
       }
     }
@@ -598,7 +598,23 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase>
     }
   };
 
-  update(): void {
+  update(data?: IObserverDataPayload): void {
+    if (data && 'x' in data && 'y' in data && 'id' in data) {
+      this._simulator.patchData({
+        nodes: [
+          {
+            x: data.x,
+            y: data.y,
+            sx: data.x,
+            sy: data.y,
+            fx: data.x,
+            fy: data.y,
+            id: data.id,
+          },
+        ],
+        edges: [],
+      });
+    }
     this.render();
   }
 

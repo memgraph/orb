@@ -78,6 +78,7 @@ export interface INodeData<N extends INodeBase> {
 }
 
 export interface INode<N extends INodeBase, E extends IEdgeBase> extends ISubject {
+  id: number;
   getId(): number;
   getData(): N;
   getPosition(): INodePosition;
@@ -111,8 +112,11 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   setData(callback: (node: INode<N, E>) => N): void;
   patchData(data: Partial<N>): void;
   patchData(callback: (node: INode<N, E>) => Partial<N>): void;
-  setPosition(position: INodeCoordinates | INodeMapCoordinates | INodePosition): void;
-  setPosition(callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition): void;
+  setPosition(position: INodeCoordinates | INodeMapCoordinates | INodePosition, call: boolean): void;
+  setPosition(
+    callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition,
+    call: boolean,
+  ): void;
   setStyle(style: INodeStyle): void;
   setStyle(callback: (node: INode<N, E>) => INodeStyle): void;
   patchStyle(style: INodeStyle): void;
@@ -142,7 +146,7 @@ export const isNode = <N extends INodeBase, E extends IEdgeBase>(obj: any): obj 
 };
 
 export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject implements INode<N, E> {
-  protected readonly _id: number;
+  public readonly id: number;
   protected _data: N;
   protected _position: INodePosition;
   protected _style: INodeStyle = {};
@@ -154,9 +158,9 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
 
   constructor(data: INodeData<N>, settings?: Partial<INodeSettings>) {
     super();
-    this._id = data.data.id;
+    this.id = data.data.id;
     this._data = data.data;
-    this._position = { id: this._id };
+    this._position = { id: this.id };
     this._onLoadedImage = settings?.onLoadedImage;
     if (settings && settings.listeners) {
       this.listeners = settings.listeners;
@@ -164,7 +168,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
   }
 
   getId(): number {
-    return this._id;
+    return this.id;
   }
 
   getData(): N {
@@ -280,10 +284,10 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
   }
 
   addEdge(edge: IEdge<N, E>) {
-    if (edge.start === this._id) {
+    if (edge.start === this.id) {
       this._outEdgesById[edge.getId()] = edge;
     }
-    if (edge.end === this._id) {
+    if (edge.end === this.id) {
       this._inEdgesById[edge.getId()] = edge;
     }
   }
@@ -452,19 +456,19 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
     this.notifyListeners();
   }
 
-  setPosition(position: INodeCoordinates | INodeMapCoordinates | INodePosition): void;
-  setPosition(callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition): void;
+  setPosition(position: INodeCoordinates | INodeMapCoordinates | INodePosition, isInner?: boolean): void;
+  setPosition(
+    callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition,
+    isInner?: boolean,
+  ): void;
   setPosition(
     arg:
       | INodeCoordinates
       | INodeMapCoordinates
       | INodePosition
       | ((node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition),
+    isInner?: boolean,
   ) {
-    if ('id' in arg) {
-      this._position = arg;
-    }
-
     let position: INodeCoordinates | INodeMapCoordinates | INodePosition;
     if (typeof arg === 'function') {
       position = (arg as (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates)(this);
@@ -475,6 +479,9 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
     if ('x' in position && 'y' in position) {
       this._position.x = position.x;
       this._position.y = position.y;
+      if ('id' in position) {
+        this._position.id = position.id;
+      }
     }
 
     if ('lat' in position && 'lng' in position) {
@@ -483,8 +490,10 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
         lat: position.lat,
         lng: position.lng,
       };
+    }
 
-      this.notifyListeners();
+    if (!isInner) {
+      this.notifyListeners({ id: this.id, ...position });
     }
   }
 

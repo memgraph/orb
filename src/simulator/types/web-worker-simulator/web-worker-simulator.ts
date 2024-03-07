@@ -88,6 +88,10 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     this.emitToWorker({ type: WorkerInputType.DeleteData, data });
   }
 
+  patchData(data: Partial<ISimulationGraph>): void {
+    this.emitToWorker({ type: WorkerInputType.PatchData, data });
+  }
+
   clearData() {
     this.emitToWorker({ type: WorkerInputType.ClearData });
   }

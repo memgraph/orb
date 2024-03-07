@@ -1,5 +1,9 @@
+import { INodeCoordinates, INodeMapCoordinates, INodePosition } from '../models/node';
+
+export type IObserverDataPayload = INodePosition | INodeCoordinates | INodeMapCoordinates;
+
 export interface IObserver {
-  update(): void;
+  update(data?: IObserverDataPayload): void;
 }
 
 export interface ISubject {
@@ -11,7 +15,7 @@ export interface ISubject {
 
   removeListener(observer: IObserver): void;
 
-  notifyListeners(): void;
+  notifyListeners(data?: IObserverDataPayload): void;
 }
 
 export class Subject implements ISubject {
@@ -35,9 +39,9 @@ export class Subject implements ISubject {
     }
   }
 
-  notifyListeners(): void {
+  notifyListeners(data?: IObserverDataPayload): void {
     for (let i = 0; i < this.listeners.length; i++) {
-      this.listeners[i].update();
+      this.listeners[i].update(data);
     }
   }
 }

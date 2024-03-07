@@ -5,7 +5,7 @@ import { IGraphStyle } from './style';
 import { ImageHandler } from '../services/images';
 import { getEdgeOffsets } from './topology';
 import { IEntityState, EntityState } from '../utils/entity.utils';
-import { IObserver, ISubject, Subject } from '../utils/observer.utils';
+import { IObserver, IObserverDataPayload, ISubject, Subject } from '../utils/observer.utils';
 import { copyProperties } from '../utils/object.utils';
 
 export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
@@ -200,7 +200,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     for (let i = 0; i < positions.length; i++) {
       const node = this._nodes.getOne(positions[i].id);
       if (node) {
-        node.setPosition(positions[i]);
+        node.setPosition(positions[i], true);
       }
     }
   }
@@ -377,8 +377,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     return nearestEdge;
   }
 
-  update(): void {
-    this.notifyListeners();
+  update(data?: IObserverDataPayload): void {
+    this.notifyListeners(data);
   }
 
   private _insertNodes(nodes: N[]) {
@@ -422,6 +422,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
       const existingNode = this.getNodeById(nodes[i].id);
       if (existingNode) {
         existingNode.setData(nodes[i]);
+        existingNode.setPosition(nodes[i], true);
         continue;
       }
 
