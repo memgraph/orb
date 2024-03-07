@@ -1,6 +1,6 @@
 import { INodeBase } from '../../../models/node';
 import { IEdge, EdgeCurved, EdgeLoopback, EdgeStraight, IEdgeBase } from '../../../models/edge';
-import { Color, IPosition } from '../../../common';
+import { IPosition } from '../../../common';
 import { drawLabel, Label, LabelTextBaseline } from '../label';
 import { drawCurvedLine, getCurvedArrowShape } from './types/edge-curved';
 import { drawLoopbackLine, getLoopbackArrowShape } from './types/edge-loopback';
@@ -150,16 +150,16 @@ const setupShadow = <N extends INodeBase, E extends IEdgeBase>(
   const edgeStyle = edge.getStyle();
 
   if (edgeStyle.shadowColor) {
-    context.shadowColor = (edgeStyle.shadowColor as string | Color).toString();
+    context.shadowColor = edgeStyle.shadowColor.toString();
   }
   if (edgeStyle.shadowSize) {
-    context.shadowBlur = edgeStyle.shadowSize as number;
+    context.shadowBlur = edgeStyle.shadowSize;
   }
   if (edgeStyle.shadowOffsetX) {
-    context.shadowOffsetX = edgeStyle.shadowOffsetX as number;
+    context.shadowOffsetX = edgeStyle.shadowOffsetX;
   }
   if (edgeStyle.shadowOffsetY) {
-    context.shadowOffsetY = edgeStyle.shadowOffsetY as number;
+    context.shadowOffsetY = edgeStyle.shadowOffsetY;
   }
 };
 
