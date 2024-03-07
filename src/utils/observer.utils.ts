@@ -34,8 +34,9 @@ export class Subject implements ISubject {
   }
 
   removeListener(observer: IObserver): void {
-    if (!this.listeners.includes(observer)) {
-      this.listeners.push(observer);
+    const index = this.listeners.indexOf(observer);
+    if (index !== -1) {
+      this.listeners.splice(index, 1);
     }
   }
 
