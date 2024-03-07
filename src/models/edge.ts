@@ -1,7 +1,7 @@
 import { INodeBase, INode } from './node';
 import { GraphObjectState } from './state';
 import { Color, IPosition, ICircle, getDistanceToLine } from '../common';
-import { isArrayOfNumbers } from '../utils/type.utils';
+import { isArrayOfNumbers, isFunction } from '../utils/type.utils';
 import { IObserver, ISubject, Subject } from '../utils/observer.utils';
 import { copyProperties } from '../utils/object.utils';
 
@@ -348,7 +348,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
   setData(data: E): void;
   setData(callback: (edge: IEdge<N, E>) => E): void;
   setData(arg: E | ((edge: IEdge<N, E>) => E)) {
-    if (typeof arg === 'function') {
+    if (isFunction(arg)) {
       this._data = (arg as (edge: IEdge<N, E>) => E)(this);
     } else {
       this._data = arg as E;
@@ -361,7 +361,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
   patchData(arg: Partial<E> | ((edge: IEdge<N, E>) => Partial<E>)) {
     let data: Partial<E>;
 
-    if (typeof arg === 'function') {
+    if (isFunction(arg)) {
       data = (arg as (edge: IEdge<N, E>) => Partial<E>)(this);
     } else {
       data = arg as Partial<E>;
@@ -375,7 +375,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
   setStyle(style: IEdgeStyle): void;
   setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
   setStyle(arg: IEdgeStyle | ((edge: IEdge<N, E>) => IEdgeStyle)): void {
-    if (typeof arg === 'function') {
+    if (isFunction(arg)) {
       this._style = (arg as (edge: IEdge<N, E>) => IEdgeStyle)(this);
     } else {
       this._style = arg as IEdgeStyle;
@@ -388,7 +388,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
   patchStyle(arg: IEdgeStyle | ((edge: IEdge<N, E>) => IEdgeStyle)) {
     let style: IEdgeStyle;
 
-    if (typeof arg === 'function') {
+    if (isFunction(arg)) {
       style = (arg as (edge: IEdge<N, E>) => IEdgeStyle)(this);
     } else {
       style = arg as IEdgeStyle;
@@ -402,7 +402,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
   setState(state: number): void;
   setState(callback: (edge: IEdge<N, E>) => number): void;
   setState(arg: number | ((edge: IEdge<N, E>) => number)): void {
-    if (typeof arg === 'function') {
+    if (isFunction(arg)) {
       this._state = (arg as (edge: IEdge<N, E>) => number)(this);
     } else {
       this._state = arg as number;

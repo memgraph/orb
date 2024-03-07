@@ -4,6 +4,7 @@ import { ImageHandler } from '../services/images';
 import { GraphObjectState } from './state';
 import { IObserver, ISubject, Subject } from '../utils/observer.utils';
 import { copyProperties } from '../utils/object.utils';
+import { isFunction } from '../utils/type.utils';
 
 /**
  * Node baseline object with required fields
@@ -432,7 +433,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
   setData(data: N): void;
   setData(callback: (node: INode<N, E>) => N): void;
   setData(arg: N | ((node: INode<N, E>) => N)) {
-    if (typeof arg === 'function') {
+    if (isFunction(arg)) {
       this._data = (arg as (node: INode<N, E>) => N)(this);
     } else {
       this._data = arg as N;
@@ -445,7 +446,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
   patchData(arg: Partial<N> | ((node: INode<N, E>) => Partial<N>)) {
     let data: Partial<N>;
 
-    if (typeof arg === 'function') {
+    if (isFunction(arg)) {
       data = (arg as (node: INode<N, E>) => Partial<N>)(this);
     } else {
       data = arg as Partial<N>;
@@ -470,7 +471,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
     isInner?: boolean,
   ) {
     let position: INodeCoordinates | INodeMapCoordinates | INodePosition;
-    if (typeof arg === 'function') {
+    if (isFunction(arg)) {
       position = (arg as (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates)(this);
     } else {
       position = arg;
@@ -500,7 +501,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
   setStyle(style: INodeStyle): void;
   setStyle(callback: (node: INode<N, E>) => INodeStyle): void;
   setStyle(arg: INodeStyle | ((node: INode<N, E>) => INodeStyle)): void {
-    if (typeof arg === 'function') {
+    if (isFunction(arg)) {
       this._style = (arg as (node: INode<N, E>) => INodeStyle)(this);
     } else {
       this._style = arg as INodeStyle;
@@ -513,7 +514,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
   patchStyle(arg: INodeStyle | ((node: INode<N, E>) => INodeStyle)) {
     let style: INodeStyle;
 
-    if (typeof arg === 'function') {
+    if (isFunction(arg)) {
       style = (arg as (node: INode<N, E>) => INodeStyle)(this);
     } else {
       style = arg as INodeStyle;
@@ -527,7 +528,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
   setState(state: number): void;
   setState(callback: (node: INode<N, E>) => number): void;
   setState(arg: number | ((node: INode<N, E>) => number)): void {
-    if (typeof arg === 'function') {
+    if (isFunction(arg)) {
       this._state = (arg as (node: INode<N, E>) => number)(this);
     } else {
       this._state = arg as number;
