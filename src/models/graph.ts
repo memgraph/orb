@@ -6,7 +6,7 @@ import { ImageHandler } from '../services/images';
 import { getEdgeOffsets } from './topology';
 import { IEntityState, EntityState } from '../utils/entity.utils';
 import { IObserver, IObserverDataPayload, ISubject, Subject } from '../utils/observer.utils';
-import { copyProperties } from '../utils/object.utils';
+import { patchProperties } from '../utils/object.utils';
 
 export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
   nodes: N[];
@@ -78,7 +78,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
   }
 
   setSettings(settings: Partial<IGraphSettings<N, E>>) {
-    copyProperties(settings, this._settings);
+    patchProperties(this._settings, settings);
     this.notifyListeners();
   }
 

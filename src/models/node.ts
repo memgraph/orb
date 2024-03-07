@@ -3,7 +3,7 @@ import { Color, IPosition, IRectangle, isPointInRectangle } from '../common';
 import { ImageHandler } from '../services/images';
 import { GraphObjectState } from './state';
 import { IObserver, ISubject, Subject } from '../utils/observer.utils';
-import { copyProperties } from '../utils/object.utils';
+import { patchProperties } from '../utils/object.utils';
 import { isFunction } from '../utils/type.utils';
 
 /**
@@ -452,7 +452,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
       data = arg as Partial<N>;
     }
 
-    copyProperties(data, this._data);
+    patchProperties(this._data, data);
 
     this.notifyListeners();
   }
@@ -520,7 +520,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
       style = arg as INodeStyle;
     }
 
-    copyProperties(style, this._style);
+    patchProperties(this._style, style);
 
     this.notifyListeners();
   }

@@ -3,7 +3,7 @@ import { GraphObjectState } from './state';
 import { Color, IPosition, ICircle, getDistanceToLine } from '../common';
 import { isArrayOfNumbers, isFunction } from '../utils/type.utils';
 import { IObserver, ISubject, Subject } from '../utils/observer.utils';
-import { copyProperties } from '../utils/object.utils';
+import { patchProperties } from '../utils/object.utils';
 
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
 const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;
@@ -367,7 +367,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
       data = arg as Partial<E>;
     }
 
-    copyProperties(data, this._data);
+    patchProperties(this._data, data);
 
     this.notifyListeners();
   }
@@ -394,7 +394,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
       style = arg as IEdgeStyle;
     }
 
-    copyProperties(style, this._style);
+    patchProperties(this._style, style);
 
     this.notifyListeners();
   }
