@@ -378,6 +378,27 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
   }
 
   update(data?: IObserverDataPayload): void {
+    if (data && 'type' in data && 'options' in data && 'isSingle' in data.options) {
+      if (data.type === 'node' && data.options.isSingle) {
+        const nodes = this._nodes.getAll();
+
+        for (let i = 0; i < nodes.length; i++) {
+          if (nodes[i].id !== data.id) {
+            nodes[i].clearState();
+          }
+        }
+      }
+
+      if (data.type === 'edge' && data.options.isSingle) {
+        const edges = this._edges.getAll();
+
+        for (let i = 0; i < edges.length; i++) {
+          if (edges[i].id !== data.id) {
+            edges[i].clearState();
+          }
+        }
+      }
+    }
     this.notifyListeners(data);
   }
 

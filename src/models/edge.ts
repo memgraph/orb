@@ -1,5 +1,5 @@
 import { INodeBase, INode } from './node';
-import { GraphObjectState } from './state';
+import { GraphObjectState, IGraphObjectStateParameters } from './state';
 import { Color, IPosition, ICircle, getDistanceToLine } from '../common';
 import { isArrayOfNumbers, isFunction } from '../utils/type.utils';
 import { IObserver, ISubject, Subject } from '../utils/observer.utils';
@@ -120,7 +120,9 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   patchStyle(style: IEdgeStyle): void;
   patchStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
   setState(state: number): void;
+  setState(state: IGraphObjectStateParameters): void;
   setState(callback: (edge: IEdge<N, E>) => number): void;
+  setState(callback: (edge: IEdge<N, E>) => IGraphObjectStateParameters): void;
 }
 
 export interface IEdgeSettings {
@@ -400,14 +402,55 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
   }
 
   setState(state: number): void;
+  setState(state: IGraphObjectStateParameters): void;
   setState(callback: (edge: IEdge<N, E>) => number): void;
-  setState(arg: number | ((edge: IEdge<N, E>) => number)): void {
+  setState(callback: (edge: IEdge<N, E>) => IGraphObjectStateParameters): void;
+  setState(
+    arg:
+      | number
+      | IGraphObjectStateParameters
+      | ((edge: IEdge<N, E>) => number)
+      | ((edge: IEdge<N, E>) => IGraphObjectStateParameters),
+  ): void {
+    let result: number | IGraphObjectStateParameters;
+
     if (isFunction(arg)) {
-      this._state = (arg as (edge: IEdge<N, E>) => number)(this);
+      result = (arg as (edge: IEdge<N, E>) => number | IGraphObjectStateParameters)(this);
     } else {
-      this._state = arg as number;
+      result = arg;
     }
+
+    if (typeof result === 'number') {
+      this._state = result;
+    } else if (typeof result === 'object') {
+      const options = result.options;
+
+      if (options && options.isToggle) {
+        this._toggleState(result.state);
+      } else {
+        this._state = result.state;
+      }
+
+      if (options) {
+        this.notifyListeners({
+          id: this.id,
+          type: 'edge',
+          options: options,
+        });
+
+        return;
+      }
+    }
+
     this.notifyListeners();
+  }
+
+  private _toggleState(state: number) {
+    if (this._state === state) {
+      this._state = GraphObjectState.NONE;
+    } else {
+      this._state = state;
+    }
   }
 }
 

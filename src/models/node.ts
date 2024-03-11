@@ -1,7 +1,7 @@
 import { IEdge, IEdgeBase } from './edge';
 import { Color, IPosition, IRectangle, isPointInRectangle } from '../common';
 import { ImageHandler } from '../services/images';
-import { GraphObjectState } from './state';
+import { GraphObjectState, IGraphObjectStateParameters } from './state';
 import { IObserver, ISubject, Subject } from '../utils/observer.utils';
 import { patchProperties } from '../utils/object.utils';
 import { isFunction } from '../utils/type.utils';
@@ -123,7 +123,9 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   patchStyle(style: INodeStyle): void;
   patchStyle(callback: (node: INode<N, E>) => INodeStyle): void;
   setState(state: number): void;
+  setState(state: IGraphObjectStateParameters): void;
   setState(callback: (node: INode<N, E>) => number): void;
+  setState(callback: (node: INode<N, E>) => IGraphObjectStateParameters): void;
 }
 
 // TODO: Dirty solution: Find another way to listen for global images, maybe through
@@ -461,7 +463,8 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
   setPosition(
     callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition,
     isInner?: boolean,
-  ): void;
+  ): // options: ISetPositionOptions = defaultOptions {isInner: true} + patch Partial options
+  void;
   setPosition(
     arg:
       | INodeCoordinates
@@ -526,17 +529,58 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
   }
 
   setState(state: number): void;
+  setState(state: IGraphObjectStateParameters): void;
   setState(callback: (node: INode<N, E>) => number): void;
-  setState(arg: number | ((node: INode<N, E>) => number)): void {
+  setState(callback: (node: INode<N, E>) => IGraphObjectStateParameters): void;
+  setState(
+    arg:
+      | number
+      | IGraphObjectStateParameters
+      | ((node: INode<N, E>) => number)
+      | ((node: INode<N, E>) => IGraphObjectStateParameters),
+  ): void {
+    let result: number | IGraphObjectStateParameters;
+
     if (isFunction(arg)) {
-      this._state = (arg as (node: INode<N, E>) => number)(this);
+      result = (arg as (node: INode<N, E>) => number | IGraphObjectStateParameters)(this);
     } else {
-      this._state = arg as number;
+      result = arg;
     }
+
+    if (typeof result === 'number') {
+      this._state = result;
+    } else if (typeof result === 'object') {
+      const options = result.options;
+
+      if (options && options.isToggle) {
+        this._toggleState(result.state);
+      } else {
+        this._state = result.state;
+      }
+
+      if (options) {
+        this.notifyListeners({
+          id: this.id,
+          type: 'node',
+          options: options,
+        });
+
+        return;
+      }
+    }
+
     this.notifyListeners();
   }
 
   protected _isPointInBoundingBox(point: IPosition): boolean {
     return isPointInRectangle(this.getBoundingBox(), point);
+  }
+
+  private _toggleState(state: number) {
+    if (this._state === state) {
+      this._state = GraphObjectState.NONE;
+    } else {
+      this._state = state;
+    }
   }
 }
