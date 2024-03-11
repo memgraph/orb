@@ -463,8 +463,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
   setPosition(
     callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition,
     isInner?: boolean,
-  ): // options: ISetPositionOptions = defaultOptions {isInner: true} + patch Partial options
-  void;
+  ): void;
   setPosition(
     arg:
       | INodeCoordinates
