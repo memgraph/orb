@@ -23,8 +23,10 @@ export enum D3SimulatorEngineEventType {
   SIMULATION_PROGRESS = 'simulation-progress',
   SIMULATION_END = 'simulation-end',
   SIMULATION_TICK = 'simulation-tick',
+  SIMULATION_RESET = 'simulation-reset',
   NODE_DRAG = 'node-drag',
   SETTINGS_UPDATE = 'settings-update',
+  DATA_CLEARED = 'data-cleared',
 }
 
 export interface ID3SimulatorEngineSettingsAlpha {
@@ -155,16 +157,16 @@ export type D3SimulatorEvents = {
   [D3SimulatorEngineEventType.SIMULATION_PROGRESS]: ISimulationGraph & ID3SimulatorProgress;
   [D3SimulatorEngineEventType.SIMULATION_END]: ISimulationGraph;
   [D3SimulatorEngineEventType.SIMULATION_TICK]: ISimulationGraph;
+  [D3SimulatorEngineEventType.SIMULATION_RESET]: ISimulationGraph;
   [D3SimulatorEngineEventType.NODE_DRAG]: ISimulationGraph;
   [D3SimulatorEngineEventType.SETTINGS_UPDATE]: ID3SimulatorSettings;
+  [D3SimulatorEngineEventType.DATA_CLEARED]: ISimulationGraph;
 };
 
 export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
-  protected linkForce!: ForceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>;
-  protected simulation!: Simulation<ISimulationNode, undefined>;
-  // TODO(dlozic): Question: I removed readonly here since I'm using _initialSettings to reassign
-  // the settings in resetSettings(). Is this okay? Should I use Object.assign()?
-  protected settings: ID3SimulatorEngineSettings;
+  protected _linkForce!: ForceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>;
+  protected _simulation!: Simulation<ISimulationNode, undefined>;
+  protected _settings: ID3SimulatorEngineSettings;
 
   protected _edges: ISimulationEdge[] = [];
   protected _nodes: ISimulationNode[] = [];
@@ -184,19 +186,12 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
       this._initialSettings = Object.assign(copyObject(DEFAULT_SETTINGS), settings);
     }
 
-    /*
-    // TODO(dlozic): Question: TLastre, settings! are initialized in here, so they are guaranteed
-    // to be defined, hence the (!). This isn't very readable though, but if not like this there would be
-    // code duplication.
-    this.reset();
-    */
-    // TODO(dlozic): Question2 (TLastre) I reverted this to the following and removed the (!) from settings:
-    this.settings = this.resetSettings();
+    this._settings = this.resetSettings();
     this.clearData();
   }
 
   getSettings(): ID3SimulatorEngineSettings {
-    return copyObject(this.settings);
+    return copyObject(this._settings);
   }
 
   /**
@@ -209,22 +204,21 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
       this._initialSettings = Object.assign(copyObject(DEFAULT_SETTINGS), settings);
     }
 
-    // TODO(dlozic): Question: (from line 166, 167) is this then necessary? Why not simple assign?
     const previousSettings = this.getSettings();
-    Object.assign(this.settings, settings);
+    Object.assign(this._settings, settings);
 
-    if (isObjectEqual(this.settings, previousSettings)) {
+    if (isObjectEqual(this._settings, previousSettings)) {
       return;
     }
 
-    this._initSimulation(settings);
-    this.emit(D3SimulatorEngineEventType.SETTINGS_UPDATE, { settings: this.settings });
+    this._applySettingsToSimulation(settings);
+    this.emit(D3SimulatorEngineEventType.SETTINGS_UPDATE, { settings: this._settings });
 
     const hasPhysicsBeenDisabled = previousSettings.isPhysicsEnabled && !settings.isPhysicsEnabled;
 
     if (hasPhysicsBeenDisabled) {
-      this.simulation.stop();
-    } else if (this.settings.isSimulatingOnSettingsUpdate) {
+      this._simulation.stop();
+    } else if (this._settings.isSimulatingOnSettingsUpdate) {
       // this.runSimulation({ isUpdatingSettings: true });
       this.activateSimulation();
     }
@@ -243,7 +237,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   startDragNode() {
     this._isDragging = true;
 
-    if (!this._isStabilizing && this.settings.isPhysicsEnabled) {
+    if (!this._isStabilizing && this._settings.isPhysicsEnabled) {
       this.activateSimulation();
     }
   }
@@ -261,7 +255,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     node.fx = data.x;
     node.fy = data.y;
 
-    if (!this.settings.isPhysicsEnabled) {
+    if (!this._settings.isPhysicsEnabled) {
       node.x = data.x;
       node.y = data.y;
     }
@@ -273,12 +267,12 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   endDragNode(data: ID3SimulatorNodeId) {
     this._isDragging = false;
 
-    if (this.settings.isPhysicsEnabled) {
-      this.simulation.alphaTarget(0);
+    if (this._settings.isPhysicsEnabled) {
+      this._simulation.alphaTarget(0);
     }
     const node = this._nodes[this._nodeIndexByNodeId[data.id]];
     // TODO(dlozic): Add special behavior for sticky nodes that have been dragged
-    if (node && this.settings.isPhysicsEnabled) {
+    if (node && this._settings.isPhysicsEnabled) {
       this.unfixNode(node);
     }
   }
@@ -289,7 +283,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
    */
   activateSimulation() {
     this.unfixNodes(); // If physics is disabled, the nodes get fixed in the callback from the initial setup (`simulation.on('end', () => {})`).
-    this.simulation.alpha(this.settings.alpha.alpha).alphaTarget(this.settings.alpha.alphaTarget).restart();
+    this._simulation.alpha(this._settings.alpha.alpha).alphaTarget(this._settings.alpha.alphaTarget).restart();
   }
 
   setupData(data: ISimulationGraph) {
@@ -297,7 +291,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
     this._initializeNewData(data);
 
-    if (this.settings.isSimulatingOnDataUpdate) {
+    if (this._settings.isSimulatingOnDataUpdate) {
       this._updateSimulationData();
       this._runSimulation();
     }
@@ -306,7 +300,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   mergeData(data: Partial<ISimulationGraph>) {
     this._initializeNewData(data);
 
-    if (this.settings.isSimulatingOnDataUpdate) {
+    if (this._settings.isSimulatingOnDataUpdate) {
       this._updateSimulationData();
       this.activateSimulation();
     }
@@ -314,7 +308,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
   private _initializeNewData(data: Partial<ISimulationGraph>) {
     if (data.nodes) {
-      data.nodes = this._fixDefinedNodes(data.nodes);
+      data.nodes = this._fixAndStickDefinedNodes(data.nodes);
       for (let i = 0; i < data.nodes.length; i += 1) {
         if (this._nodeIndexByNodeId[data.nodes[i].id]) {
           this._nodeIndexByNodeId = {
@@ -337,7 +331,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   }
 
   updateData(data: ISimulationGraph) {
-    data.nodes = this._fixDefinedNodes(data.nodes);
+    data.nodes = this._fixAndStickDefinedNodes(data.nodes);
 
     // Keep existing nodes along with their (x, y, fx, fy) coordinates to avoid
     // rearranging the graph layout.
@@ -357,7 +351,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     // and Memgraph's `id` property which affects the source->target mapping.
     this._edges = data.edges;
 
-    if (this.settings.isSimulatingOnSettingsUpdate) {
+    if (this._settings.isSimulatingOnSettingsUpdate) {
       this._updateSimulationData();
       this.activateSimulation();
     }
@@ -381,12 +375,13 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
    * Removes all internal and D3 simulation node and relationship data.
    */
   clearData() {
-    // TODO(dlozic): Is it okay for this to also reset the simulation? Is the naming right?
+    const nodes = this._nodes;
+    const edges = this._edges;
     this._nodes = [];
     this._edges = [];
     this._setNodeIndexByNodeId();
     this.resetSimulation();
-    // TODO(dlozic): emit an event here (DATA_CLEARED)
+    this.emit(D3SimulatorEngineEventType.DATA_CLEARED, { nodes: nodes, edges: edges });
   }
 
   /**
@@ -394,59 +389,38 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
    */
   private _updateSimulationData() {
     // Update simulation with new data.
-    this.simulation.nodes(this._nodes);
-    this.linkForce.links(this._edges);
-  }
-
-  // Restart vs start? re-heat is restart, start resumes stopped? can it perform both functions?
-  // !!! Yeah, pause and resume should have an effect on the progress, while start and stop resets the progress.
-  /**
-   * Starts the D3 simulation if it is stopped.
-   * If the simulation is already running, this action will do nothing.
-   */
-  startSimulation() {
-    // Consider `resumeSimulation()`
-  }
-
-  /**
-   * If the simulation is running
-   * Call `startSimulation()` to resume
-   */
-  stopSimulation() {
-    // Consider `pauseSimulation()`
-    this.simulation.stop();
-    this._nodes = [];
-    this._edges = [];
-    this._setNodeIndexByNodeId();
-    this._updateSimulationData();
+    this._simulation.nodes(this._nodes);
+    this._linkForce.links(this._edges);
   }
 
   /**
    * Resets the simulator engine by discarding all existing simulator data (nodes and edges),
    * and keeping the current simulator engine settings.
    */
+  // TODO(Alex): Listeners memory leak (D3 force research)
   resetSimulation() {
-    this.linkForce = forceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>(this._edges).id(
+    this._linkForce = forceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>(this._edges).id(
       (node) => node.id,
     );
-    this.simulation = forceSimulation(this._nodes).force('link', this.linkForce).stop();
+    this._simulation = forceSimulation(this._nodes).force('link', this._linkForce).stop();
 
-    this._initSimulation(this.settings);
+    this._applySettingsToSimulation(this._settings);
 
-    this.simulation.on('tick', () => {
+    this._simulation.on('tick', () => {
       this.emit(D3SimulatorEngineEventType.SIMULATION_TICK, { nodes: this._nodes, edges: this._edges });
     });
 
-    this.simulation.on('end', () => {
+    this._simulation.on('end', () => {
       this._isDragging = false;
       this._isStabilizing = false;
       this.emit(D3SimulatorEngineEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
 
-      if (!this.settings.isPhysicsEnabled) {
+      if (!this._settings.isPhysicsEnabled) {
         this.fixNodes();
       }
     });
-    // TODO(dlozic): emit an event here (SIMULATION_RESET)
+
+    this.emit(D3SimulatorEngineEventType.SIMULATION_RESET, { nodes: this._nodes, edges: this._edges });
   }
 
   /**
@@ -544,7 +518,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
       this.unstickNode(this._nodes[i]);
     }
 
-    if (this.settings.isSimulatingOnUnstick) {
+    if (this._settings.isSimulatingOnUnstick) {
       this.activateSimulation();
     }
   }
@@ -572,7 +546,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     node.sx = null;
     node.sy = null;
 
-    if (this.settings.isPhysicsEnabled) {
+    if (this._settings.isPhysicsEnabled) {
       node.fx = null;
       node.fy = null;
     }
@@ -587,9 +561,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
    * @param {ISimulationNode[]} nodes Graph nodes.
    * @return {ISimulationNodes[]} Graph nodes with attached `{fx, sx}`, and/or `{fy, sy}` coordinates.
    */
-  // _fixAndStick?
-  private _fixDefinedNodes(nodes: ISimulationNode[]): ISimulationNode[] {
-    // TODO(dlozic): Question: should this function be extracted or should i use `this.data` everywhere and remove inputs/outputs?
+  private _fixAndStickDefinedNodes(nodes: ISimulationNode[]): ISimulationNode[] {
     for (let i = 0; i < nodes.length; i++) {
       if (nodes[i].x !== null && nodes[i].x !== undefined) {
         nodes[i].fx = nodes[i].x;
@@ -604,31 +576,30 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   }
 
   /**
-   * Initializes the D3 simulation by applying the provided settings.
+   * Applies the provided settings to the D3 simulation.
    *
    * @param {ID3SimulatorEngineSettingsUpdate} settings Simulator engine settings
    */
-  private _initSimulation(settings: ID3SimulatorEngineSettingsUpdate) {
-    // TODO(dlozic): Question: better naming - applySettingsToSimulation?
+  private _applySettingsToSimulation(settings: ID3SimulatorEngineSettingsUpdate) {
     if (settings.alpha) {
-      this.simulation
+      this._simulation
         .alpha(settings.alpha.alpha)
         .alphaMin(settings.alpha.alphaMin)
         .alphaDecay(settings.alpha.alphaDecay)
         .alphaTarget(settings.alpha.alphaTarget);
     }
     if (settings.links) {
-      this.linkForce.distance(settings.links.distance).iterations(settings.links.iterations);
+      this._linkForce.distance(settings.links.distance).iterations(settings.links.iterations);
     }
     if (settings.collision) {
       const collision = forceCollide()
         .radius(settings.collision.radius)
         .strength(settings.collision.strength)
         .iterations(settings.collision.iterations);
-      this.simulation.force('collide', collision);
+      this._simulation.force('collide', collision);
     }
     if (settings.collision === null) {
-      this.simulation.force('collide', null);
+      this._simulation.force('collide', null);
     }
     if (settings.manyBody) {
       const manyBody = forceManyBody()
@@ -636,31 +607,31 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
         .theta(settings.manyBody.theta)
         .distanceMin(settings.manyBody.distanceMin)
         .distanceMax(settings.manyBody.distanceMax);
-      this.simulation.force('charge', manyBody);
+      this._simulation.force('charge', manyBody);
     }
     if (settings.manyBody === null) {
-      this.simulation.force('charge', null);
+      this._simulation.force('charge', null);
     }
     if (settings.positioning?.forceY) {
       const positioningForceX = forceX(settings.positioning.forceX.x).strength(settings.positioning.forceX.strength);
-      this.simulation.force('x', positioningForceX);
+      this._simulation.force('x', positioningForceX);
     }
     if (settings.positioning?.forceX === null) {
-      this.simulation.force('x', null);
+      this._simulation.force('x', null);
     }
     if (settings.positioning?.forceY) {
       const positioningForceY = forceY(settings.positioning.forceY.y).strength(settings.positioning.forceY.strength);
-      this.simulation.force('y', positioningForceY);
+      this._simulation.force('y', positioningForceY);
     }
     if (settings.positioning?.forceY === null) {
-      this.simulation.force('y', null);
+      this._simulation.force('y', null);
     }
     if (settings.centering) {
       const centering = forceCenter(settings.centering.x, settings.centering.y).strength(settings.centering.strength);
-      this.simulation.force('center', centering);
+      this._simulation.force('center', centering);
     }
     if (settings.centering === null) {
-      this.simulation.force('center', null);
+      this._simulation.force('center', null);
     }
   }
 
@@ -670,17 +641,17 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     if (this._isStabilizing) {
       return;
     }
-    if (this.settings.isPhysicsEnabled || options?.isUpdatingSettings) {
+    if (this._settings.isPhysicsEnabled || options?.isUpdatingSettings) {
       this.unfixNodes();
     }
 
     this.emit(D3SimulatorEngineEventType.SIMULATION_START, undefined);
 
     this._isStabilizing = true;
-    this.simulation.alpha(this.settings.alpha.alpha).alphaTarget(this.settings.alpha.alphaTarget).stop();
+    this._simulation.alpha(this._settings.alpha.alpha).alphaTarget(this._settings.alpha.alphaTarget).stop();
 
     const totalSimulationSteps = Math.ceil(
-      Math.log(this.settings.alpha.alphaMin) / Math.log(1 - this.settings.alpha.alphaDecay),
+      Math.log(this._settings.alpha.alphaMin) / Math.log(1 - this._settings.alpha.alphaDecay),
     );
 
     let lastProgress = -1;
@@ -695,10 +666,10 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
           progress: currentProgress / 100,
         });
       }
-      this.simulation.tick();
+      this._simulation.tick();
     }
 
-    if (!this.settings.isPhysicsEnabled) {
+    if (!this._settings.isPhysicsEnabled) {
       this.fixNodes();
     }
 
