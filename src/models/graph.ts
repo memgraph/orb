@@ -263,7 +263,6 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     this._settings?.onMergeData?.(data);
   }
 
-  // TODO(dlozic): Add delete all mechanic.
   remove(data: Partial<{ nodeIds: number[]; edgeIds: number[] }>) {
     const nodeIds = data.nodeIds ?? [];
     const edgeIds = data.edgeIds ?? [];
@@ -274,7 +273,35 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     this._applyEdgeOffsets();
     this._applyStyle();
 
-    this._settings?.onRemoveData?.(data);
+    if (this._settings && this._settings.onRemoveData) {
+      this._settings.onRemoveData(data);
+    }
+  }
+
+  removeAll() {
+    const nodeIds = this._nodes.getAll().map((node) => node.id);
+    const edgeIds = this._edges.getAll().map((edge) => edge.id);
+
+    this._removeNodes(nodeIds);
+    this._removeEdges(edgeIds);
+
+    if (this._settings && this._settings.onRemoveData) {
+      this._settings.onRemoveData({ nodeIds, edgeIds });
+    }
+  }
+
+  removeAllEdges() {
+    const edgeIds = this._edges.getAll().map((edge) => edge.id);
+
+    this._removeEdges(edgeIds);
+
+    if (this._settings && this._settings.onRemoveData) {
+      this._settings.onRemoveData({ edgeIds });
+    }
+  }
+
+  removeAllNodes() {
+    this.removeAll();
   }
 
   isEqual<T extends INodeBase, K extends IEdgeBase>(graph: Graph<T, K>): boolean {
