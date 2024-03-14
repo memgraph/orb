@@ -1,10 +1,10 @@
 import { IEdge, IEdgeBase } from './edge';
 import { Color, IPosition, IRectangle, isPointInRectangle } from '../common';
 import { ImageHandler } from '../services/images';
-import { GraphObjectState, IGraphObjectStateParameters } from './state';
+import { GraphObjectState, IGraphObjectStateOptions, IGraphObjectStateParameters } from './state';
 import { IObserver, ISubject, Subject } from '../utils/observer.utils';
 import { patchProperties } from '../utils/object.utils';
-import { isFunction } from '../utils/type.utils';
+import { isFunction, isNumber, isPlainObject } from '../utils/type.utils';
 
 /**
  * Node baseline object with required fields
@@ -546,26 +546,20 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
       result = arg;
     }
 
-    if (typeof result === 'number') {
+    if (isNumber(result)) {
       this._state = result;
-    } else if (typeof result === 'object') {
+    } else if (isPlainObject(result) && result.options) {
       const options = result.options;
 
-      if (options && options.isToggle) {
-        this._toggleState(result.state);
-      } else {
-        this._state = result.state;
-      }
+      this._state = this._handleState(result.state, options);
 
-      if (options) {
-        this.notifyListeners({
-          id: this.id,
-          type: 'node',
-          options: options,
-        });
+      this.notifyListeners({
+        id: this.id,
+        type: 'node',
+        options: options,
+      });
 
-        return;
-      }
+      return;
     }
 
     this.notifyListeners();
@@ -575,11 +569,11 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
     return isPointInRectangle(this.getBoundingBox(), point);
   }
 
-  private _toggleState(state: number) {
-    if (this._state === state) {
-      this._state = GraphObjectState.NONE;
+  private _handleState(state: number, options: IGraphObjectStateOptions): number {
+    if (options.isToggle && this._state === state) {
+      return GraphObjectState.NONE;
     } else {
-      this._state = state;
+      return state;
     }
   }
 }

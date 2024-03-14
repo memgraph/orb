@@ -1,7 +1,7 @@
 import { INodeBase, INode } from './node';
-import { GraphObjectState, IGraphObjectStateParameters } from './state';
+import { GraphObjectState, IGraphObjectStateOptions, IGraphObjectStateParameters } from './state';
 import { Color, IPosition, ICircle, getDistanceToLine } from '../common';
-import { isArrayOfNumbers, isFunction } from '../utils/type.utils';
+import { isArrayOfNumbers, isFunction, isNumber, isPlainObject } from '../utils/type.utils';
 import { IObserver, ISubject, Subject } from '../utils/observer.utils';
 import { patchProperties } from '../utils/object.utils';
 
@@ -420,36 +420,30 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
       result = arg;
     }
 
-    if (typeof result === 'number') {
+    if (isNumber(result)) {
       this._state = result;
-    } else if (typeof result === 'object') {
+    } else if (isPlainObject(result) && result.options) {
       const options = result.options;
 
-      if (options && options.isToggle) {
-        this._toggleState(result.state);
-      } else {
-        this._state = result.state;
-      }
+      this._state = this._handleState(result.state, options);
 
-      if (options) {
-        this.notifyListeners({
-          id: this.id,
-          type: 'edge',
-          options: options,
-        });
+      this.notifyListeners({
+        id: this.id,
+        type: 'edge',
+        options: options,
+      });
 
-        return;
-      }
+      return;
     }
 
     this.notifyListeners();
   }
 
-  private _toggleState(state: number) {
-    if (this._state === state) {
-      this._state = GraphObjectState.NONE;
+  private _handleState(state: number, options: IGraphObjectStateOptions): number {
+    if (options.isToggle && this._state === state) {
+      return GraphObjectState.NONE;
     } else {
-      this._state = state;
+      return state;
     }
   }
 }
