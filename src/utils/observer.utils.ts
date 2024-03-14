@@ -1,6 +1,6 @@
-import { INodeCoordinates, INodeMapCoordinates, INodePosition } from '../models/node';
+import { INodeCoordinates, INodePosition } from '../models/node';
 
-export type IObserverDataPayload = INodePosition | INodeCoordinates | INodeMapCoordinates;
+export type IObserverDataPayload = INodePosition | INodeCoordinates;
 
 export interface IObserver {
   update(data?: IObserverDataPayload): void;

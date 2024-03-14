@@ -456,7 +456,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase>
       }
 
       const layerPoint = this._leaflet.latLngToLayerPoint([coordinates.lat, coordinates.lng]);
-      nodes[i].setPosition(layerPoint, true);
+      nodes[i].setPosition(layerPoint, { isNotifySkipped: true });
     }
   }
 
