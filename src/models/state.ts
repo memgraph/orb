@@ -8,17 +8,17 @@ export const GraphObjectState = {
 };
 
 export interface IGraphObjectStateOptions {
-  isToggle?: boolean;
-  isSingle?: boolean;
+  isToggle: boolean;
+  isSingle: boolean;
 }
 
 export interface IGraphObjectStateParameters {
   state: number;
-  options: IGraphObjectStateOptions;
+  options?: Partial<IGraphObjectStateOptions>;
 }
 
 export interface ISetStateDataPayload {
   id: any;
   type: GraphObject;
-  options: IGraphObjectStateOptions;
+  options: Partial<IGraphObjectStateOptions>;
 }

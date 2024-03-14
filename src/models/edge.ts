@@ -422,25 +422,27 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
 
     if (isNumber(result)) {
       this._state = result;
-    } else if (isPlainObject(result) && result.options) {
+    } else if (isPlainObject(result)) {
       const options = result.options;
 
       this._state = this._handleState(result.state, options);
 
-      this.notifyListeners({
-        id: this.id,
-        type: 'edge',
-        options: options,
-      });
+      if (options) {
+        this.notifyListeners({
+          id: this.id,
+          type: 'edge',
+          options: options,
+        });
 
-      return;
+        return;
+      }
     }
 
     this.notifyListeners();
   }
 
-  private _handleState(state: number, options: IGraphObjectStateOptions): number {
-    if (options.isToggle && this._state === state) {
+  private _handleState(state: number, options?: Partial<IGraphObjectStateOptions>): number {
+    if (options?.isToggle && this._state === state) {
       return GraphObjectState.NONE;
     } else {
       return state;
