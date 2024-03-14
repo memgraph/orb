@@ -286,7 +286,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase>
       for (let i = 0; i < nodes.length; i++) {
         const position = this._settings.getPosition(nodes[i]);
         if (position) {
-          nodes[i].setPosition({ id: nodes[i].getId(), ...position }, true);
+          nodes[i].setPosition({ id: nodes[i].getId(), ...position }, { isNotifySkipped: true });
         }
       }
     }

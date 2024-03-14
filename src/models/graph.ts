@@ -200,7 +200,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     for (let i = 0; i < positions.length; i++) {
       const node = this._nodes.getOne(positions[i].id);
       if (node) {
-        node.setPosition(positions[i], true);
+        node.setPosition(positions[i], { isNotifySkipped: true });
       }
     }
   }
@@ -422,7 +422,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
       const existingNode = this.getNodeById(nodes[i].id);
       if (existingNode) {
         existingNode.setData(nodes[i]);
-        existingNode.setPosition(nodes[i], true);
+        existingNode.setPosition(nodes[i], { isNotifySkipped: true });
         continue;
       }
 

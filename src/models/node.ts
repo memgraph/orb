@@ -34,6 +34,10 @@ export interface INodeMapCoordinates {
   lng: number;
 }
 
+export interface INodeSetPositionOptions {
+  isNotifySkipped: boolean;
+}
+
 export enum NodeShapeType {
   CIRCLE = 'circle',
   DOT = 'dot',
@@ -113,10 +117,13 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   setData(callback: (node: INode<N, E>) => N): void;
   patchData(data: Partial<N>): void;
   patchData(callback: (node: INode<N, E>) => Partial<N>): void;
-  setPosition(position: INodeCoordinates | INodeMapCoordinates | INodePosition, call: boolean): void;
+  setPosition(
+    position: INodeCoordinates | INodeMapCoordinates | INodePosition,
+    options?: INodeSetPositionOptions,
+  ): void;
   setPosition(
     callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition,
-    call: boolean,
+    options?: INodeSetPositionOptions,
   ): void;
   setStyle(style: INodeStyle): void;
   setStyle(callback: (node: INode<N, E>) => INodeStyle): void;
@@ -457,10 +464,13 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
     this.notifyListeners();
   }
 
-  setPosition(position: INodeCoordinates | INodeMapCoordinates | INodePosition, isInner?: boolean): void;
+  setPosition(
+    position: INodeCoordinates | INodeMapCoordinates | INodePosition,
+    options?: INodeSetPositionOptions,
+  ): void;
   setPosition(
     callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition,
-    isInner?: boolean,
+    options?: INodeSetPositionOptions,
   ): void;
   setPosition(
     arg:
@@ -468,7 +478,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
       | INodeMapCoordinates
       | INodePosition
       | ((node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition),
-    isInner?: boolean,
+    options?: INodeSetPositionOptions,
   ) {
     let position: INodeCoordinates | INodeMapCoordinates | INodePosition;
     if (isFunction(arg)) {
@@ -493,7 +503,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
       };
     }
 
-    if (!isInner) {
+    if (!options?.isNotifySkipped) {
       this.notifyListeners({ id: this.id, ...position });
     }
   }
