@@ -47,7 +47,7 @@ export interface IGraphSettings<N extends INodeBase, E extends IEdgeBase> {
   onLoadedImages?: () => void;
   onSetupData?: (data: Partial<IGraphData<N, E>>) => void;
   onMergeData?: (data: Partial<IGraphData<N, E>>) => void;
-  onRemoveData?: (data: Partial<{ nodeIds: number[]; edgeIds: number[] }>) => void;
+  onRemoveData?: (data: Partial<{ nodeIds: any[]; edgeIds: any[] }>) => void;
 }
 
 export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N, E> {
@@ -267,14 +267,19 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     const nodeIds = data.nodeIds ?? [];
     const edgeIds = data.edgeIds ?? [];
 
-    this._removeNodes(nodeIds);
-    this._removeEdges(edgeIds);
+    const removedData = this._removeNodes(nodeIds);
+    const removedEdgeIds = this._removeEdges(edgeIds);
+
+    // Merge edges removed by removing nodes and by removing edges, ensuring there are no duplicate edge IDs.
+    removedData.edgeIds = removedData.edgeIds.concat(
+      removedEdgeIds.filter((edgeId) => removedData.edgeIds.indexOf(edgeId) < 0),
+    );
 
     this._applyEdgeOffsets();
     this._applyStyle();
 
     if (this._settings && this._settings.onRemoveData) {
-      this._settings.onRemoveData(data);
+      this._settings.onRemoveData(removedData);
     }
   }
 
@@ -282,22 +287,13 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     const nodeIds = this._nodes.getAll().map((node) => node.id);
     const edgeIds = this._edges.getAll().map((edge) => edge.id);
 
-    this._removeNodes(nodeIds);
-    this._removeEdges(edgeIds);
-
-    if (this._settings && this._settings.onRemoveData) {
-      this._settings.onRemoveData({ nodeIds, edgeIds });
-    }
+    this.remove({ nodeIds, edgeIds });
   }
 
   removeAllEdges() {
     const edgeIds = this._edges.getAll().map((edge) => edge.id);
 
-    this._removeEdges(edgeIds);
-
-    if (this._settings && this._settings.onRemoveData) {
-      this._settings.onRemoveData({ edgeIds });
-    }
+    this.remove({ edgeIds });
   }
 
   removeAllNodes() {
@@ -501,7 +497,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     this._edges.removeMany(removedEdgeIds);
   }
 
-  private _removeNodes(nodeIds: any[]) {
+  private _removeNodes(nodeIds: any[]): { nodeIds: any[]; edgeIds: any[] } {
     const removedNodeIds: any[] = [];
     const removedEdgeIds: any[] = [];
 
@@ -523,9 +519,11 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     }
     this._nodes.removeMany(removedNodeIds);
     this._edges.removeMany(removedEdgeIds);
+
+    return { nodeIds: removedNodeIds, edgeIds: removedEdgeIds };
   }
 
-  private _removeEdges(edgeIds: any[]) {
+  private _removeEdges(edgeIds: any[]): any[] {
     const removedEdgeIds: any[] = [];
 
     for (let i = 0; i < edgeIds.length; i++) {
@@ -539,6 +537,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
       removedEdgeIds.push(edge.id);
     }
     this._edges.removeMany(removedEdgeIds);
+
+    return removedEdgeIds;
   }
 
   private _applyEdgeOffsets() {
