@@ -279,15 +279,15 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     const removedNodesData = this._removeNodes(nodeIds);
     const removedEdgesData = this._removeEdges(edgeIds);
 
-    const removedData = {
-      nodeIds: dedupArrays(removedNodesData.nodeIds, removedEdgesData.nodeIds),
-      edgeIds: dedupArrays(removedNodesData.edgeIds, removedEdgesData.edgeIds),
-    };
-
     this._applyEdgeOffsets();
     this._applyStyle();
 
     if (this._settings && this._settings.onRemoveData) {
+      const removedData: IGraphObjectsIds = {
+        nodeIds: dedupArrays(removedNodesData.nodeIds, removedEdgesData.nodeIds),
+        edgeIds: dedupArrays(removedNodesData.edgeIds, removedEdgesData.edgeIds),
+      };
+
       this._settings.onRemoveData(removedData);
     }
   }
