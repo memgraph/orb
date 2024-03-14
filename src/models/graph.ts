@@ -5,10 +5,16 @@ import { IGraphStyle } from './style';
 import { ImageHandler } from '../services/images';
 import { getEdgeOffsets } from './topology';
 import { IEntityState, EntityState } from '../utils/entity.utils';
+import { dedupArrays } from '../utils/array.utils';
 
 export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
   nodes: N[];
   edges: E[];
+}
+
+export interface IGraphObjectsIds {
+  nodeIds: any[];
+  edgeIds: any[];
 }
 
 export type IEdgeFilter<N extends INodeBase, E extends IEdgeBase> = (edge: IEdge<N, E>) => boolean;
@@ -33,7 +39,10 @@ export interface IGraph<N extends INodeBase, E extends IEdgeBase> {
   setup(data: Partial<IGraphData<N, E>>): void;
   clearPositions(): void;
   merge(data: Partial<IGraphData<N, E>>): void;
-  remove(data: Partial<{ nodeIds: number[]; edgeIds: number[] }>): void;
+  remove(data: Partial<IGraphObjectsIds>): void;
+  removeAll(): void;
+  removeAllNodes(): void;
+  removeAllEdges(): void;
   isEqual<T extends INodeBase, K extends IEdgeBase>(graph: Graph<T, K>): boolean;
   getBoundingBox(): IRectangle;
   getNearestNode(point: IPosition): INode<N, E> | undefined;
@@ -47,7 +56,7 @@ export interface IGraphSettings<N extends INodeBase, E extends IEdgeBase> {
   onLoadedImages?: () => void;
   onSetupData?: (data: Partial<IGraphData<N, E>>) => void;
   onMergeData?: (data: Partial<IGraphData<N, E>>) => void;
-  onRemoveData?: (data: Partial<{ nodeIds: any[]; edgeIds: any[] }>) => void;
+  onRemoveData?: (data: Partial<IGraphObjectsIds>) => void;
 }
 
 export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N, E> {
@@ -263,17 +272,17 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     this._settings?.onMergeData?.(data);
   }
 
-  remove(data: Partial<{ nodeIds: number[]; edgeIds: number[] }>) {
+  remove(data: Partial<IGraphObjectsIds>) {
     const nodeIds = data.nodeIds ?? [];
     const edgeIds = data.edgeIds ?? [];
 
-    const removedData = this._removeNodes(nodeIds);
-    const removedEdgeIds = this._removeEdges(edgeIds);
+    const removedNodesData = this._removeNodes(nodeIds);
+    const removedEdgesData = this._removeEdges(edgeIds);
 
-    // Merge edges removed by removing nodes and by removing edges, ensuring there are no duplicate edge IDs.
-    removedData.edgeIds = removedData.edgeIds.concat(
-      removedEdgeIds.filter((edgeId) => removedData.edgeIds.indexOf(edgeId) < 0),
-    );
+    const removedData = {
+      nodeIds: dedupArrays(removedNodesData.nodeIds, removedEdgesData.nodeIds),
+      edgeIds: dedupArrays(removedNodesData.edgeIds, removedEdgesData.edgeIds),
+    };
 
     this._applyEdgeOffsets();
     this._applyStyle();
@@ -497,7 +506,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     this._edges.removeMany(removedEdgeIds);
   }
 
-  private _removeNodes(nodeIds: any[]): { nodeIds: any[]; edgeIds: any[] } {
+  private _removeNodes(nodeIds: any[]): IGraphObjectsIds {
     const removedNodeIds: any[] = [];
     const removedEdgeIds: any[] = [];
 
@@ -523,7 +532,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     return { nodeIds: removedNodeIds, edgeIds: removedEdgeIds };
   }
 
-  private _removeEdges(edgeIds: any[]): any[] {
+  private _removeEdges(edgeIds: any[]): IGraphObjectsIds {
     const removedEdgeIds: any[] = [];
 
     for (let i = 0; i < edgeIds.length; i++) {
@@ -538,7 +547,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> implements IGraph<N
     }
     this._edges.removeMany(removedEdgeIds);
 
-    return removedEdgeIds;
+    return { nodeIds: [], edgeIds: removedEdgeIds };
   }
 
   private _applyEdgeOffsets() {
