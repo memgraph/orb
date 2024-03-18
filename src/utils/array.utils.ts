@@ -15,3 +15,8 @@ export const copyArray = <T>(array: Array<T>): Array<T> => {
   }
   return newArray;
 };
+
+export const dedupArrays = <T>(...arrays: T[][]): T[] => {
+  const combinedArray = arrays.reduce((acc, curr) => acc.concat(curr), []);
+  return Array.from(new Set(combinedArray));
+};
