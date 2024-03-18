@@ -2,9 +2,8 @@ import { INodeCoordinates, INodePosition } from '../models/node';
 
 export type IObserverDataPayload = INodePosition | INodeCoordinates;
 
-export interface IObserver {
-  update(data?: IObserverDataPayload): void;
-}
+// Using callbacks here to ensure that the Observer update is abstracted from the user
+export type IObserver = (data?: IObserverDataPayload) => void;
 
 export interface ISubject {
   listeners: IObserver[];
@@ -42,7 +41,7 @@ export class Subject implements ISubject {
 
   notifyListeners(data?: IObserverDataPayload): void {
     for (let i = 0; i < this.listeners.length; i++) {
-      this.listeners[i].update(data);
+      this.listeners[i](data);
     }
   }
 }

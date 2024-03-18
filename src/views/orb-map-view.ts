@@ -66,9 +66,7 @@ export type IOrbMapViewSettingsUpdate<N extends INodeBase, E extends IEdgeBase> 
   IOrbMapViewSettingsInit<N, E>
 >;
 
-export class OrbMapView<N extends INodeBase, E extends IEdgeBase>
-  // eslint-disable-next-line prettier/prettier
-  implements IObserver, IOrbView<N, E, IOrbMapViewSettings<N, E>> {
+export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E, IOrbMapViewSettings<N, E>> {
   private _container: HTMLElement;
   private _resizeObs: ResizeObserver;
   private _graph: IGraph<N, E>;
@@ -92,7 +90,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase>
           this.render();
         }
       },
-      listeners: [this],
+      listeners: [this._update],
     });
     this._graph.setDefaultStyle(getDefaultGraphStyle());
     this._events = new OrbEmitter<N, E>();
@@ -230,9 +228,9 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase>
     this._canvas.outerHTML = '';
   }
 
-  update(): void {
+  private _update: IObserver = (): void => {
     this.render();
-  }
+  };
 
   private _initCanvas() {
     const canvas = document.createElement('canvas');
