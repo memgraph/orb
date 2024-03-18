@@ -315,15 +315,21 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
   patchData(data: Partial<ISimulationGraph>) {
     if (data.nodes) {
       data.nodes = this._fixDefinedNodes(data.nodes);
-      const nodeIds = this._nodes.map((node) => node.id);
+      const nodeIds: { [id: number]: number } = {};
+
+      for (let i = 0; i < this._nodes.length; i++) {
+        nodeIds[this._nodes[i].id] = i;
+      }
+
       for (let i = 0; i < data.nodes.length; i += 1) {
-        if (nodeIds.includes(data.nodes[i].id)) {
-          this._nodeIndexByNodeId = {
-            ...this._nodeIndexByNodeId,
-            ...data.nodes[i],
-          };
-          const index = this._nodes.findIndex((node) => data.nodes && node.id === data.nodes[i].id);
+        const nodeId: any = data.nodes[i].id;
+
+        if (nodeId in nodeIds) {
+          const index = nodeIds[nodeId];
+          this._nodeIndexByNodeId[nodeId] = index;
           this._nodes[index] = data.nodes[i];
+        } else {
+          this._nodes.push(data.nodes[i]);
         }
       }
     }
@@ -337,11 +343,10 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     if (data.nodes) {
       data.nodes = this._fixDefinedNodes(data.nodes);
       for (let i = 0; i < data.nodes.length; i += 1) {
-        if (this._nodeIndexByNodeId[data.nodes[i].id]) {
-          this._nodeIndexByNodeId = {
-            ...this._nodeIndexByNodeId,
-            ...data.nodes[i],
-          };
+        const nodeId = data.nodes[i].id;
+
+        if (this._nodeIndexByNodeId[nodeId]) {
+          this._nodeIndexByNodeId[nodeId] = i;
         } else {
           this._nodes.push(data.nodes[i]);
         }
