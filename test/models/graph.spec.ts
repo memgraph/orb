@@ -726,17 +726,17 @@ describe('Graph', () => {
       graph.setup({ nodes, edges });
 
       graph.getNodes().forEach((node) => {
-        expect(node.style).toEqual({});
+        expect(node.getStyle()).toEqual({});
       });
 
       graph.getEdges().forEach((edge) => {
-        expect(edge.style).toEqual(edgeStyle);
+        expect(edge.getStyle()).toEqual(edgeStyle);
       });
 
       graph.remove({ edgeIds: graph.getEdges().map((edge) => edge.id) });
 
       graph.getNodes().forEach((node) => {
-        expect(node.style).toEqual(nodeStyle);
+        expect(node.getStyle()).toEqual(nodeStyle);
       });
     });
   });
