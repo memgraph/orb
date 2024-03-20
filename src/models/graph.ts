@@ -7,10 +7,16 @@ import { getEdgeOffsets } from './topology';
 import { IEntityState, EntityState } from '../utils/entity.utils';
 import { IObserver, IObserverDataPayload, ISubject, Subject } from '../utils/observer.utils';
 import { patchProperties } from '../utils/object.utils';
+import { dedupArrays } from '../utils/array.utils';
 
 export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
   nodes: N[];
   edges: E[];
+}
+
+export interface IGraphObjectsIds {
+  nodeIds: any[];
+  edgeIds: any[];
 }
 
 export type IEdgeFilter<N extends INodeBase, E extends IEdgeBase> = (edge: IEdge<N, E>) => boolean;
@@ -35,7 +41,10 @@ export interface IGraph<N extends INodeBase, E extends IEdgeBase> extends ISubje
   setup(data: Partial<IGraphData<N, E>>): void;
   clearPositions(): void;
   merge(data: Partial<IGraphData<N, E>>): void;
-  remove(data: Partial<{ nodeIds: number[]; edgeIds: number[] }>): void;
+  remove(data: Partial<IGraphObjectsIds>): void;
+  removeAll(): void;
+  removeAllNodes(): void;
+  removeAllEdges(): void;
   isEqual<T extends INodeBase, K extends IEdgeBase>(graph: Graph<T, K>): boolean;
   getBoundingBox(): IRectangle;
   getNearestNode(point: IPosition): INode<N, E> | undefined;
@@ -49,7 +58,7 @@ export interface IGraphSettings<N extends INodeBase, E extends IEdgeBase> {
   onLoadedImages?: () => void;
   onSetupData?: (data: Partial<IGraphData<N, E>>) => void;
   onMergeData?: (data: Partial<IGraphData<N, E>>) => void;
-  onRemoveData?: (data: Partial<{ nodeIds: number[]; edgeIds: number[] }>) => void;
+  onRemoveData?: (data: Partial<IGraphObjectsIds>) => void;
   listeners?: IObserver[];
 }
 
@@ -269,18 +278,41 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     this._settings?.onMergeData?.(data);
   }
 
-  // TODO(dlozic): Add delete all mechanic.
-  remove(data: Partial<{ nodeIds: number[]; edgeIds: number[] }>) {
+  remove(data: Partial<IGraphObjectsIds>) {
     const nodeIds = data.nodeIds ?? [];
     const edgeIds = data.edgeIds ?? [];
 
-    this._removeNodes(nodeIds);
-    this._removeEdges(edgeIds);
+    const removedNodesData = this._removeNodes(nodeIds);
+    const removedEdgesData = this._removeEdges(edgeIds);
 
     this._applyEdgeOffsets();
     this._applyStyle();
 
-    this._settings?.onRemoveData?.(data);
+    if (this._settings && this._settings.onRemoveData) {
+      const removedData: IGraphObjectsIds = {
+        nodeIds: dedupArrays(removedNodesData.nodeIds, removedEdgesData.nodeIds),
+        edgeIds: dedupArrays(removedNodesData.edgeIds, removedEdgesData.edgeIds),
+      };
+
+      this._settings.onRemoveData(removedData);
+    }
+  }
+
+  removeAll() {
+    const nodeIds = this._nodes.getAll().map((node) => node.id);
+    const edgeIds = this._edges.getAll().map((edge) => edge.id);
+
+    this.remove({ nodeIds, edgeIds });
+  }
+
+  removeAllEdges() {
+    const edgeIds = this._edges.getAll().map((edge) => edge.id);
+
+    this.remove({ edgeIds });
+  }
+
+  removeAllNodes() {
+    this.removeAll();
   }
 
   isEqual<T extends INodeBase, K extends IEdgeBase>(graph: Graph<T, K>): boolean {
@@ -527,7 +559,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     this._edges.removeMany(removedEdgeIds);
   }
 
-  private _removeNodes(nodeIds: any[]) {
+  private _removeNodes(nodeIds: any[]): IGraphObjectsIds {
     const removedNodeIds: any[] = [];
     const removedEdgeIds: any[] = [];
 
@@ -549,9 +581,11 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     }
     this._nodes.removeMany(removedNodeIds);
     this._edges.removeMany(removedEdgeIds);
+
+    return { nodeIds: removedNodeIds, edgeIds: removedEdgeIds };
   }
 
-  private _removeEdges(edgeIds: any[]) {
+  private _removeEdges(edgeIds: any[]): IGraphObjectsIds {
     const removedEdgeIds: any[] = [];
 
     for (let i = 0; i < edgeIds.length; i++) {
@@ -565,6 +599,8 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
       removedEdgeIds.push(edge.getId());
     }
     this._edges.removeMany(removedEdgeIds);
+
+    return { nodeIds: [], edgeIds: removedEdgeIds };
   }
 
   private _applyEdgeOffsets() {
