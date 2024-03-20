@@ -1,13 +1,12 @@
-import { INodeCoordinates, INodeMapCoordinates, INodePosition } from '../models/node';
+import { INodeCoordinates, INodePosition } from '../models/node';
 import { ISetStateDataPayload } from '../models/state';
 
 export type GraphObject = 'node' | 'edge';
 
-export type IObserverDataPayload = INodePosition | INodeCoordinates | INodeMapCoordinates | ISetStateDataPayload;
+export type IObserverDataPayload = INodePosition | INodeCoordinates | ISetStateDataPayload;
 
-export interface IObserver {
-  update(data?: IObserverDataPayload): void;
-}
+// Using callbacks here to ensure that the Observer update is abstracted from the user
+export type IObserver = (data?: IObserverDataPayload) => void;
 
 export interface ISubject {
   listeners: IObserver[];
@@ -45,7 +44,7 @@ export class Subject implements ISubject {
 
   notifyListeners(data?: IObserverDataPayload): void {
     for (let i = 0; i < this.listeners.length; i++) {
-      this.listeners[i].update(data);
+      this.listeners[i](data);
     }
   }
 }

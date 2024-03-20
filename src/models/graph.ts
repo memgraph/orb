@@ -17,7 +17,7 @@ export type IEdgeFilter<N extends INodeBase, E extends IEdgeBase> = (edge: IEdge
 
 export type INodeFilter<N extends INodeBase, E extends IEdgeBase> = (node: INode<N, E>) => boolean;
 
-export interface IGraph<N extends INodeBase, E extends IEdgeBase> extends IObserver, ISubject {
+export interface IGraph<N extends INodeBase, E extends IEdgeBase> extends ISubject {
   getNodes(filterBy?: INodeFilter<N, E>): INode<N, E>[];
   getEdges(filterBy?: IEdgeFilter<N, E>): IEdge<N, E>[];
   getNodeCount(): number;
@@ -74,6 +74,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     if (settings && settings.listeners) {
       this.listeners = settings.listeners;
     }
+    this.notifyListeners = this.notifyListeners.bind(this);
     this.setup({ nodes, edges });
   }
 
@@ -200,7 +201,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     for (let i = 0; i < positions.length; i++) {
       const node = this._nodes.getOne(positions[i].id);
       if (node) {
-        node.setPosition(positions[i], true);
+        node.setPosition(positions[i], { isNotifySkipped: true });
       }
     }
   }
@@ -377,7 +378,9 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     return nearestEdge;
   }
 
-  update(data?: IObserverDataPayload): void {
+  // Arrow function is used because they inherit the context from the enclosing scope
+  // which is important for the callback to notify listeners as expected
+  private _update: IObserver = (data?: IObserverDataPayload): void => {
     if (data && 'type' in data && 'options' in data && 'isSingle' in data.options) {
       if (data.type === 'node' && data.options.isSingle) {
         const nodes = this._nodes.getAll();
@@ -399,15 +402,16 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
         }
       }
     }
+
     this.notifyListeners(data);
-  }
+  };
 
   private _insertNodes(nodes: N[]) {
     const newNodes: INode<N, E>[] = new Array<INode<N, E>>(nodes.length);
     for (let i = 0; i < nodes.length; i++) {
       newNodes[i] = NodeFactory.create<N, E>(
         { data: nodes[i] },
-        { onLoadedImage: () => this._settings?.onLoadedImages?.(), listeners: [this] },
+        { onLoadedImage: () => this._settings?.onLoadedImages?.(), listeners: [this._update] },
       );
     }
     this._nodes.setMany(newNodes);
@@ -428,7 +432,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
               endNode,
             },
             {
-              listeners: [this],
+              listeners: [this._update],
             },
           ),
         );
@@ -443,14 +447,14 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
       const existingNode = this.getNodeById(nodes[i].id);
       if (existingNode) {
         existingNode.setData(nodes[i]);
-        existingNode.setPosition(nodes[i], true);
+        existingNode.setPosition(nodes[i], { isNotifySkipped: true });
         continue;
       }
 
       newNodes.push(
         NodeFactory.create<N, E>(
           { data: nodes[i] },
-          { onLoadedImage: () => this._settings?.onLoadedImages?.(), listeners: [this] },
+          { onLoadedImage: () => this._settings?.onLoadedImages?.(), listeners: [this._update] },
         ),
       );
     }
@@ -478,7 +482,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
               endNode,
             },
             {
-              listeners: [this],
+              listeners: [this._update],
             },
           );
           newEdges.push(edge);
@@ -511,7 +515,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
           endNode,
         },
         {
-          listeners: [this],
+          listeners: [this._update],
         },
       );
       edge.setState(existingEdge.getState());

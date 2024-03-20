@@ -29,9 +29,8 @@ export interface INodeCoordinates {
   y: number;
 }
 
-export interface INodeMapCoordinates {
-  lat: number;
-  lng: number;
+export interface INodeSetPositionOptions {
+  isNotifySkipped: boolean;
 }
 
 export enum NodeShapeType {
@@ -113,10 +112,10 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   setData(callback: (node: INode<N, E>) => N): void;
   patchData(data: Partial<N>): void;
   patchData(callback: (node: INode<N, E>) => Partial<N>): void;
-  setPosition(position: INodeCoordinates | INodeMapCoordinates | INodePosition, call: boolean): void;
+  setPosition(position: INodeCoordinates | INodePosition, options?: INodeSetPositionOptions): void;
   setPosition(
-    callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition,
-    call: boolean,
+    callback: (node: INode<N, E>) => INodeCoordinates | INodePosition,
+    options?: INodeSetPositionOptions,
   ): void;
   setStyle(style: INodeStyle): void;
   setStyle(callback: (node: INode<N, E>) => INodeStyle): void;
@@ -193,15 +192,6 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
   clearPosition() {
     this._position.x = undefined;
     this._position.y = undefined;
-    const data = this.getData();
-
-    if ('lng' in this._data) {
-      this.setData({ ...data, lng: undefined });
-    }
-
-    if ('lat' in this._data) {
-      this.setData({ ...data, lat: undefined });
-    }
 
     this.notifyListeners();
   }
@@ -459,22 +449,18 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
     this.notifyListeners();
   }
 
-  setPosition(position: INodeCoordinates | INodeMapCoordinates | INodePosition, isInner?: boolean): void;
+  setPosition(position: INodeCoordinates | INodePosition, options?: INodeSetPositionOptions): void;
   setPosition(
-    callback: (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition,
-    isInner?: boolean,
+    callback: (node: INode<N, E>) => INodeCoordinates | INodePosition,
+    options?: INodeSetPositionOptions,
   ): void;
   setPosition(
-    arg:
-      | INodeCoordinates
-      | INodeMapCoordinates
-      | INodePosition
-      | ((node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates | INodePosition),
-    isInner?: boolean,
+    arg: INodeCoordinates | INodePosition | ((node: INode<N, E>) => INodeCoordinates | INodePosition),
+    options?: INodeSetPositionOptions,
   ) {
-    let position: INodeCoordinates | INodeMapCoordinates | INodePosition;
+    let position: INodeCoordinates | INodePosition;
     if (isFunction(arg)) {
-      position = (arg as (node: INode<N, E>) => INodeCoordinates | INodeMapCoordinates)(this);
+      position = (arg as (node: INode<N, E>) => INodeCoordinates)(this);
     } else {
       position = arg;
     }
@@ -487,15 +473,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
       }
     }
 
-    if ('lat' in position && 'lng' in position) {
-      this._data = {
-        ...this._data,
-        lat: position.lat,
-        lng: position.lng,
-      };
-    }
-
-    if (!isInner) {
+    if (!options?.isNotifySkipped) {
       this.notifyListeners({ id: this.id, ...position });
     }
   }
