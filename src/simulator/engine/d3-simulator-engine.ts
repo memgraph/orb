@@ -308,7 +308,7 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
   patchData(data: Partial<ISimulationGraph>) {
     if (data.nodes) {
-      data.nodes = this._fixDefinedNodes(data.nodes);
+      data.nodes = this._fixAndStickDefinedNodes(data.nodes);
       const nodeIds: { [id: number]: number } = {};
 
       for (let i = 0; i < this._nodes.length; i++) {
