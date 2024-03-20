@@ -1,6 +1,9 @@
 import { INodeCoordinates, INodePosition } from '../models/node';
+import { ISetStateDataPayload } from '../models/state';
 
-export type IObserverDataPayload = INodePosition | INodeCoordinates;
+export type GraphObject = 'node' | 'edge';
+
+export type IObserverDataPayload = INodePosition | INodeCoordinates | ISetStateDataPayload;
 
 // Using callbacks here to ensure that the Observer update is abstracted from the user
 export type IObserver = (data?: IObserverDataPayload) => void;

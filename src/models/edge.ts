@@ -1,7 +1,7 @@
 import { INodeBase, INode } from './node';
-import { GraphObjectState } from './state';
+import { GraphObjectState, IGraphObjectStateOptions, IGraphObjectStateParameters } from './state';
 import { Color, IPosition, ICircle, getDistanceToLine } from '../common';
-import { isArrayOfNumbers, isFunction } from '../utils/type.utils';
+import { isArrayOfNumbers, isFunction, isNumber, isPlainObject } from '../utils/type.utils';
 import { IObserver, ISubject, Subject } from '../utils/observer.utils';
 import { patchProperties } from '../utils/object.utils';
 
@@ -120,7 +120,9 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   patchStyle(style: IEdgeStyle): void;
   patchStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
   setState(state: number): void;
+  setState(state: IGraphObjectStateParameters): void;
   setState(callback: (edge: IEdge<N, E>) => number): void;
+  setState(callback: (edge: IEdge<N, E>) => IGraphObjectStateParameters): void;
 }
 
 export interface IEdgeSettings {
@@ -400,14 +402,51 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
   }
 
   setState(state: number): void;
+  setState(state: IGraphObjectStateParameters): void;
   setState(callback: (edge: IEdge<N, E>) => number): void;
-  setState(arg: number | ((edge: IEdge<N, E>) => number)): void {
+  setState(callback: (edge: IEdge<N, E>) => IGraphObjectStateParameters): void;
+  setState(
+    arg:
+      | number
+      | IGraphObjectStateParameters
+      | ((edge: IEdge<N, E>) => number)
+      | ((edge: IEdge<N, E>) => IGraphObjectStateParameters),
+  ): void {
+    let result: number | IGraphObjectStateParameters;
+
     if (isFunction(arg)) {
-      this._state = (arg as (edge: IEdge<N, E>) => number)(this);
+      result = (arg as (edge: IEdge<N, E>) => number | IGraphObjectStateParameters)(this);
     } else {
-      this._state = arg as number;
+      result = arg;
     }
+
+    if (isNumber(result)) {
+      this._state = result;
+    } else if (isPlainObject(result)) {
+      const options = result.options;
+
+      this._state = this._handleState(result.state, options);
+
+      if (options) {
+        this.notifyListeners({
+          id: this.id,
+          type: 'edge',
+          options: options,
+        });
+
+        return;
+      }
+    }
+
     this.notifyListeners();
+  }
+
+  private _handleState(state: number, options?: Partial<IGraphObjectStateOptions>): number {
+    if (options?.isToggle && this._state === state) {
+      return GraphObjectState.NONE;
+    } else {
+      return state;
+    }
   }
 }
 
