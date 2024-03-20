@@ -57,7 +57,7 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
   }
 
   patchData(data: Partial<ISimulationGraph>): void {
-    this.simulator.patchData(data);
+    this._simulator.patchData(data);
   }
 
   clearData() {
