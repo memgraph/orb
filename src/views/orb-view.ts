@@ -38,7 +38,6 @@ export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   zoomFitTransitionMs: number;
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
-  isSimulationAnimated: boolean;
   areCollapsedContainerDimensionsAllowed: boolean;
 }
 
@@ -72,7 +71,6 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       zoomFitTransitionMs: 200,
       isOutOfBoundsDragEnabled: false,
       areCoordinatesRounded: true,
-      isSimulationAnimated: true,
       areCollapsedContainerDimensionsAllowed: false,
       ...settings,
       simulation: {
@@ -162,9 +160,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._simulator.on(SimulatorEventType.SIMULATION_PROGRESS, (data) => {
       this._graph.setNodePositions(data.nodes);
       this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
-      if (this._settings.isSimulationAnimated) {
-        this._renderer.render(this._graph);
-      }
+      this.render();
     });
     this._simulator.on(SimulatorEventType.SIMULATION_END, (data) => {
       this._graph.setNodePositions(data.nodes);
@@ -176,11 +172,11 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     });
     this._simulator.on(SimulatorEventType.SIMULATION_STEP, (data) => {
       this._graph.setNodePositions(data.nodes);
-      this._renderer.render(this._graph);
+      this.render();
     });
     this._simulator.on(SimulatorEventType.NODE_DRAG, (data) => {
       this._graph.setNodePositions(data.nodes);
-      this._renderer.render(this._graph);
+      this.render();
     });
     this._simulator.on(SimulatorEventType.SETTINGS_UPDATE, (data) => {
       this._settings.simulation = data.settings;
@@ -325,10 +321,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       .duration(this._settings.zoomFitTransitionMs)
       .ease(easeLinear)
       .call(this._d3Zoom.scaleBy, 0.8)
-      .call(() => {
-        this._renderer.render(this._graph);
-        onRendered?.();
-      });
+      .call(() => this.render(onRendered));
   }
 
   destroy() {
@@ -415,7 +408,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     }
     this._renderer.transform = event.transform;
     setTimeout(() => {
-      this._renderer.render(this._graph);
+      this.render();
       this._events.emit(OrbEventType.TRANSFORM, { transform: event.transform });
     }, 1);
   };
@@ -478,7 +471,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     });
 
     if (response.isStateChanged) {
-      this._renderer.render(this._graph);
+      this.render();
     }
   };
 
@@ -516,7 +509,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     });
 
     if (response.isStateChanged || response.changedSubject) {
-      this._renderer.render(this._graph);
+      this.render();
     }
   };
 
@@ -554,7 +547,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     });
 
     if (response.isStateChanged || response.changedSubject) {
-      this._renderer.render(this._graph);
+      this.render();
     }
   };
 
@@ -592,7 +585,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     });
 
     if (response.isStateChanged || response.changedSubject) {
-      this._renderer.render(this._graph);
+      this.render();
     }
   };
 
@@ -633,7 +626,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._renderer.width = containerSize.width;
     this._renderer.height = containerSize.height;
     if (this._renderer.isInitiallyRendered) {
-      this._renderer.render(this._graph);
+      this.render();
     }
   }
 

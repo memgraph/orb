@@ -271,6 +271,113 @@ describe('Graph', () => {
       },
     ];
 
+    const updatedNodes: ITestNode[] = [
+      { id: 0, name: 'Mia' },
+      { id: 1, name: 'Lana' },
+      { id: 2, name: 'Charlie' },
+    ];
+
+    const updatedEdges: ITestEdge[] = [
+      { id: 0, start: 1, end: 2, count: 1 },
+      { id: 1, start: 2, end: 0, count: 0 },
+      { id: 2, start: 0, end: 1, count: 7 },
+      { id: 3, start: 1, end: 0, count: 7 },
+      { id: 4, start: 2, end: 2, count: 5 },
+    ];
+
+    const updatedExpectedNodes: IExpectedNode<ITestNode>[] = [
+      {
+        id: 0,
+        data: updatedNodes[0],
+        style: {},
+        inEdges: [1, 3],
+        outEdges: [2],
+        state: GraphObjectState.NONE,
+        position: { id: 0 },
+      },
+      {
+        id: 1,
+        data: updatedNodes[1],
+        style: {},
+        inEdges: [2],
+        outEdges: [0, 3],
+        state: GraphObjectState.NONE,
+        position: { id: 1 },
+      },
+      {
+        id: 2,
+        data: updatedNodes[2],
+        style: {},
+        inEdges: [0, 4],
+        outEdges: [1, 4],
+        state: GraphObjectState.NONE,
+        position: { id: 2 },
+      },
+    ];
+
+    const updatedExpectedEdges: IExpectedEdge<ITestEdge>[] = [
+      {
+        id: 0,
+        start: 1,
+        end: 2,
+        startNodeId: 1,
+        endNodeId: 2,
+        data: updatedEdges[0],
+        type: EdgeType.STRAIGHT,
+        offset: 0,
+        style: {},
+        state: GraphObjectState.NONE,
+      },
+      {
+        id: 1,
+        start: 2,
+        end: 0,
+        startNodeId: 2,
+        endNodeId: 0,
+        data: updatedEdges[1],
+        type: EdgeType.STRAIGHT,
+        offset: 0,
+        style: {},
+        state: GraphObjectState.NONE,
+      },
+      {
+        id: 2,
+        start: 0,
+        end: 1,
+        startNodeId: 0,
+        endNodeId: 1,
+        data: updatedEdges[2],
+        type: EdgeType.CURVED,
+        offset: 1,
+        style: {},
+        state: GraphObjectState.NONE,
+      },
+      {
+        id: 3,
+        start: 1,
+        end: 0,
+        startNodeId: 1,
+        endNodeId: 0,
+        data: updatedEdges[3],
+        type: EdgeType.CURVED,
+        offset: 1,
+        style: {},
+        state: GraphObjectState.NONE,
+      },
+      {
+        id: 4,
+        start: 2,
+        end: 2,
+        startNodeId: 2,
+        endNodeId: 2,
+        data: updatedEdges[4],
+        type: EdgeType.LOOPBACK,
+        offset: 1,
+        style: {},
+        state: GraphObjectState.NONE,
+      },
+    ];
+
     test('should merge new nodes', () => {
       const graph = new Graph({ nodes, edges });
       graph.merge({ nodes: newNodes });
@@ -348,8 +455,26 @@ describe('Graph', () => {
       });
     });
 
-    // TODO @toni: Add tests for updating `data` with the same id, and edge `start` and `end` change
-    // test('should update existing nodes and edges', () => {});
+    test('should update existing nodes and edges', () => {
+      const graph = new Graph({ nodes, edges });
+      graph.merge({ nodes: updatedNodes, edges: updatedEdges });
+
+      const currentNodes: ITestNode[] = [...updatedNodes];
+      const currentExpectedNodes: IExpectedNode<ITestNode>[] = [...updatedExpectedNodes];
+
+      const currentEdges: ITestEdge[] = [...updatedEdges];
+      const currentExpectedEdges: IExpectedEdge<ITestEdge>[] = [...updatedExpectedEdges];
+
+      expect(graph.getNodeCount()).toEqual(currentNodes.length);
+      expect(graph.getEdgeCount()).toEqual(currentEdges.length);
+
+      currentNodes.forEach((node, i) => {
+        expectEqualNode(graph, node, currentExpectedNodes[i]);
+      });
+      currentEdges.forEach((edge, i) => {
+        expectEqualEdge(graph, edge, currentExpectedEdges[i]);
+      });
+    });
   });
 
   describe('remove', () => {
@@ -453,6 +578,19 @@ describe('Graph', () => {
         if (edge.id === 0) {
           return undefined;
         }
+        return edgeStyle;
+      },
+    };
+
+    const styleByInOutEdges: IGraphStyle<ITestNode, ITestEdge> = {
+      getNodeStyle(node: INode<ITestNode, ITestEdge>): INodeStyle | undefined {
+        // Simulate a special case (will be DEFAULT)
+        if (node.getInEdges().length > 0 || node.getOutEdges().length > 0) {
+          return undefined;
+        }
+        return nodeStyle;
+      },
+      getEdgeStyle(): IEdgeStyle | undefined {
         return edgeStyle;
       },
     };
@@ -582,6 +720,24 @@ describe('Graph', () => {
       });
     });
 
-    // TODO @toni: Add tests where style depends on in/outEdges and then hide an edge -> style should be updated
+    test('should apply style on edges removed', () => {
+      const graph = new Graph();
+      graph.setDefaultStyle(styleByInOutEdges);
+      graph.setup({ nodes, edges });
+
+      graph.getNodes().forEach((node) => {
+        expect(node.style).toEqual({});
+      });
+
+      graph.getEdges().forEach((edge) => {
+        expect(edge.style).toEqual(edgeStyle);
+      });
+
+      graph.remove({ edgeIds: graph.getEdges().map((edge) => edge.id) });
+
+      graph.getNodes().forEach((node) => {
+        expect(node.style).toEqual(nodeStyle);
+      });
+    });
   });
 });

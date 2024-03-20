@@ -89,7 +89,6 @@ interface IOrbViewSettings {
   zoomFitTransitionMs: number;
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
-  isSimulationAnimated: boolean;
   areCollapsedContainerDimensionsAllowed: boolean;
 }
 ```
@@ -161,7 +160,6 @@ const defaultSettings = {
   zoomFitTransitionMs: 200,
   isOutOfBoundsDragEnabled: false,
   areCoordinatesRounded: true,
-  isSimulationAnimated: true,
   areCollapsedContainerDimensionsAllowed: false;
 }
 ```
@@ -355,12 +353,6 @@ Disabled by default (`false`).
 ### Property `areCoordinatesRounded`
 
 Rounds node coordinates to integer values. Slightly improves performance. Enabled by default (`true`).
-
-### Property `isSimulationAnimated`
-
-Shows the process of simulation where the nodes are moved by the physics engine until they
-converge to a stable position. If disabled, the graph will suddenly appear in its final position.
-Enabled by default (`true`).
 
 ### Property `areCollapsedContainerDimensionsAllowed`
 

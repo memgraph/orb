@@ -71,16 +71,6 @@ addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {
       break;
     }
 
-    case WorkerInputType.StartSimulation: {
-      simulator.startSimulation();
-      break;
-    }
-
-    case WorkerInputType.StopSimulation: {
-      simulator.stopSimulation();
-      break;
-    }
-
     case WorkerInputType.StartDragNode: {
       simulator.startDragNode();
       break;
