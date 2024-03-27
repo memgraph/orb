@@ -12,6 +12,7 @@ export enum WorkerInputType {
   MergeData = 'Add Data',
   UpdateData = 'Update Data',
   DeleteData = 'Delete Data',
+  PatchData = 'Patch Data',
   ClearData = 'Clear Data',
 
   // Simulation message types
@@ -62,6 +63,14 @@ type IWorkerInputDeleteDataPayload = IWorkerPayload<
   }
 >;
 
+type IWorkerInputPatchDataPayload = IWorkerPayload<
+  WorkerInputType.PatchData,
+  {
+    nodes?: ISimulationNode[];
+    edges?: ISimulationEdge[];
+  }
+>;
+
 type IWorkerInputClearDataPayload = IWorkerPayload<WorkerInputType.ClearData>;
 
 type IWorkerInputSimulatePayload = IWorkerPayload<WorkerInputType.Simulate>;
@@ -108,6 +117,7 @@ export type IWorkerInputPayload =
   | IWorkerInputMergeDataPayload
   | IWorkerInputUpdateDataPayload
   | IWorkerInputDeleteDataPayload
+  | IWorkerInputPatchDataPayload
   | IWorkerInputClearDataPayload
   | IWorkerInputSimulatePayload
   | IWorkerInputActivateSimulationPayload

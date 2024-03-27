@@ -52,14 +52,16 @@ const drawEdgeLabel = <N extends INodeBase, E extends IEdgeBase>(
     return;
   }
 
+  const edgeStyle = edge.getStyle();
+
   const label = new Label(edgeLabel, {
     position: edge.getCenter(),
     textBaseline: LabelTextBaseline.MIDDLE,
     properties: {
-      fontBackgroundColor: edge.style.fontBackgroundColor,
-      fontColor: edge.style.fontColor,
-      fontFamily: edge.style.fontFamily,
-      fontSize: edge.style.fontSize,
+      fontBackgroundColor: edgeStyle.fontBackgroundColor,
+      fontColor: edgeStyle.fontColor,
+      fontFamily: edgeStyle.fontFamily,
+      fontSize: edgeStyle.fontSize,
     },
   });
   drawLabel(context, label);
@@ -80,7 +82,7 @@ const drawLine = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRende
 };
 
 const drawArrow = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRenderingContext2D, edge: IEdge<N, E>) => {
-  if (edge.style.arrowSize === 0) {
+  if (edge.getStyle().arrowSize === 0) {
     return;
   }
 
@@ -145,17 +147,19 @@ const setupShadow = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
   edge: IEdge<N, E>,
 ) => {
-  if (edge.style.shadowColor) {
-    context.shadowColor = edge.style.shadowColor.toString();
+  const edgeStyle = edge.getStyle();
+
+  if (edgeStyle.shadowColor) {
+    context.shadowColor = edgeStyle.shadowColor.toString();
   }
-  if (edge.style.shadowSize) {
-    context.shadowBlur = edge.style.shadowSize;
+  if (edgeStyle.shadowSize) {
+    context.shadowBlur = edgeStyle.shadowSize;
   }
-  if (edge.style.shadowOffsetX) {
-    context.shadowOffsetX = edge.style.shadowOffsetX;
+  if (edgeStyle.shadowOffsetX) {
+    context.shadowOffsetX = edgeStyle.shadowOffsetX;
   }
-  if (edge.style.shadowOffsetY) {
-    context.shadowOffsetY = edge.style.shadowOffsetY;
+  if (edgeStyle.shadowOffsetY) {
+    context.shadowOffsetY = edgeStyle.shadowOffsetY;
   }
 };
 
@@ -163,16 +167,18 @@ const clearShadow = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
   edge: IEdge<N, E>,
 ) => {
-  if (edge.style.shadowColor) {
+  const edgeStyle = edge.getStyle();
+
+  if (edgeStyle.shadowColor) {
     context.shadowColor = 'rgba(0,0,0,0)';
   }
-  if (edge.style.shadowSize) {
+  if (edgeStyle.shadowSize) {
     context.shadowBlur = 0;
   }
-  if (edge.style.shadowOffsetX) {
+  if (edgeStyle.shadowOffsetX) {
     context.shadowOffsetX = 0;
   }
-  if (edge.style.shadowOffsetY) {
+  if (edgeStyle.shadowOffsetY) {
     context.shadowOffsetY = 0;
   }
 };

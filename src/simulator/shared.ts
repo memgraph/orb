@@ -58,6 +58,7 @@ export interface ISimulator extends IEmitter<SimulatorEvents> {
   mergeData(data: ISimulationGraph): void;
   updateData(data: ISimulationGraph): void;
   deleteData(data: Partial<ISimulationIds>): void;
+  patchData(data: Partial<ISimulationGraph>): void;
   clearData(): void;
 
   // Simulation handlers

@@ -61,6 +61,11 @@ addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {
       break;
     }
 
+    case WorkerInputType.PatchData: {
+      simulator.patchData(data.data);
+      break;
+    }
+
     case WorkerInputType.ClearData: {
       simulator.clearData();
       break;

@@ -1,7 +1,9 @@
 import { INodeBase, INode } from './node';
-import { GraphObjectState } from './state';
+import { GraphObjectState, IGraphObjectStateOptions, IGraphObjectStateParameters } from './state';
 import { Color, IPosition, ICircle, getDistanceToLine } from '../common';
-import { isArrayOfNumbers } from '../utils/type.utils';
+import { isArrayOfNumbers, isFunction, isNumber, isPlainObject } from '../utils/type.utils';
+import { IObserver, ISubject, Subject } from '../utils/observer.utils';
+import { patchProperties } from '../utils/object.utils';
 
 const CURVED_CONTROL_POINT_OFFSET_MIN_SIZE = 4;
 const CURVED_CONTROL_POINT_OFFSET_MULTIPLIER = 4;
@@ -81,11 +83,7 @@ export enum EdgeType {
   CURVED = 'curved',
 }
 
-export interface IEdge<N extends INodeBase, E extends IEdgeBase> {
-  data: E;
-  position: IEdgePosition;
-  style: IEdgeStyle;
-  state: number;
+export interface IEdge<N extends INodeBase, E extends IEdgeBase> extends ISubject {
   readonly id: any;
   readonly offset: number;
   readonly start: any;
@@ -93,6 +91,12 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> {
   readonly end: any;
   readonly endNode: INode<N, E>;
   readonly type: EdgeType;
+  getId(): any;
+  getData(): E;
+  getPosition(): IEdgePosition;
+  getStyle(): IEdgeStyle;
+  getState(): number;
+  getListeners(): IObserver[];
   hasStyle(): boolean;
   isSelected(): boolean;
   isHovered(): boolean;
@@ -107,20 +111,39 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> {
   getWidth(): number;
   getColor(): Color | string | undefined;
   getLineDashPattern(): number[] | null;
+  setData(data: E): void;
+  setData(callback: (edge: IEdge<N, E>) => E): void;
+  patchData(data: Partial<E>): void;
+  patchData(callback: (edge: IEdge<N, E>) => Partial<E>): void;
+  setStyle(style: IEdgeStyle): void;
+  setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
+  patchStyle(style: IEdgeStyle): void;
+  patchStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
+  setState(state: number): void;
+  setState(state: IGraphObjectStateParameters): void;
+  setState(callback: (edge: IEdge<N, E>) => number): void;
+  setState(callback: (edge: IEdge<N, E>) => IGraphObjectStateParameters): void;
+}
+
+export interface IEdgeSettings {
+  listeners: IObserver[];
 }
 
 export class EdgeFactory {
-  static create<N extends INodeBase, E extends IEdgeBase>(data: IEdgeData<N, E>): IEdge<N, E> {
+  static create<N extends INodeBase, E extends IEdgeBase>(
+    data: IEdgeData<N, E>,
+    settings?: IEdgeSettings,
+  ): IEdge<N, E> {
     const type = getEdgeType(data);
     switch (type) {
       case EdgeType.STRAIGHT:
-        return new EdgeStraight(data);
+        return new EdgeStraight(data, settings);
       case EdgeType.LOOPBACK:
-        return new EdgeLoopback(data);
+        return new EdgeLoopback(data, settings);
       case EdgeType.CURVED:
-        return new EdgeCurved(data);
+        return new EdgeCurved(data, settings);
       default:
-        return new EdgeStraight(data);
+        return new EdgeStraight(data, settings);
     }
   }
 
@@ -129,13 +152,18 @@ export class EdgeFactory {
     data?: Omit<IEdgeData<N, E>, 'data' | 'startNode' | 'endNode'>,
   ): IEdge<N, E> {
     const newEdge = EdgeFactory.create<N, E>({
-      data: edge.data,
+      data: edge.getData(),
       offset: data?.offset !== undefined ? data.offset : edge.offset,
       startNode: edge.startNode,
       endNode: edge.endNode,
     });
-    newEdge.state = edge.state;
-    newEdge.style = edge.style;
+    newEdge.setState(edge.getState());
+    newEdge.setStyle(edge.getStyle());
+    const listeners = edge.getListeners();
+
+    for (let i = 0; i < listeners.length; i++) {
+      newEdge.addListener(listeners[i]);
+    }
 
     return newEdge;
   }
@@ -145,31 +173,56 @@ export const isEdge = <N extends INodeBase, E extends IEdgeBase>(obj: any): obj 
   return obj instanceof EdgeStraight || obj instanceof EdgeCurved || obj instanceof EdgeLoopback;
 };
 
-abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N, E> {
-  public data: E;
+abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject implements IEdge<N, E> {
+  protected _data: E;
 
   public readonly id: number;
   public readonly offset: number;
   public readonly startNode: INode<N, E>;
   public readonly endNode: INode<N, E>;
 
-  public style: IEdgeStyle = {};
-  public state = GraphObjectState.NONE;
-  public position: IEdgePosition;
+  protected _style: IEdgeStyle = {};
+  protected _state = GraphObjectState.NONE;
+  protected _position: IEdgePosition;
 
   private _type: EdgeType = EdgeType.STRAIGHT;
 
-  constructor(data: IEdgeData<N, E>) {
+  constructor(data: IEdgeData<N, E>, settings?: IEdgeSettings) {
+    super();
     this.id = data.data.id;
-    this.data = data.data;
+    this._data = data.data;
     this.offset = data.offset ?? 0;
     this.startNode = data.startNode;
     this.endNode = data.endNode;
     this._type = getEdgeType(data);
 
-    this.position = { id: this.id, source: this.startNode.id, target: this.endNode.id };
+    this._position = { id: this.id, source: this.startNode.getId(), target: this.endNode.getId() };
     this.startNode.addEdge(this);
     this.endNode.addEdge(this);
+
+    if (settings && settings.listeners) {
+      this.listeners = settings.listeners;
+    }
+  }
+
+  getId(): number {
+    return this.id;
+  }
+
+  getData(): E {
+    return structuredClone(this._data);
+  }
+
+  getPosition(): IEdgePosition {
+    return structuredClone(this._position);
+  }
+
+  getStyle(): IEdgeStyle {
+    return structuredClone(this._style);
+  }
+
+  getState(): number {
+    return this._state;
   }
 
   get type(): EdgeType {
@@ -177,27 +230,27 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   }
 
   get start(): number {
-    return this.data.start;
+    return this._data.start;
   }
 
   get end(): number {
-    return this.data.end;
+    return this._data.end;
   }
 
   hasStyle(): boolean {
-    return this.style && Object.keys(this.style).length > 0;
+    return this._style && Object.keys(this._style).length > 0;
   }
 
   isSelected(): boolean {
-    return this.state === GraphObjectState.SELECTED;
+    return this._state === GraphObjectState.SELECTED;
   }
 
   isHovered(): boolean {
-    return this.state === GraphObjectState.HOVERED;
+    return this._state === GraphObjectState.HOVERED;
   }
 
   clearState(): void {
-    this.state = GraphObjectState.NONE;
+    this._state = GraphObjectState.NONE;
   }
 
   isLoopback(): boolean {
@@ -236,25 +289,25 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   }
 
   getLabel(): string | undefined {
-    return this.style.label;
+    return this._style.label;
   }
 
   hasShadow(): boolean {
     return (
-      (this.style.shadowSize ?? 0) > 0 || (this.style.shadowOffsetX ?? 0) > 0 || (this.style.shadowOffsetY ?? 0) > 0
+      (this._style.shadowSize ?? 0) > 0 || (this._style.shadowOffsetX ?? 0) > 0 || (this._style.shadowOffsetY ?? 0) > 0
     );
   }
 
   getWidth(): number {
     let width = 0;
-    if (this.style.width !== undefined) {
-      width = this.style.width;
+    if (this._style.width !== undefined) {
+      width = this._style.width;
     }
-    if (this.isHovered() && this.style.widthHover !== undefined) {
-      width = this.style.widthHover;
+    if (this.isHovered() && this._style.widthHover !== undefined) {
+      width = this._style.widthHover;
     }
-    if (this.isSelected() && this.style.widthSelected !== undefined) {
-      width = this.style.widthSelected;
+    if (this.isSelected() && this._style.widthSelected !== undefined) {
+      width = this._style.widthSelected;
     }
     return width;
   }
@@ -262,21 +315,21 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
   getColor(): Color | string | undefined {
     let color: Color | string | undefined = undefined;
 
-    if (this.style.color) {
-      color = this.style.color;
+    if (this._style.color) {
+      color = this._style.color;
     }
-    if (this.isHovered() && this.style.colorHover) {
-      color = this.style.colorHover;
+    if (this.isHovered() && this._style.colorHover) {
+      color = this._style.colorHover;
     }
-    if (this.isSelected() && this.style.colorSelected) {
-      color = this.style.colorSelected;
+    if (this.isSelected() && this._style.colorSelected) {
+      color = this._style.colorSelected;
     }
 
     return color;
   }
 
   getLineDashPattern(): number[] | null {
-    const lineStyle: IEdgeLineStyle | undefined = this.style.lineStyle;
+    const lineStyle: IEdgeLineStyle | undefined = this._style.lineStyle;
 
     if (lineStyle === undefined || lineStyle.type === EdgeLineStyleType.SOLID) {
       return null;
@@ -293,10 +346,112 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> implements IEdge<N
         return null;
     }
   }
+
+  setData(data: E): void;
+  setData(callback: (edge: IEdge<N, E>) => E): void;
+  setData(arg: E | ((edge: IEdge<N, E>) => E)) {
+    if (isFunction(arg)) {
+      this._data = (arg as (edge: IEdge<N, E>) => E)(this);
+    } else {
+      this._data = arg as E;
+    }
+    this.notifyListeners();
+  }
+
+  patchData(data: Partial<E>): void;
+  patchData(callback: (edge: IEdge<N, E>) => Partial<E>): void;
+  patchData(arg: Partial<E> | ((edge: IEdge<N, E>) => Partial<E>)) {
+    let data: Partial<E>;
+
+    if (isFunction(arg)) {
+      data = (arg as (edge: IEdge<N, E>) => Partial<E>)(this);
+    } else {
+      data = arg as Partial<E>;
+    }
+
+    patchProperties(this._data, data);
+
+    this.notifyListeners();
+  }
+
+  setStyle(style: IEdgeStyle): void;
+  setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
+  setStyle(arg: IEdgeStyle | ((edge: IEdge<N, E>) => IEdgeStyle)): void {
+    if (isFunction(arg)) {
+      this._style = (arg as (edge: IEdge<N, E>) => IEdgeStyle)(this);
+    } else {
+      this._style = arg as IEdgeStyle;
+    }
+    this.notifyListeners();
+  }
+
+  patchStyle(style: IEdgeStyle): void;
+  patchStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
+  patchStyle(arg: IEdgeStyle | ((edge: IEdge<N, E>) => IEdgeStyle)) {
+    let style: IEdgeStyle;
+
+    if (isFunction(arg)) {
+      style = (arg as (edge: IEdge<N, E>) => IEdgeStyle)(this);
+    } else {
+      style = arg as IEdgeStyle;
+    }
+
+    patchProperties(this._style, style);
+
+    this.notifyListeners();
+  }
+
+  setState(state: number): void;
+  setState(state: IGraphObjectStateParameters): void;
+  setState(callback: (edge: IEdge<N, E>) => number): void;
+  setState(callback: (edge: IEdge<N, E>) => IGraphObjectStateParameters): void;
+  setState(
+    arg:
+      | number
+      | IGraphObjectStateParameters
+      | ((edge: IEdge<N, E>) => number)
+      | ((edge: IEdge<N, E>) => IGraphObjectStateParameters),
+  ): void {
+    let result: number | IGraphObjectStateParameters;
+
+    if (isFunction(arg)) {
+      result = (arg as (edge: IEdge<N, E>) => number | IGraphObjectStateParameters)(this);
+    } else {
+      result = arg;
+    }
+
+    if (isNumber(result)) {
+      this._state = result;
+    } else if (isPlainObject(result)) {
+      const options = result.options;
+
+      this._state = this._handleState(result.state, options);
+
+      if (options) {
+        this.notifyListeners({
+          id: this.id,
+          type: 'edge',
+          options: options,
+        });
+
+        return;
+      }
+    }
+
+    this.notifyListeners();
+  }
+
+  private _handleState(state: number, options?: Partial<IGraphObjectStateOptions>): number {
+    if (options?.isToggle && this._state === state) {
+      return GraphObjectState.NONE;
+    } else {
+      return state;
+    }
+  }
 }
 
 const getEdgeType = <N extends INodeBase, E extends IEdgeBase>(data: IEdgeData<N, E>): EdgeType => {
-  if (data.startNode.id === data.endNode.id) {
+  if (data.startNode.getId() === data.endNode.getId()) {
     return EdgeType.LOOPBACK;
   }
   return (data.offset ?? 0) === 0 ? EdgeType.STRAIGHT : EdgeType.CURVED;

@@ -12,6 +12,7 @@ import { RendererFactory } from '../renderer/factory';
 import { setupContainer } from '../utils/html.utils';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
+import { IObserver } from '../utils/observer.utils';
 
 export interface ILeafletMapTile {
   instance: L.TileLayer;
@@ -89,6 +90,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
           this.render();
         }
       },
+      listeners: [this._update],
     });
     this._graph.setDefaultStyle(getDefaultGraphStyle());
     this._events = new OrbEmitter<N, E>();
@@ -225,6 +227,10 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     this._leaflet.getContainer().outerHTML = '';
     this._canvas.outerHTML = '';
   }
+
+  private _update: IObserver = (): void => {
+    this.render();
+  };
 
   private _initCanvas() {
     const canvas = document.createElement('canvas');
@@ -448,8 +454,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
       }
 
       const layerPoint = this._leaflet.latLngToLayerPoint([coordinates.lat, coordinates.lng]);
-      nodes[i].position.x = layerPoint.x;
-      nodes[i].position.y = layerPoint.y;
+      nodes[i].setPosition(layerPoint, { isNotifySkipped: true });
     }
   }
 

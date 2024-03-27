@@ -22,6 +22,7 @@ import { setupContainer } from '../utils/html.utils';
 import { SimulatorEventType } from '../simulator/shared';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
+import { IObserver, IObserverDataPayload } from '../utils/observer.utils';
 
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;
@@ -98,6 +99,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
           this.render();
         }
       },
+      listeners: [this._update],
     });
     this._graph.setDefaultStyle(getDefaultGraphStyle());
     this._events = new OrbEmitter<N, E>();
@@ -198,9 +200,9 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       },
       onMergeData: (data) => {
         const nodeIds = new Set(data.nodes?.map((node) => node.id));
-        const nodeFilter: INodeFilter<N, E> = (node: INode<N, E>) => nodeIds.has(node.id);
+        const nodeFilter: INodeFilter<N, E> = (node: INode<N, E>) => nodeIds.has(node.getId());
         const edgeIds = new Set(data.edges?.map((edge) => edge.id));
-        const edgeFilter: IEdgeFilter<N, E> = (edge: IEdge<N, E>) => edgeIds.has(edge.id);
+        const edgeFilter: IEdgeFilter<N, E> = (edge: IEdge<N, E>) => edgeIds.has(edge.getId());
 
         this._assignPositions(this._graph.getNodes(nodeFilter));
 
@@ -278,7 +280,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       for (let i = 0; i < nodes.length; i++) {
         const position = this._settings.getPosition(nodes[i]);
         if (position) {
-          nodes[i].position = { id: nodes[i].id, ...position };
+          nodes[i].setPosition({ id: nodes[i].getId(), ...position }, { isNotifySkipped: true });
         }
       }
     }
@@ -369,7 +371,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       this._dragStartPosition = undefined;
     }
 
-    this._simulator.dragNode(event.subject.id, simulationPoint);
+    this._simulator.dragNode(event.subject.getId(), simulationPoint);
     this._events.emit(OrbEventType.NODE_DRAG, {
       node: event.subject,
       event: event.sourceEvent,
@@ -388,7 +390,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
     if (!isEqualPosition(this._dragStartPosition, mousePoint)) {
-      this._simulator.endDragNode(event.subject.id);
+      this._simulator.endDragNode(event.subject.getId());
     }
 
     this._events.emit(OrbEventType.NODE_DRAG_END, {
@@ -585,6 +587,26 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     if (response.isStateChanged || response.changedSubject) {
       this.render();
     }
+  };
+
+  private _update: IObserver = (data?: IObserverDataPayload): void => {
+    if (data && 'x' in data && 'y' in data && 'id' in data) {
+      this._simulator.patchData({
+        nodes: [
+          {
+            x: data.x,
+            y: data.y,
+            sx: data.x,
+            sy: data.y,
+            fx: data.x,
+            fy: data.y,
+            id: data.id,
+          },
+        ],
+        edges: [],
+      });
+    }
+    this.render();
   };
 
   private _initCanvas(): HTMLCanvasElement {
