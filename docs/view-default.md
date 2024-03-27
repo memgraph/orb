@@ -63,6 +63,7 @@ interface IOrbViewSettings {
   };
   // For canvas rendering and events
   render: {
+    devicePixelRatio: number | null;
     fps: number;
     minZoom: number;
     maxZoom: number;
@@ -74,6 +75,7 @@ interface IOrbViewSettings {
     contextAlphaOnEvent: number;
     contextAlphaOnEventIsEnabled: boolean;
     backgroundColor: Color | string | null;
+    areCollapsedContainerDimensionsAllowed: boolean;
   };
   // For select and hover look-and-feel
   strategy: {
@@ -137,6 +139,7 @@ const defaultSettings = {
     },
   },
   render: {
+    devicePixelRatio: window.devicePixelRatio,
     fps: 60,
     minZoom: 0.25,
     maxZoom: 8,
@@ -148,6 +151,7 @@ const defaultSettings = {
     contextAlphaOnEvent: 0.3,
     contextAlphaOnEventIsEnabled: true,
     backgroundColor: null,
+    areCollapsedContainerDimensionsAllowed: false,
   },
   strategy: {
     isDefaultSelectEnabled: true,
@@ -267,18 +271,38 @@ Here you can use your original properties to indicate which ones represent your 
 Optional property `render` has several rendering options that you can tweak. Read more about them
 on [Styling guide](./styles.md).
 
+#### Property `render.devicePixelRatio`
+
+`devicePixelRatio` is useful when dealing with the difference between rendering on a standard
+display versus a HiDPI or Retina display, which uses more screen pixels to draw the same
+objects, resulting in a sharper image. ([Reference: MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio)).
+Orb will listen for `devicePixelRatio` changes and handles them by default. You can override the
+value with a settings property `render.devicePixelRatio`. Once a custom value is provided, Orb will
+stop listening for `devicePixelRatio` changes.
+If you want to return automatic `devicePixelRatio` handling, just set `render.devicePixelRatio`
+to `null`.
+
+#### Property `render.areCollapsedContainerDimensionsAllowed`
+
+Enables setting the dimensions of the Orb container element to zero.
+If the container element of Orb has collapsed dimensions (`width: 0;` or `height: 0;`),
+Orb will expand the container by setting the values to `100%`.
+If that doesn't work (the parent of the container also has collapsed dimensions),
+Orb will set an arbitrary fixed dimension to the container.
+Disabled by default (`false`).
+
 ### Property `strategy`
 
 The optional property `strategy` has two properties that you can enable/disable:
 
-* `isDefaultSelectEnabled` - when `true`, the default selection strategy is used on mouse click:
-  * If there is a node at the mouse click point, the node, its edges, and adjacent nodes will change
+- `isDefaultSelectEnabled` - when `true`, the default selection strategy is used on mouse click:
+  - If there is a node at the mouse click point, the node, its edges, and adjacent nodes will change
     its state to `GraphObjectState.SELECTED`. Style properties that end with `...Selected` will be
     applied to all the selected objects (e.g. `borderColorSelected`).
-  * If there is an edge at the mouse click point, the edge and its starting and ending nodes will change
+  - If there is an edge at the mouse click point, the edge and its starting and ending nodes will change
     its state to `GraphObjectState.SELECTED`.
-* `isDefaultHoverEnabled` - when `true`, the default hover strategy is used on mouse move:
-  * If there is a node at the mouse pointer, the node, its edges, and adjacent nodes will change its state to
+- `isDefaultHoverEnabled` - when `true`, the default hover strategy is used on mouse move:
+  - If there is a node at the mouse pointer, the node, its edges, and adjacent nodes will change its state to
     `GraphObjectState.HOVERED`. Style properties that end with `...Hovered` will be applied to all the
     hovered objects (e.g. `borderColorHovered`).
 
@@ -286,7 +310,7 @@ With property `strategy` you can disable the above behavior and implement your s
 top of events `OrbEventType.MOUSE_CLICK` and `OrbEventType.MOUSE_MOVE`, e.g:
 
 ```typescript
-import { isNode, OrbEventType, GraphObjectState } from '@memgraph/orb';
+import { isNode, OrbEventType, GraphObjectState } from "@memgraph/orb";
 
 // Disable default select and hover strategy
 orb.setSettings({
@@ -311,7 +335,9 @@ orb.events.on(OrbEventType.MOUSE_CLICK, (event) => {
   // Clicked on unselected node
   if (event.subject && isNode(event.subject) && !event.subject.isSelected()) {
     // Deselect the previously selected nodes
-    orb.data.getNodes((node) => node.isSelected()).forEach((node) => node.clearState());
+    orb.data
+      .getNodes((node) => node.isSelected())
+      .forEach((node) => node.clearState());
     // Select the new node
     event.subject.state = GraphObjectState.SELECTED;
     orb.render();
@@ -323,9 +349,9 @@ orb.events.on(OrbEventType.MOUSE_CLICK, (event) => {
 
 The optional property `interaction` has two properties that you can enable/disable:
 
-* `isDragEnabled` - property controls the dragging behavior within the application. When it is set to `true`, dragging is enabled, allowing users to interact with nodes and edges by dragging them to different positions within the graph. On the other hand, when `isDragEnabled`` is set to false, dragging functionality is disabled, preventing users from moving or repositioning nodes and edges through dragging interactions.
+- `isDragEnabled` - property controls the dragging behavior within the application. When it is set to `true`, dragging is enabled, allowing users to interact with nodes and edges by dragging them to different positions within the graph. On the other hand, when `isDragEnabled`` is set to false, dragging functionality is disabled, preventing users from moving or repositioning nodes and edges through dragging interactions.
 
-* `isZoomEnabled` - This property controls the zooming behavior within the application. Setting it to `true` enables zooming, allowing users to interactively zoom in and out of the graph. Setting it to `false` disables zooming, restricting the user's ability to change the zoom level.
+- `isZoomEnabled` - This property controls the zooming behavior within the application. Setting it to `true` enables zooming, allowing users to interactively zoom in and out of the graph. Setting it to `false` disables zooming, restricting the user's ability to change the zoom level.
 
 These properties provide a straightforward way to enable or disable dragging and zooming features based on the needs and requirements of your application. By toggling the values of isDragEnabled and isZoomEnabled, you can easily control the interactivity options available to users. e.g:
 

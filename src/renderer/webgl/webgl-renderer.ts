@@ -13,28 +13,58 @@ import {
   IRendererSettings,
 } from '../shared';
 import { copyObject } from '../../utils/object.utils';
+import { appendCanvas, setupContainer } from '../../utils/html.utils';
+import { OrbError } from '../../exceptions';
 
 export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emitter<RE> implements IRenderer<N, E> {
+  private readonly _container: HTMLElement;
+  private readonly _canvas: HTMLCanvasElement;
+
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
   private readonly _context: WebGL2RenderingContext;
 
-  width: number;
-  height: number;
+  private _width: number;
+  private _height: number;
   private _settings: IRendererSettings;
   transform: ZoomTransform;
 
-  constructor(context: WebGL2RenderingContext, settings?: Partial<IRendererSettings>) {
+  constructor(container: HTMLElement, settings?: Partial<IRendererSettings>) {
     super();
-    this._context = context;
-    console.log('context', this._context);
+    setupContainer(container, settings?.areCollapsedContainerDimensionsAllowed);
+    this._container = container;
+    this._canvas = appendCanvas(container);
+    const context = this._canvas.getContext('webgl2');
 
-    this.width = DEFAULT_RENDERER_WIDTH;
-    this.height = DEFAULT_RENDERER_HEIGHT;
+    if (!context) {
+      throw new OrbError('Failed to create WebGL context.');
+    }
+
+    this._context = context;
+    this._width = DEFAULT_RENDERER_WIDTH;
+    this._height = DEFAULT_RENDERER_HEIGHT;
     this.transform = zoomIdentity;
     this._settings = {
       ...DEFAULT_RENDERER_SETTINGS,
       ...settings,
     };
+
+    console.log('context', this._context);
+  }
+
+  get width(): number {
+    return this._width;
+  }
+
+  get height(): number {
+    return this._height;
+  }
+
+  get container(): HTMLElement {
+    return this._container;
+  }
+
+  get canvas(): HTMLCanvasElement {
+    return this._canvas;
   }
 
   get isInitiallyRendered(): boolean {
@@ -77,5 +107,10 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
 
   translateOriginToCenter(): void {
     throw new Error('Method not implemented.');
+  }
+
+  destroy(): void {
+    this.removeAllListeners();
+    this._canvas.outerHTML = '';
   }
 }

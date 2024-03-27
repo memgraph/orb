@@ -18,7 +18,6 @@ import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
 import { IRenderer, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
-import { setupContainer } from '../utils/html.utils';
 import { SimulatorEventType } from '../simulator/shared';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
@@ -38,7 +37,6 @@ export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   zoomFitTransitionMs: number;
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
-  areCollapsedContainerDimensionsAllowed: boolean;
 }
 
 export type IOrbViewSettingsInit<N extends INodeBase, E extends IEdgeBase> = Omit<
@@ -48,12 +46,10 @@ export type IOrbViewSettingsInit<N extends INodeBase, E extends IEdgeBase> = Omi
 
 export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E, IOrbViewSettings<N, E>> {
   private _container: HTMLElement;
-  private _resizeObs: ResizeObserver;
   private _graph: IGraph<N, E>;
   private _events: OrbEmitter<N, E>;
   private _strategy: IEventStrategy<N, E>;
   private _settings: IOrbViewSettings<N, E>;
-  private _canvas: HTMLCanvasElement;
 
   private readonly _renderer: IRenderer<N, E>;
   private readonly _simulator: ISimulator;
@@ -71,7 +67,6 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       zoomFitTransitionMs: 200,
       isOutOfBoundsDragEnabled: false,
       areCoordinatesRounded: true,
-      areCollapsedContainerDimensionsAllowed: false,
       ...settings,
       simulation: {
         isPhysicsEnabled: false,
@@ -109,11 +104,12 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       isDefaultHoverEnabled: this._settings.strategy.isDefaultHoverEnabled ?? false,
     });
 
-    setupContainer(this._container, this._settings.areCollapsedContainerDimensionsAllowed);
-    this._canvas = this._initCanvas();
-
     try {
-      this._renderer = RendererFactory.getRenderer<N, E>(this._canvas, settings?.render?.type, this._settings.render);
+      this._renderer = RendererFactory.getRenderer<N, E>(
+        this._container,
+        settings?.render?.type,
+        this._settings.render,
+      );
     } catch (error: any) {
       this._container.textContent = error.message;
       throw error;
@@ -124,22 +120,23 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._renderer.on(RenderEventType.RENDER_END, (data) => {
       this._events.emit(OrbEventType.RENDER_END, data);
     });
+    this._renderer.on(RenderEventType.RESIZE, () => {
+      if (this._renderer.isInitiallyRendered) {
+        this._renderer.render(this._graph);
+      }
+    });
+
     this._renderer.translateOriginToCenter();
     this._settings.render = this._renderer.getSettings();
-
-    // Resize the canvas based on the dimensions of its parent container <div>.
-    this._resizeObs = new ResizeObserver(() => this._handleResize());
-    this._resizeObs.observe(this._container);
-    this._handleResize();
 
     this._d3Zoom = zoom<HTMLCanvasElement, any>()
       .scaleExtent([this._renderer.getSettings().minZoom, this._renderer.getSettings().maxZoom])
       .on('zoom', this.zoomed);
 
-    select<HTMLCanvasElement, any>(this._canvas)
+    select<HTMLCanvasElement, any>(this._renderer.canvas)
       .call(
         drag<HTMLCanvasElement, any>()
-          .container(this._canvas)
+          .container(this._renderer.canvas)
           .subject(this.dragSubject)
           .on('start', this.dragStarted)
           .on('drag', this.dragged)
@@ -291,21 +288,10 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     onRendered?.();
   }
 
-  zoomIn(onRendered?: () => void) {
-    select(this._canvas)
-      .transition()
-      .duration(this._settings.zoomFitTransitionMs)
-      .ease(easeLinear)
-      .call(this._d3Zoom.scaleBy, 1.2)
-      .call(() => {
-        this.render(onRendered);
-      });
-  }
-
   recenter(onRendered?: () => void) {
     const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph);
 
-    select(this._canvas)
+    select(this._renderer.canvas)
       .transition()
       .duration(this._settings.zoomFitTransitionMs)
       .ease(easeLinear)
@@ -315,20 +301,9 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       });
   }
 
-  zoomOut(onRendered?: () => void) {
-    select(this._canvas)
-      .transition()
-      .duration(this._settings.zoomFitTransitionMs)
-      .ease(easeLinear)
-      .call(this._d3Zoom.scaleBy, 0.8)
-      .call(() => this.render(onRendered));
-  }
-
   destroy() {
-    this._resizeObs.unobserve(this._container);
-    this._renderer.removeAllListeners();
+    this._renderer.destroy();
     this._simulator.terminate();
-    this._canvas.outerHTML = '';
   }
 
   dragSubject = (event: D3DragEvent<any, MouseEvent, INode<N, E>>) => {
@@ -414,7 +389,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   };
 
   getCanvasMousePosition(event: MouseEvent): IPosition {
-    const rect = this._canvas.getBoundingClientRect();
+    const rect = this._renderer.canvas.getBoundingClientRect();
     let x = event.clientX ?? event.pageX ?? event.x;
     let y = event.clientY ?? event.pageY ?? event.y;
 
@@ -608,27 +583,6 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     }
     this.render();
   };
-
-  private _initCanvas(): HTMLCanvasElement {
-    const canvas = document.createElement('canvas');
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-
-    this._container.appendChild(canvas);
-    return canvas;
-  }
-
-  private _handleResize() {
-    const containerSize = this._container.getBoundingClientRect();
-    this._canvas.width = containerSize.width;
-    this._canvas.height = containerSize.height;
-    this._renderer.width = containerSize.width;
-    this._renderer.height = containerSize.height;
-    if (this._renderer.isInitiallyRendered) {
-      this.render();
-    }
-  }
 
   // TODO: Do we keep these
   fixNodes() {
