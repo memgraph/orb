@@ -150,10 +150,6 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
   }
 
   private _render(graph: IGraph<N, E>) {
-    if (!graph.getNodeCount()) {
-      return;
-    }
-
     this.emit(RenderEventType.RENDER_START, undefined);
     const renderStartedAt = Date.now();
 

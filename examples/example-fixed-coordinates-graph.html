@@ -43,7 +43,7 @@
     ];
 
     const orb = new Orb.OrbView(container, {
-      getPosition: (node) => ({ x: node.data.x, y: node.data.y })
+      getPosition: (node) => ({ x: node.getData().x, y: node.getData().y })
     });
 
     // Initialize nodes and edges
@@ -59,7 +59,7 @@
           colorHover: '#e7644e',
           colorSelected: '#e7644e',
           fontSize: 3,
-          label: node.data.label,
+          label: node.getData().label,
           size: 6,
         };
       },
@@ -72,7 +72,7 @@
           width: 0.3,
           widthHover: 0.9,
           widthSelected: 0.9,
-          label: edge.data.label,
+          label: edge.getData().label,
         };
       },
     });

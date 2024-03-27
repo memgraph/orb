@@ -11,6 +11,7 @@ import { IRenderer, RendererType, RenderEventType, IRendererSettingsInit, IRende
 import { RendererFactory } from '../renderer/factory';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
+import { IObserver } from '../utils/observer.utils';
 
 export interface ILeafletMapTile {
   instance: L.TileLayer;
@@ -85,6 +86,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
           this.render();
         }
       },
+      listeners: [this._update],
     });
     this._graph.setDefaultStyle(getDefaultGraphStyle());
     this._events = new OrbEmitter<N, E>();
@@ -201,11 +203,21 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     onRendered?.();
   }
 
+  zoomIn(onRendered?: () => void) {
+    this._leaflet.zoomIn();
+    onRendered?.();
+  }
+
   recenter(onRendered?: () => void) {
     const view = this._graph.getBoundingBox();
     const topRightCoordinate = this._leaflet.layerPointToLatLng([view.x, view.y]);
     const bottomLeftCoordinate = this._leaflet.layerPointToLatLng([view.x + view.width, view.y + view.height]);
     this._leaflet.fitBounds(L.latLngBounds(topRightCoordinate, bottomLeftCoordinate));
+    onRendered?.();
+  }
+
+  zoomOut(onRendered?: () => void) {
+    this._leaflet.zoomOut();
     onRendered?.();
   }
 
@@ -215,6 +227,10 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     this._leaflet.remove();
     this._leaflet.getContainer().outerHTML = '';
   }
+
+  private _update: IObserver = (): void => {
+    this.render();
+  };
 
   private _initMap() {
     const map = document.createElement('div');
@@ -231,6 +247,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
   private _initLeaflet() {
     const leaflet = L.map(this._map, {
       doubleClickZoom: false,
+      zoomControl: false,
     }).setView([0, 0], this._settings.map.zoomLevel);
 
     leaflet.on('zoomstart', () => {
@@ -426,8 +443,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
       }
 
       const layerPoint = this._leaflet.latLngToLayerPoint([coordinates.lat, coordinates.lng]);
-      nodes[i].position.x = layerPoint.x;
-      nodes[i].position.y = layerPoint.y;
+      nodes[i].setPosition(layerPoint, { isNotifySkipped: true });
     }
   }
 
