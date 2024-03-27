@@ -564,6 +564,26 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     }
   };
 
+  zoomIn = (onRendered?: () => void) => {
+    select(this._renderer.canvas)
+      .transition()
+      .duration(this._settings.zoomFitTransitionMs)
+      .ease(easeLinear)
+      .call(this._d3Zoom.scaleBy, 1.2)
+      .call(() => {
+        this.render(onRendered);
+      });
+  };
+
+  zoomOut = (onRendered?: () => void) => {
+    select(this._renderer.canvas)
+      .transition()
+      .duration(this._settings.zoomFitTransitionMs)
+      .ease(easeLinear)
+      .call(this._d3Zoom.scaleBy, 0.8)
+      .call(() => this.render(onRendered));
+  };
+
   private _update: IObserver = (data?: IObserverDataPayload): void => {
     if (data && 'x' in data && 'y' in data && 'id' in data) {
       this._simulator.patchData({
