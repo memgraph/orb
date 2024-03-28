@@ -82,9 +82,9 @@ Event data for `OrbEventType.RENDER_START` is undefined.
 Event is emitted on each render call after the renderer completes drawing the graph on canvas.
 
 ```typescript
-import { OrbEventType } from '@memgraph/orb';
+import { OrbEventType, IOrbEventRenderEnd } from '@memgraph/orb';
 
-orb.events.on(OrbEventType.RENDER_END, (event) => {
+orb.events.on(OrbEventType.RENDER_END, (event: IOrbEventRenderEnd) => {
   console.log(`Render ended in ${event.durationMs} ms`);
 });
 ```
@@ -92,7 +92,7 @@ orb.events.on(OrbEventType.RENDER_END, (event) => {
 Event data for `OrbEventType.RENDER_END` has the following properties:
 
 ```typescript
-interface Event {
+interface IOrbEventRenderEnd {
   durationMs: number;
 }
 ```
@@ -123,9 +123,9 @@ Event `OrbEventType.SIMULATION_STEP` is emitted on each simulation step. `d3` si
 node positioning in iterations where each iteration is one simulation step.
 
 ```typescript
-import { OrbEventType } from '@memgraph/orb';
+import { OrbEventType, IOrbEventSimulationStep } from '@memgraph/orb';
 
-orb.events.on(OrbEventType.SIMULATION_STEP, (event) => {
+orb.events.on(OrbEventType.SIMULATION_STEP, (event: IOrbEventSimulationStep) => {
   console.log(`Simulation progress: ${event.progress}`);
   // If you want to see each step of the simulation, add render here
   orb.view.render();
@@ -135,7 +135,7 @@ orb.events.on(OrbEventType.SIMULATION_STEP, (event) => {
 Event data for `OrbEventType.SIMULATION_STEP` has the following properties:
 
 ```typescript
-interface Event {
+interface IOrbEventSimulationStep {
   progress: number;
 }
 ```
@@ -145,9 +145,9 @@ interface Event {
 Event `OrbEventType.SIMULATION_END` is emitted once the simulator ends with the final node positions.
 
 ```typescript
-import { OrbEventType } from '@memgraph/orb';
+import { OrbEventType, IOrbEventSimulationEnd } from '@memgraph/orb';
 
-orb.events.on(OrbEventType.SIMULATION_END, (event) => {
+orb.events.on(OrbEventType.SIMULATION_END, (event: IOrbEventSimulationEnd) => {
   console.log(`Simulation ended in ${event.durationMs} ms`);
 });
 ```
@@ -155,7 +155,7 @@ orb.events.on(OrbEventType.SIMULATION_END, (event) => {
 Event data for `OrbEventType.SIMULATION_END` has the following properties:
 
 ```typescript
-interface Event {
+interface IOrbEventSimulationEnd {
   durationMs: number;
 }
 ```
@@ -168,9 +168,9 @@ Event is emitted on mouse click that selects the node. The event `OrbEventType.M
 triggered.
  
 ```typescript
-import { OrbEventType } from '@memgraph/orb';
+import { OrbEventType, IOrbEventNodeClick } from '@memgraph/orb';
 
-orb.events.on(OrbEventType.NODE_CLICK, (event) => {
+orb.events.on(OrbEventType.NODE_CLICK, (event: IOrbEventNodeClick<MyNode, MyEdge>) => {
   console.log(`Node clicked`, event.node);
 });
 ```
@@ -178,7 +178,7 @@ orb.events.on(OrbEventType.NODE_CLICK, (event) => {
 Event data for `OrbEventType.NODE_CLICK` has the following properties:
 
 ```typescript
-interface Event {
+interface IOrbEventNodeClick {
   node: INode;
   event: PointerEvent;
   localPoint: { x: number; y: number };
@@ -195,9 +195,9 @@ Event is emitted on mouse move that hovers the node. The event `OrbEventType.MOU
 triggered.
 
 ```typescript
-import { OrbEventType } from '@memgraph/orb';
+import { OrbEventType, IOrbEventNodeHover } from '@memgraph/orb';
 
-orb.events.on(OrbEventType.NODE_HOVER, (event) => {
+orb.events.on(OrbEventType.NODE_HOVER, (event: IOrbEventNodeHover<MyNode, MyEdge>) => {
   console.log(`Node hovered`, event.node);
 });
 ```
@@ -205,7 +205,7 @@ orb.events.on(OrbEventType.NODE_HOVER, (event) => {
 Event data for `OrbEventType.NODE_HOVER` has the following properties:
 
 ```typescript
-interface Event {
+interface IOrbEventNodeHover {
   node: INode;
   event: MouseEvent;
   localPoint: { x: number; y: number };
@@ -222,9 +222,9 @@ Event is emitted on mouse click that selects the edge. The event `OrbEventType.M
 triggered.
 
 ```typescript
-import { OrbEventType } from '@memgraph/orb';
+import { OrbEventType, IOrbEventEdgeClick } from '@memgraph/orb';
 
-orb.events.on(OrbEventType.EDGE_CLICK, (event) => {
+orb.events.on(OrbEventType.EDGE_CLICK, (event: IOrbEventEdgeClick<MyNode, MyEdge>) => {
   console.log(`Edge clicked`, event.edge);
 });
 ```
@@ -232,7 +232,7 @@ orb.events.on(OrbEventType.EDGE_CLICK, (event) => {
 Event data for `OrbEventType.EDGE_CLICK` has the following properties:
 
 ```typescript
-interface Event {
+interface IOrbEventEdgeClick {
   edge: IEdge;
   event: PointerEvent;
   localPoint: { x: number; y: number };
@@ -252,9 +252,9 @@ triggered.
 > the distance to the closest edge to hover it.
 
 ```typescript
-import { OrbEventType } from '@memgraph/orb';
+import { OrbEventType, IOrbEventEdgeHover } from '@memgraph/orb';
 
-orb.events.on(OrbEventType.EDGE_HOVER, (event) => {
+orb.events.on(OrbEventType.EDGE_HOVER, (event: IOrbEventEdgeHover<MyNode, MyEdge>) => {
   console.log(`Edge hovered`, event.node);
 });
 ```
@@ -262,7 +262,7 @@ orb.events.on(OrbEventType.EDGE_HOVER, (event) => {
 Event data for `OrbEventType.EDGE_HOVER` has the following properties:
 
 ```typescript
-interface Event {
+interface IOrbEventEdgeHover {
   edge: IEdge;
   event: MouseEvent;
   localPoint: { x: number; y: number };
@@ -280,9 +280,9 @@ edge) at the mouse click position, `OrbEventType.NODE_CLICK` and `OrbEventType.E
 will be triggered too. 
 
 ```typescript
-import { OrbEventType } from '@memgraph/orb';
+import { OrbEventType, IOrbEventMouseClick } from '@memgraph/orb';
 
-orb.events.on(OrbEventType.MOUSE_CLICK, (event) => {
+orb.events.on(OrbEventType.MOUSE_CLICK, (event: IOrbEventMouseClick<MyNode, MyEdge>) => {
   console.log(`Mouse clicked`, event);
 });
 ```
@@ -290,7 +290,7 @@ orb.events.on(OrbEventType.MOUSE_CLICK, (event) => {
 Event data for `OrbEventType.MOUSE_CLICK` has the following properties:
 
 ```typescript
-interface Event {
+interface IOrbEventMouseClick {
   subject?: INode | IEdge;
   event: PointerEvent;
   localPoint: { x: number; y: number };
@@ -306,9 +306,9 @@ the events `OrbEventType.NODE_CLICK` and `OrbEventType.EDGE_CLICK`.
 If you need to check if `subject` is a `INode` or `IEdge` use type check functions from orb:
 
 ```typescript
-import { isNode, isEdge, OrbEventType } from '@memgraph/orb';
+import { isNode, isEdge, OrbEventType, IOrbEventMouseClick } from '@memgraph/orb';
 
-orb.events.on(OrbEventType.MOUSE_CLICK, (event) => {
+orb.events.on(OrbEventType.MOUSE_CLICK, (event: IOrbEventMouseClick<MyNode, MyEdge>) => {
   if (event.subject && isNode(event.subject)) {
     console.log(`Mouse clicked on top of the node`, event.subject);  
   }
@@ -325,7 +325,9 @@ edge) at the mouse position, `OrbEventType.NODE_HOVER` and `OrbEventType.EDGE_HO
 be triggered too.
 
 ```typescript
-orb.events.on(OrbEventType.MOUSE_MOVE, (event) => {
+import { OrbEventType, IOrbEventMouseMove } from '@memgraph/orb';
+
+orb.events.on(OrbEventType.MOUSE_MOVE, (event: IOrbEventMouseMove<MyNode, MyEdge>) => {
   console.log(`Mouse moved`, event);
 });
 ```
@@ -333,7 +335,7 @@ orb.events.on(OrbEventType.MOUSE_MOVE, (event) => {
 Event data for `OrbEventType.MOUSE_MOVE` has the following properties:
 
 ```typescript
-interface Event {
+interface IOrbEventMouseMove {
   subject?: INode | IEdge;
   event: MouseEvent;
   localPoint: { x: number; y: number };
@@ -349,9 +351,9 @@ events `OrbEventType.NODE_CLICK` and `OrbEventType.EDGE_CLICK`.
 If you need to check if `subject` is a `INode` or `IEdge` use type check functions from orb:
 
 ```typescript
-import { isNode, isEdge, OrbEventType } from '@memgraph/orb';
+import { isNode, isEdge, OrbEventType, IOrbEventMouseMove } from '@memgraph/orb';
 
-orb.events.on(OrbEventType.MOUSE_MOVE, (event) => {
+orb.events.on(OrbEventType.MOUSE_MOVE, (event: IOrbEventMouseMove<MyNode, MyEdge>) => {
   if (event.subject && isNode(event.subject)) {
     console.log(`Mouse moved over the node`, event.subject);  
   }
@@ -368,9 +370,9 @@ orb.events.on(OrbEventType.MOUSE_MOVE, (event) => {
 Event is emitted on any zoom or pan event.
 
 ```typescript
-import { OrbEventType } from '@memgraph/orb';
+import { OrbEventType, IOrbEventTransform } from '@memgraph/orb';
 
-orb.events.on(OrbEventType.TRANSFORM, (event) => {
+orb.events.on(OrbEventType.TRANSFORM, (event: IOrbEventTransform) => {
   console.log(`Zoom or pan event`, event);
 });
 ```
@@ -378,12 +380,12 @@ orb.events.on(OrbEventType.TRANSFORM, (event) => {
 Event data for `OrbEventType.TRANSFORM` has the following properties:
 
 ```typescript
-interface Event {
+interface IOrbEventTransform {
   transform: { x: number; y: number, k: number };
 }
 ```
 
-Properties `x` and `y` are translation coordinates while `k` stands for zoom scale. If `DefaultView`
+Properties `x` and `y` are translation coordinates while `k` stands for zoom scale. If `OrbView`
 is used, `transform` data is actually same as `ZoomTransform` type from `d3` library.  
 
 ## Node dragging events
@@ -391,7 +393,7 @@ is used, `transform` data is actually same as `ZoomTransform` type from `d3` lib
 Node dragging events are events that are emitted on node dragging which starts with a mouse click and
 hold, mouse movement, and ends with mouse click release. 
 
-> Note: Node dragging events might not be enabled on some views, e.g. `MapView` which currently
+> Note: Node dragging events might not be enabled on some views, e.g. `OrbMapView` which currently
 > has a fixed position for each node by `latitude` and `longitude` values.
 
 ### Event `OrbEventType.NODE_DRAG_START`
@@ -402,9 +404,9 @@ and `OrbEventType.MOUSE_CLICK`. If you want to listen just for drag then combine
 with `OrbEventType.NODE_DRAG_(START|END)`.
 
 ```typescript
-import { OrbEventType } from '@memgraph/orb';
+import { OrbEventType, IOrbEventNodeDragStart } from '@memgraph/orb';
 
-orb.events.on(OrbEventType.NODE_DRAG_START, (event) => {
+orb.events.on(OrbEventType.NODE_DRAG_START, (event: IOrbEventNodeDragStart<MyNode, MyEdge>) => {
   console.log(`Node drag started`, event);
 });
 ```
@@ -412,7 +414,7 @@ orb.events.on(OrbEventType.NODE_DRAG_START, (event) => {
 Event data for `OrbEventType.NODE_DRAG_START` has the following properties:
 
 ```typescript
-interface Event {
+interface IOrbEventNodeDragStart {
   node: INode;
   event: MouseEvent;
   localPoint: { x: number; y: number };
@@ -429,9 +431,9 @@ Event is emitted on every mouse movement which is dragging a node with it. Event
 will also be triggered.
 
 ```typescript
-import { OrbEventType } from '@memgraph/orb';
+import { OrbEventType, IOrbEventNodeDrag } from '@memgraph/orb';
 
-orb.events.on(OrbEventType.NODE_DRAG, (event) => {
+orb.events.on(OrbEventType.NODE_DRAG, (event: IOrbEventNodeDrag<MyNode, MyEdge>) => {
   console.log(`Node dragged`, event);
 });
 ```
@@ -439,7 +441,7 @@ orb.events.on(OrbEventType.NODE_DRAG, (event) => {
 Event data for `OrbEventType.NODE_DRAG` has the following properties:
 
 ```typescript
-interface Event {
+interface IOrbEventNodeDrag {
   node: INode;
   event: MouseEvent;
   localPoint: { x: number; y: number };
@@ -458,9 +460,9 @@ and `OrbEventType.MOUSE_CLICK`. If you want to listen just for drag then combine
 with `OrbEventType.NODE_DRAG_(START|END)`.
 
 ```typescript
-import { OrbEventType } from '@memgraph/orb';
+import { OrbEventType, IOrbEventNodeDragEnd } from '@memgraph/orb';
 
-orb.events.on(OrbEventType.NODE_DRAG_END, (event) => {
+orb.events.on(OrbEventType.NODE_DRAG_END, (event: IOrbEventNodeDragEnd<MyNode, MyEdge>) => {
   console.log(`Node drag ended`, event);
 });
 ```
@@ -468,7 +470,7 @@ orb.events.on(OrbEventType.NODE_DRAG_END, (event) => {
 Event data for `OrbEventType.NODE_DRAG_END` has the following properties:
 
 ```typescript
-interface Event {
+interface IOrbEventNodeDragEnd {
   node: INode;
   event: MouseEvent;
   localPoint: { x: number; y: number };

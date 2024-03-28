@@ -1,25 +1,33 @@
 import { IPosition } from '../../../common';
-import { ISimulator, ISimulationNode, ISimulationEdge, SimulatorEventType, SimulatorEvents } from '../../shared';
+import {
+  ISimulator,
+  ISimulationNode,
+  ISimulationEdge,
+  SimulatorEventType,
+  SimulatorEvents,
+  ISimulationGraph,
+  ISimulationIds,
+} from '../../shared';
 import { ID3SimulatorEngineSettingsUpdate } from '../../engine/d3-simulator-engine';
 import { IWorkerInputPayload, WorkerInputType } from './message/worker-input';
 import { IWorkerOutputPayload, WorkerOutputType } from './message/worker-output';
 import { Emitter } from '../../../utils/emitter.utils';
 
 export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISimulator {
-  protected readonly worker: Worker;
+  protected readonly _worker: Worker;
 
   constructor() {
     super();
-    this.worker = new Worker(
+    this._worker = new Worker(
       new URL(
-        /* webpackChunkName: 'process.worker' */
-        './process.worker',
+        /* webpackChunkName: 'simulator.worker' */
+        './simulator.worker',
         import.meta.url,
       ),
       { type: 'module' },
     );
 
-    this.worker.onmessage = ({ data }: MessageEvent<IWorkerOutputPayload>) => {
+    this._worker.onmessage = ({ data }: MessageEvent<IWorkerOutputPayload>) => {
       switch (data.type) {
         case WorkerOutputType.SIMULATION_START: {
           this.emit(SimulatorEventType.SIMULATION_START, undefined);
@@ -31,6 +39,10 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
         }
         case WorkerOutputType.SIMULATION_END: {
           this.emit(SimulatorEventType.SIMULATION_END, data.data);
+          break;
+        }
+        case WorkerOutputType.SIMULATION_STEP: {
+          this.emit(SimulatorEventType.SIMULATION_STEP, data.data);
           break;
         }
         case WorkerOutputType.NODE_DRAG: {
@@ -49,16 +61,35 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     };
   }
 
-  setData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.emitToWorker({ type: WorkerInputType.SetData, data: { nodes, edges } });
+  /**
+   * Creates a new graph with the specified data. Any existing data gets discarded.
+   * This action creates a new simulation object but keeps the existing simulation settings.
+   *
+   * @param {ISimulationGraph} data New graph (nodes and edges).
+   */
+  setupData(data: ISimulationGraph) {
+    this.emitToWorker({ type: WorkerInputType.SetupData, data });
   }
 
-  addData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.emitToWorker({ type: WorkerInputType.AddData, data: { nodes, edges } });
+  /**
+   * Inserts or updates data to an existing graph. (Also known as upsert)
+   *
+   * @param {ISimulationGraph} data Added graph data (nodes and edges).
+   */
+  mergeData(data: ISimulationGraph) {
+    this.emitToWorker({ type: WorkerInputType.MergeData, data });
   }
 
-  updateData(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.emitToWorker({ type: WorkerInputType.UpdateData, data: { nodes, edges } });
+  updateData(data: ISimulationGraph) {
+    this.emitToWorker({ type: WorkerInputType.UpdateData, data });
+  }
+
+  deleteData(data: ISimulationIds) {
+    this.emitToWorker({ type: WorkerInputType.DeleteData, data });
+  }
+
+  patchData(data: Partial<ISimulationGraph>): void {
+    this.emitToWorker({ type: WorkerInputType.PatchData, data });
   }
 
   clearData() {
@@ -73,16 +104,8 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     this.emitToWorker({ type: WorkerInputType.ActivateSimulation });
   }
 
-  startSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
-    this.emitToWorker({ type: WorkerInputType.StartSimulation, data: { nodes, edges } });
-  }
-
   updateSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
     this.emitToWorker({ type: WorkerInputType.UpdateSimulation, data: { nodes, edges } });
-  }
-
-  stopSimulation() {
-    this.emitToWorker({ type: WorkerInputType.StopSimulation });
   }
 
   startDragNode() {
@@ -110,11 +133,11 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
   }
 
   terminate() {
-    this.worker.terminate();
+    this._worker.terminate();
     this.removeAllListeners();
   }
 
   protected emitToWorker(message: IWorkerInputPayload) {
-    this.worker.postMessage(message);
+    this._worker.postMessage(message);
   }
 }

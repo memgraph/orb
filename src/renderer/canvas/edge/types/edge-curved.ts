@@ -18,6 +18,10 @@ export const drawCurvedLine = <N extends INodeBase, E extends IEdgeBase>(
   context.beginPath();
   context.moveTo(sourcePoint.x, sourcePoint.y);
   context.quadraticCurveTo(controlPoint.x, controlPoint.y, targetPoint.x, targetPoint.y);
+
+  const lineDashPattern = edge.getLineDashPattern();
+  context.setLineDash(lineDashPattern ?? []);
+
   context.stroke();
 };
 
@@ -28,7 +32,7 @@ export const drawCurvedLine = <N extends INodeBase, E extends IEdgeBase>(
  * @return {IEdgeArrow} Arrow shape
  */
 export const getCurvedArrowShape = <N extends INodeBase, E extends IEdgeBase>(edge: EdgeCurved<N, E>): IEdgeArrow => {
-  const scaleFactor = edge.style.arrowSize ?? 1;
+  const scaleFactor = edge.getStyle().arrowSize ?? 1;
   const lineWidth = edge.getWidth() ?? 1;
   const guideOffset = -0.1;
   // const source = this.data.source;
@@ -100,7 +104,7 @@ const findBorderPoint = <N extends INodeBase, E extends IEdgeBase>(
   const viaNode = edge.getCurvedControlPoint();
   let node = edge.endNode;
   let from = false;
-  if (nearNode.id === edge.startNode.id) {
+  if (nearNode.getId() === edge.startNode.getId()) {
     node = edge.startNode;
     from = true;
   }

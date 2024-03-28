@@ -15,7 +15,9 @@ To initialize graph data structure use `orb.data.setup` function that receives `
 `edges`. Here is a simple example of it:
 
 ```typescript
-const orb = new Orb<MyNode, MyEdge>(container);
+import { OrbView } from "@memgraph/orb";
+
+const orb = new OrbView<MyNode, MyEdge>(container);
 
 const nodes: MyNode[] = [
   { id: 0, text: "Node A", myField: 12 },
@@ -65,7 +67,9 @@ There are some useful node functions that you can use such as:
 Check the example to get to know node handling better:
 
 ```typescript
-const orb = new Orb<MyNode, MyEdge>(container);
+import { OrbView } from "@memgraph/orb";
+
+const orb = new OrbView<MyNode, MyEdge>(container);
 
 const nodes: MyNode[] = [
   { id: 0, text: "Node A", myField: 12 },
@@ -116,7 +120,9 @@ There are some useful node functions that you can use such as:
 Check the example to get to know edge handling better:
 
 ```typescript
-const orb = new Orb<MyNode, MyEdge>(container);
+import { OrbView } from "@memgraph/orb";
+
+const orb = new OrbView<MyNode, MyEdge>(container);
 
 const nodes: MyNode[] = [
   { id: 0, text: "Node A", myField: 12 },
@@ -148,7 +154,9 @@ ones. An update of a node or edge will happen if a node or edge with the same un
 exists in the graph structure. Check the example below:
 
 ```typescript
-const orb = new Orb<MyNode, MyEdge>(container);
+import { OrbView } from "@memgraph/orb";
+
+const orb = new OrbView<MyNode, MyEdge>(container);
 
 const nodes: MyNode[] = [
   { id: 0, text: "Node A", myField: 12 },
@@ -191,7 +199,9 @@ To remove nodes or edges from a graph, you just need the `id`. Removing a node w
 remove all inbound and outbound edges to that node. Removing an edge will just remove that edge.
 
 ```typescript
-const orb = new Orb<MyNode, MyEdge>(container);
+import { OrbView } from "@memgraph/orb";
+
+const orb = new OrbView<MyNode, MyEdge>(container);
 
 const nodes: MyNode[] = [
   { id: 0, text: "Node A" },

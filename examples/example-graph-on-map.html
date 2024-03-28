@@ -44,10 +44,9 @@
       { id: 5, start: 0, end: 1 },
     ];
 
-    const orb = new Orb.Orb(container);
-    orb.setView((context) => new Orb.MapView(context, {
-      getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng, }),
-    }));
+    const orb = new Orb.OrbMapView(container, {
+      getGeoPosition: (node) => ({ lat: node.getData().lat, lng: node.getData().lng, }),
+    });
 
     // Assign a basic style
     orb.data.setDefaultStyle({
@@ -59,7 +58,7 @@
           colorHover: '#e7644e',
           colorSelected: '#e7644e',
           fontSize: 10,
-          label: node.data.label,
+          label: node.getData().label,
           size: 6,
         };
       },
@@ -72,7 +71,7 @@
           width: 1,
           widthHover: 0.9,
           widthSelected: 0.9,
-          label: edge.data.label,
+          label: edge.getData().label,
         };
       },
     });
@@ -81,8 +80,8 @@
     orb.data.setup({ nodes, edges });
 
     // Render and recenter the view
-    orb.view.render(() => {
-      orb.view.recenter();
+    orb.render(() => {
+      orb.recenter();
     });
   </script>
 </body>

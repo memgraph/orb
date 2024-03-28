@@ -85,13 +85,16 @@ const DEFAULT_NODE_STYLE: INodeStyle = {
 > below:
 
 ```typescript
+import { OrbView } from "@memgraph/orb";
+
 const nodes: MyNode[] = [
   { id: 1, name: "First" },
   { id: 1, name: "Second" },
 ];
 
-const orb = new Orb<MyNode, MyEdge>(container);
-orb.setDefaultStyle({
+const orb = new OrbView<MyNode, MyEdge>(container);
+
+orb.data.setDefaultStyle({
   getNodeStyle: (node) => {
     return {
       ...node.style,
@@ -99,6 +102,7 @@ orb.setDefaultStyle({
     };
   },
 });
+
 orb.data.setup({ nodes });
 ```
 
@@ -138,6 +142,7 @@ style properties:
 | `widthHover`          | number              | Edge line width on mouse hover event. If not defined `width` is used. |
 | `widthSelected`       | number              | Edge line width on mouse click event. If not defined `width` is used. |
 | `zIndex`              | number              | Specifies the stack order of an element during rendering. The default is `0`. |
+| `lineStyle`       | object              | Allows to customize the style of edges in the graph visualization. The default is `{type: 'solid'}` |
 
 ## Default style values
 
@@ -271,9 +276,9 @@ node (`INode`) or edge (`IEdge`) object. Using those objects, you can change the
 any time:
 
 ```typescript
-import { OrbEventType } from '@memgraph/orb';
+import { OrbView, OrbEventType } from '@memgraph/orb';
 
-const orb = new Orb<MyNode, MyEdge>(container);
+const orb = new OrbView<MyNode, MyEdge>(container);
 orb.data.setup({ nodes, edges });
 
 const node = orb.data.getNodeById(0);
@@ -310,16 +315,18 @@ without setting `(node|edge).style.label = ""` or `(node|edge).style.fontSize = 
 each node/edge, you can use the view settings to enable/disable labels globally:
 
 ```typescript
+import { OrbView } from '@memgraph/orb';
+
 // Change on view init
-orb.setView((context) => new DefaultView(context, {
+const orb = new OrbView<MyNode, MyEdge>(container, {
   render: {
     labelsIsEnabled: true,
     labelsOnEventIsEnabled: true,
   },
-}));
+});
 
 // Change anytime for the current view
-orb.view.setSettings({
+orb.setSettings({
   render: {
     labelsIsEnabled: true,
     labelsOnEventIsEnabled: true,
@@ -338,16 +345,18 @@ for the large number of nodes/edges. To simplify the way to disable/enable shado
 whole graph you can use the view settings to enable/disable shadows globally:
 
 ```typescript
+import { OrbView } from '@memgraph/orb';
+
 // Change on view init
-orb.setView((context) => new DefaultView(context, {
+const orb = new OrbView<MyNode, MyEdge>(container, {
   render: {
     shadowsIsEnabled: true,
     shadowsOnEventIsEnabled: true,
   },
-}));
+});
 
 // Change anytime for the current view
-orb.view.setSettings({
+orb.setSettings({
   render: {
     shadowsIsEnabled: true,
     shadowsOnEventIsEnabled: true,
@@ -373,16 +382,18 @@ You can configure the transparency with the following two properties:
   The default is `true`.
 
 ```typescript
+import { OrbView } from '@memgraph/orb';
+
 // Change on view init
-orb.setView((context) => new DefaultView(context, {
+const orb = new OrbView<MyNode, MyEdge>(container, {
   render: {
     contextAlphaOnEvent: 0.3,
     contextAlphaOnEventIsEnabled: true,
   },
-}));
+});
 
 // Change anytime for the current view
-orb.view.setSettings({
+orb.setSettings({
   render: {
     contextAlphaOnEvent: 0.3,
     contextAlphaOnEventIsEnabled: true,
