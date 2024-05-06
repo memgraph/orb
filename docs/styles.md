@@ -91,7 +91,7 @@ const nodes: MyNode[] = [
 ];
 
 const orb = new Orb<MyNode, MyEdge>(container);
-orb.setDefaultStyle({
+orb.data.setDefaultStyle({
   getNodeStyle: (node) => {
     return {
       ...node.style,
@@ -341,16 +341,16 @@ whole graph you can use the view settings to enable/disable shadows globally:
 // Change on view init
 orb.setView((context) => new DefaultView(context, {
   render: {
-    shadowsIsEnabled: true,
-    shadowsOnEventIsEnabled: true,
+    shadowIsEnabled: true,
+    shadowOnEventIsEnabled: true,
   },
 }));
 
 // Change anytime for the current view
 orb.view.setSettings({
   render: {
-    shadowsIsEnabled: true,
-    shadowsOnEventIsEnabled: true,
+    shadowIsEnabled: true,
+    shadowOnEventIsEnabled: true,
   },
 });
 ```
