@@ -30,6 +30,10 @@ export interface IEdgePosition {
   target: any;
 }
 
+export interface IEdgeSetStyleOptions {
+  isNotifySkipped: boolean;
+}
+
 export enum EdgeLineStyleType {
   SOLID = 'solid',
   DASHED = 'dashed',
@@ -115,10 +119,10 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   setData(callback: (edge: IEdge<N, E>) => E): void;
   patchData(data: Partial<E>): void;
   patchData(callback: (edge: IEdge<N, E>) => Partial<E>): void;
-  setStyle(style: IEdgeStyle): void;
-  setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
-  patchStyle(style: IEdgeStyle): void;
-  patchStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
+  setStyle(style: IEdgeStyle, options?: IEdgeSetStyleOptions): void;
+  setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle, options?: IEdgeSetStyleOptions): void;
+  patchStyle(style: IEdgeStyle, options?: IEdgeSetStyleOptions): void;
+  patchStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle, options?: IEdgeSetStyleOptions): void;
   setState(state: number): void;
   setState(state: IGraphObjectStateParameters): void;
   setState(callback: (edge: IEdge<N, E>) => number): void;
@@ -374,20 +378,22 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
     this.notifyListeners();
   }
 
-  setStyle(style: IEdgeStyle): void;
-  setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
-  setStyle(arg: IEdgeStyle | ((edge: IEdge<N, E>) => IEdgeStyle)): void {
+  setStyle(style: IEdgeStyle, options?: IEdgeSetStyleOptions): void;
+  setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle, options?: IEdgeSetStyleOptions): void;
+  setStyle(arg: IEdgeStyle | ((edge: IEdge<N, E>) => IEdgeStyle), options?: IEdgeSetStyleOptions): void {
     if (isFunction(arg)) {
       this._style = (arg as (edge: IEdge<N, E>) => IEdgeStyle)(this);
     } else {
       this._style = arg as IEdgeStyle;
     }
-    this.notifyListeners();
+    if (!options?.isNotifySkipped) {
+      this.notifyListeners();
+    }
   }
 
-  patchStyle(style: IEdgeStyle): void;
-  patchStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle): void;
-  patchStyle(arg: IEdgeStyle | ((edge: IEdge<N, E>) => IEdgeStyle)) {
+  patchStyle(style: IEdgeStyle, options?: IEdgeSetStyleOptions): void;
+  patchStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle, options?: IEdgeSetStyleOptions): void;
+  patchStyle(arg: IEdgeStyle | ((edge: IEdge<N, E>) => IEdgeStyle), options?: IEdgeSetStyleOptions) {
     let style: IEdgeStyle;
 
     if (isFunction(arg)) {
@@ -398,7 +404,9 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
 
     patchProperties(this._style, style);
 
-    this.notifyListeners();
+    if (!options?.isNotifySkipped) {
+      this.notifyListeners();
+    }
   }
 
   setState(state: number): void;

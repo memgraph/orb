@@ -33,6 +33,10 @@ export interface INodeSetPositionOptions {
   isNotifySkipped: boolean;
 }
 
+export interface INodeSetStyleOptions {
+  isNotifySkipped: boolean;
+}
+
 export enum NodeShapeType {
   CIRCLE = 'circle',
   DOT = 'dot',
@@ -117,10 +121,10 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> extends ISubjec
     callback: (node: INode<N, E>) => INodeCoordinates | INodePosition,
     options?: INodeSetPositionOptions,
   ): void;
-  setStyle(style: INodeStyle): void;
-  setStyle(callback: (node: INode<N, E>) => INodeStyle): void;
-  patchStyle(style: INodeStyle): void;
-  patchStyle(callback: (node: INode<N, E>) => INodeStyle): void;
+  setStyle(style: INodeStyle, options?: INodeSetPositionOptions): void;
+  setStyle(callback: (node: INode<N, E>) => INodeStyle, options?: INodeSetPositionOptions): void;
+  patchStyle(style: INodeStyle, options?: INodeSetPositionOptions): void;
+  patchStyle(callback: (node: INode<N, E>) => INodeStyle, options?: INodeSetPositionOptions): void;
   setState(state: number): void;
   setState(state: IGraphObjectStateParameters): void;
   setState(callback: (node: INode<N, E>) => number): void;
@@ -478,20 +482,22 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
     }
   }
 
-  setStyle(style: INodeStyle): void;
-  setStyle(callback: (node: INode<N, E>) => INodeStyle): void;
-  setStyle(arg: INodeStyle | ((node: INode<N, E>) => INodeStyle)): void {
+  setStyle(style: INodeStyle, options?: INodeSetPositionOptions): void;
+  setStyle(callback: (node: INode<N, E>) => INodeStyle, options?: INodeSetPositionOptions): void;
+  setStyle(arg: INodeStyle | ((node: INode<N, E>) => INodeStyle), options?: INodeSetPositionOptions): void {
     if (isFunction(arg)) {
       this._style = (arg as (node: INode<N, E>) => INodeStyle)(this);
     } else {
       this._style = arg as INodeStyle;
     }
-    this.notifyListeners();
+    if (!options?.isNotifySkipped) {
+      this.notifyListeners();
+    }
   }
 
-  patchStyle(style: INodeStyle): void;
-  patchStyle(callback: (node: INode<N, E>) => INodeStyle): void;
-  patchStyle(arg: INodeStyle | ((node: INode<N, E>) => INodeStyle)) {
+  patchStyle(style: INodeStyle, options?: INodeSetPositionOptions): void;
+  patchStyle(callback: (node: INode<N, E>) => INodeStyle, options?: INodeSetPositionOptions): void;
+  patchStyle(arg: INodeStyle | ((node: INode<N, E>) => INodeStyle), options?: INodeSetPositionOptions) {
     let style: INodeStyle;
 
     if (isFunction(arg)) {
@@ -502,7 +508,9 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
 
     patchProperties(this._style, style);
 
-    this.notifyListeners();
+    if (!options?.isNotifySkipped) {
+      this.notifyListeners();
+    }
   }
 
   setState(state: number): void;

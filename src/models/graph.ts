@@ -551,7 +551,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
         },
       );
       edge.setState(existingEdge.getState());
-      edge.setStyle(existingEdge.getStyle());
+      edge.setStyle(existingEdge.getStyle(), { isNotifySkipped: true });
       newEdges.push(edge);
     }
 
@@ -628,7 +628,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
 
         const style = this._defaultStyle.getNodeStyle(newNodes[i]);
         if (style) {
-          newNodes[i].setStyle(style);
+          newNodes[i].setStyle(style, { isNotifySkipped: true });
           // TODO Add these checks to node property setup
           if (style.imageUrl) {
             styleImageUrls.add(style.imageUrl);
@@ -649,7 +649,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
 
         const style = this._defaultStyle.getEdgeStyle(newEdges[i]);
         if (style) {
-          newEdges[i].setStyle(style);
+          newEdges[i].setStyle(style, { isNotifySkipped: true });
         }
       }
     }
