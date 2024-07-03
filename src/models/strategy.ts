@@ -229,24 +229,24 @@ const setNodeState = <N extends INodeBase, E extends IEdgeBase>(
   options?: ISetShapeStateOptions,
 ): void => {
   if (isStateChangeable(node, options)) {
-    node.setState(state);
+    node.setState(state, { isNotifySkipped: true });
   }
 
   node.getInEdges().forEach((edge) => {
     if (edge && isStateChangeable(edge, options)) {
-      edge.setState(state);
+      edge.setState(state, { isNotifySkipped: true });
     }
     if (edge.startNode && isStateChangeable(edge.startNode, options)) {
-      edge.startNode.setState(state);
+      edge.startNode.setState(state, { isNotifySkipped: true });
     }
   });
 
   node.getOutEdges().forEach((edge) => {
     if (edge && isStateChangeable(edge, options)) {
-      edge.setState(state);
+      edge.setState(state, { isNotifySkipped: true });
     }
     if (edge.endNode && isStateChangeable(edge.endNode, options)) {
-      edge.endNode.setState(state);
+      edge.endNode.setState(state, { isNotifySkipped: true });
     }
   });
 };
@@ -257,15 +257,15 @@ const setEdgeState = <N extends INodeBase, E extends IEdgeBase>(
   options?: ISetShapeStateOptions,
 ): void => {
   if (isStateChangeable(edge, options)) {
-    edge.setState(state);
+    edge.setState(state, { isNotifySkipped: true });
   }
 
   if (edge.startNode && isStateChangeable(edge.startNode, options)) {
-    edge.startNode.setState(state);
+    edge.startNode.setState(state, { isNotifySkipped: true });
   }
 
   if (edge.endNode && isStateChangeable(edge.endNode, options)) {
-    edge.endNode.setState(state);
+    edge.endNode.setState(state, { isNotifySkipped: true });
   }
 };
 

@@ -37,6 +37,10 @@ export interface INodeSetStyleOptions {
   isNotifySkipped: boolean;
 }
 
+export interface INodeSetStateOptions {
+  isNotifySkipped: boolean;
+}
+
 export enum NodeShapeType {
   CIRCLE = 'circle',
   DOT = 'dot',
@@ -125,10 +129,10 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   setStyle(callback: (node: INode<N, E>) => INodeStyle, options?: INodeSetPositionOptions): void;
   patchStyle(style: INodeStyle, options?: INodeSetPositionOptions): void;
   patchStyle(callback: (node: INode<N, E>) => INodeStyle, options?: INodeSetPositionOptions): void;
-  setState(state: number): void;
-  setState(state: IGraphObjectStateParameters): void;
-  setState(callback: (node: INode<N, E>) => number): void;
-  setState(callback: (node: INode<N, E>) => IGraphObjectStateParameters): void;
+  setState(state: number, options?: INodeSetStateOptions): void;
+  setState(state: IGraphObjectStateParameters, options?: INodeSetStateOptions): void;
+  setState(callback: (node: INode<N, E>) => number, options?: INodeSetStateOptions): void;
+  setState(callback: (node: INode<N, E>) => IGraphObjectStateParameters, options?: INodeSetStateOptions): void;
 }
 
 // TODO: Dirty solution: Find another way to listen for global images, maybe through
@@ -303,9 +307,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
   }
 
   clearState(): void {
-    this.setState(GraphObjectState.NONE);
-
-    this.notifyListeners();
+    this.setState(GraphObjectState.NONE, { isNotifySkipped: true });
   }
 
   getDistanceToBorder(): number {
@@ -513,16 +515,17 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
     }
   }
 
-  setState(state: number): void;
-  setState(state: IGraphObjectStateParameters): void;
-  setState(callback: (node: INode<N, E>) => number): void;
-  setState(callback: (node: INode<N, E>) => IGraphObjectStateParameters): void;
+  setState(state: number, options?: INodeSetStateOptions): void;
+  setState(state: IGraphObjectStateParameters, options?: INodeSetStateOptions): void;
+  setState(callback: (node: INode<N, E>) => number, options?: INodeSetStateOptions): void;
+  setState(callback: (node: INode<N, E>) => IGraphObjectStateParameters, options?: INodeSetStateOptions): void;
   setState(
     arg:
       | number
       | IGraphObjectStateParameters
       | ((node: INode<N, E>) => number)
       | ((node: INode<N, E>) => IGraphObjectStateParameters),
+    options?: INodeSetStateOptions,
   ): void {
     let result: number | IGraphObjectStateParameters;
 
@@ -550,7 +553,9 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
       }
     }
 
-    this.notifyListeners();
+    if (!options?.isNotifySkipped) {
+      this.notifyListeners();
+    }
   }
 
   protected _isPointInBoundingBox(point: IPosition): boolean {

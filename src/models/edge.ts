@@ -34,6 +34,10 @@ export interface IEdgeSetStyleOptions {
   isNotifySkipped: boolean;
 }
 
+export interface IEdgeSetStateOptions {
+  isNotifySkipped: boolean;
+}
+
 export enum EdgeLineStyleType {
   SOLID = 'solid',
   DASHED = 'dashed',
@@ -123,10 +127,10 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   setStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle, options?: IEdgeSetStyleOptions): void;
   patchStyle(style: IEdgeStyle, options?: IEdgeSetStyleOptions): void;
   patchStyle(callback: (edge: IEdge<N, E>) => IEdgeStyle, options?: IEdgeSetStyleOptions): void;
-  setState(state: number): void;
-  setState(state: IGraphObjectStateParameters): void;
-  setState(callback: (edge: IEdge<N, E>) => number): void;
-  setState(callback: (edge: IEdge<N, E>) => IGraphObjectStateParameters): void;
+  setState(state: number, options?: IEdgeSetStateOptions): void;
+  setState(state: IGraphObjectStateParameters, options?: IEdgeSetStateOptions): void;
+  setState(callback: (edge: IEdge<N, E>) => number, options?: IEdgeSetStateOptions): void;
+  setState(callback: (edge: IEdge<N, E>) => IGraphObjectStateParameters, options?: IEdgeSetStateOptions): void;
 }
 
 export interface IEdgeSettings {
@@ -409,16 +413,17 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
     }
   }
 
-  setState(state: number): void;
-  setState(state: IGraphObjectStateParameters): void;
-  setState(callback: (edge: IEdge<N, E>) => number): void;
-  setState(callback: (edge: IEdge<N, E>) => IGraphObjectStateParameters): void;
+  setState(state: number, options?: IEdgeSetStateOptions): void;
+  setState(state: IGraphObjectStateParameters, options?: IEdgeSetStateOptions): void;
+  setState(callback: (edge: IEdge<N, E>) => number, options?: IEdgeSetStateOptions): void;
+  setState(callback: (edge: IEdge<N, E>) => IGraphObjectStateParameters, options?: IEdgeSetStateOptions): void;
   setState(
     arg:
       | number
       | IGraphObjectStateParameters
       | ((edge: IEdge<N, E>) => number)
       | ((edge: IEdge<N, E>) => IGraphObjectStateParameters),
+    options?: IEdgeSetStateOptions,
   ): void {
     let result: number | IGraphObjectStateParameters;
 
@@ -446,7 +451,9 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
       }
     }
 
-    this.notifyListeners();
+    if (!options?.isNotifySkipped) {
+      this.notifyListeners();
+    }
   }
 
   private _handleState(state: number, options?: Partial<IGraphObjectStateOptions>): number {

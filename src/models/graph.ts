@@ -550,7 +550,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
           listeners: [this._update],
         },
       );
-      edge.setState(existingEdge.getState());
+      edge.setState(existingEdge.getState(), { isNotifySkipped: true });
       edge.setStyle(existingEdge.getStyle(), { isNotifySkipped: true });
       newEdges.push(edge);
     }
