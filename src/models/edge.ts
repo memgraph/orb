@@ -218,15 +218,18 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
   }
 
   getData(): E {
-    return structuredClone(this._data);
+    // no shallow/deep copy here due to the performance issues
+    return this._data;
   }
 
   getPosition(): IEdgePosition {
-    return structuredClone(this._position);
+    // no shallow/deep copy here due to the performance issues
+    return this._position;
   }
 
   getStyle(): IEdgeStyle {
-    return structuredClone(this._style);
+    // no shallow/deep copy here due to the performance issues
+    return this._style;
   }
 
   getState(): number {

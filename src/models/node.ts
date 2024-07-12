@@ -182,15 +182,18 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
   }
 
   getData(): N {
-    return structuredClone(this._data);
+    // no shallow/deep copy here due to the performance issues
+    return this._data;
   }
 
   getPosition(): INodePosition {
-    return structuredClone(this._position);
+    // no shallow/deep copy here due to the performance issues
+    return this._position;
   }
 
   getStyle(): INodeStyle {
-    return structuredClone(this._style);
+    // no shallow/deep copy here due to the performance issues
+    return this._style;
   }
 
   getState(): number {
