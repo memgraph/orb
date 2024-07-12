@@ -244,7 +244,7 @@ const edges: MyEdge[] = [
 ];
 
 const orb = new OrbView<MyNode, MyEdge>(container, {
-  getPosition: (node) => ({ x: node.data.posX, y: node.data.posY }),
+  getPosition: (node) => ({ x: node.getData().posX, y: node.getData().posY }),
 });
 
 // Initialize nodes and edges
@@ -398,7 +398,7 @@ after the initialization with a view function `setSettings`:
 import { OrbView } from "@memgraph/orb";
 
 const orb = new OrbView<MyNode, MyEdge>(container, {
-  getPosition: (node) => ({ x: node.data.posY, y: node.data.posX }),
+  getPosition: (node) => ({ x: node.getData().posY, y: node.getData().posX }),
   zoomFitTransformMs: 1000,
   render: {
     shadowIsEnabled: false,
@@ -413,7 +413,7 @@ const settings = orb.getSettings();
 
 // Change the x and y axis
 orb.setSettings({
-  getPosition: (node) => ({ x: node.data.posY, y: node.data.posX }),
+  getPosition: (node) => ({ x: node.getData().posY, y: node.getData().posX }),
 });
 
 // Change the zoom fit and transform time while recentering and disable shadows

@@ -32,7 +32,10 @@ const edges: MyEdge[] = [
 ];
 
 const orb = new OrbMapView<MyNode, MyEdge>(container, {
-  getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng }),
+  getGeoPosition: (node) => ({
+    lat: node.getData().lat,
+    lng: node.getData().lng,
+  }),
 });
 
 // Assign a default style
@@ -43,7 +46,7 @@ orb.data.setDefaultStyle({
       borderWidth: 1,
       color: "#DD2222",
       fontSize: 10,
-      label: node.data.label,
+      label: node.getData().label,
       size: 10,
     };
   },
@@ -81,14 +84,14 @@ const mapAttribution =
 
 const orb = new OrbMapView<MyNode, MyEdge>(container, {
   getGeoPosition: (node) => ({
-    lat: node.data.latitude,
-    lng: node.data.longitude,
+    lat: node.getData().latitude,
+    lng: node.getData().longitude,
   }),
   map: {
     zoomLevel: 5,
     tile: {
       instance: new L.TileLayer(
-              "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       ),
       attribution: mapAttribution,
     },
@@ -217,14 +220,14 @@ Disabled by default (`false`).
 
 The optional property `strategy` has two properties that you can enable/disable:
 
-* `isDefaultSelectEnabled` - when `true`, the default selection strategy is used on mouse click:
-  * If there is a node at the mouse click point, the node, its edges, and adjacent nodes will change
+- `isDefaultSelectEnabled` - when `true`, the default selection strategy is used on mouse click:
+  - If there is a node at the mouse click point, the node, its edges, and adjacent nodes will change
     its state to `GraphObjectState.SELECTED`. Style properties that end with `...Selected` will be
     applied to all the selected objects (e.g. `borderColorSelected`).
-  * If there is an edge at the mouse click point, the edge and its starting and ending nodes will change
+  - If there is an edge at the mouse click point, the edge and its starting and ending nodes will change
     its state to `GraphObjectState.SELECTED`.
-* `isDefaultHoverEnabled` - when `true`, the default hover strategy is used on mouse move:
-  * If there is a node at the mouse pointer, the node, its edges, and adjacent nodes will change its state to
+- `isDefaultHoverEnabled` - when `true`, the default hover strategy is used on mouse move:
+  - If there is a node at the mouse pointer, the node, its edges, and adjacent nodes will change its state to
     `GraphObjectState.HOVERED`. Style properties that end with `...Hovered` will be applied to all the
     hovered objects (e.g. `borderColorHovered`).
 
@@ -232,7 +235,7 @@ With property `strategy` you can disable the above behavior and implement your s
 top of events `OrbEventType.MOUSE_CLICK` and `OrbEventType.MOUSE_MOVE`, e.g:
 
 ```typescript
-import { isNode, OrbEventType, GraphObjectState } from '@memgraph/orb';
+import { isNode, OrbEventType, GraphObjectState } from "@memgraph/orb";
 
 // Disable default select and hover strategy
 orb.setSettings({
@@ -257,7 +260,9 @@ orb.events.on(OrbEventType.MOUSE_CLICK, (event) => {
   // Clicked on unselected node
   if (event.subject && isNode(event.subject) && !event.subject.isSelected()) {
     // Deselect the previously selected nodes
-    orb.data.getNodes((node) => node.isSelected()).forEach((node) => node.clearState());
+    orb.data
+      .getNodes((node) => node.isSelected())
+      .forEach((node) => node.clearState());
     // Select the new node
     event.subject.state = GraphObjectState.SELECTED;
     orb.render();
@@ -276,7 +281,10 @@ const settings = orb.getSettings();
 
 // Change the way how geo coordinates are defined on nodes
 orb.setSettings({
-  getGeoPosition: (node) => ({ lat: node.data.lat, lng: node.data.lng }),
+  getGeoPosition: (node) => ({
+    lat: node.getData().lat,
+    lng: node.getData().lng,
+  }),
 });
 
 // Change the zoom level and disable shadows
