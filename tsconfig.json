@@ -4,7 +4,7 @@
     "module": "esnext",
     "lib": ["DOM", "ES6"],
     "declaration": true,
-    "sourceMap": true,
+    "sourceMap": false,
     "outDir": "./dist",
     "moduleResolution": "node",
     "esModuleInterop": true,
