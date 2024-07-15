@@ -96,8 +96,8 @@ const orb = new OrbView<MyNode, MyEdge>(container);
 orb.data.setDefaultStyle({
   getNodeStyle: (node) => {
     return {
-      ...node.style,
-      label: node.data.name,
+      ...node.getStyle(),
+      label: node.getData().name,
     };
   },
 });
@@ -223,7 +223,7 @@ orb.data.setDefaultStyle({
       color: "#FF0000",
       fontSize: 10,
       size: 10,
-      label: `Node: ${node.data.title}`,
+      label: `Node: ${node.getData().title}`,
     };
   },
   getEdgeStyle() {
@@ -253,7 +253,7 @@ orb.data.getNodes().forEach((node) => {
     color: "#FF0000",
     fontSize: 10,
     size: 10,
-    label: `Node: ${node.data.title}`,
+    label: `Node: ${node.getData().title}`,
   });
 });
 orb.data.getEdges().forEach((edge) => {
@@ -286,7 +286,7 @@ node.setStyle({
   color: "#FF0000",
   fontSize: 10,
   size: 10,
-  label: `Node: ${node.data.title}`,
+  label: `Node: ${node.getData().title}`,
 });
 
 // Change the width of all the edges to 1, but keep other style properties

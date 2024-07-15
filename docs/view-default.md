@@ -263,8 +263,8 @@ access your original properties through `.data` property. There you can find all
 your nodes that you assigned in the `orb.data.setup()` function.
 
 Here you can use your original properties to indicate which ones represent your node coordinates
-(`node.data.posX`, `node.data.posY`). All you have to do is return a `IPosition` that requires
-2 basic properties: `x` and `y` (`{ x: node.data.posX, y: node.data.posY }`).
+(`node.getData().posX`, `node.getData().posY`). All you have to do is return a `IPosition` that requires
+2 basic properties: `x` and `y` (`{ x: node.getData().posX, y: node.getData().posY }`).
 
 ### Property `render`
 
