@@ -349,16 +349,16 @@ import { OrbView } from "@memgraph/orb";
 // Change on view init
 const orb = new OrbView<MyNode, MyEdge>(container, {
   render: {
-    shadowsIsEnabled: true,
-    shadowsOnEventIsEnabled: true,
+    shadowIsEnabled: true,
+    shadowOnEventIsEnabled: true,
   },
 });
 
 // Change anytime for the current view
 orb.setSettings({
   render: {
-    shadowsIsEnabled: true,
-    shadowsOnEventIsEnabled: true,
+    shadowIsEnabled: true,
+    shadowOnEventIsEnabled: true,
   },
 });
 ```
