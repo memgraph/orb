@@ -361,7 +361,7 @@ properties are `true`.
 
 ## Configure transparency on hover/click
 
-An additional performance affected property is the transparency of nodes/edges that are not selected nor
+An additional performance affected property is the transparency of nodes/edges that are neither selected nor
 hovered. Default Orb behavior on node/edge select (click) and hover to make all other nodes 30%
 transparent, so the selection/hover is easily visible. 
 
