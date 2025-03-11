@@ -134,7 +134,7 @@ export class EntityState<K, V> implements IEntityState<K, V> {
     }
 
     this.ids.sort((id1, id2) => {
-      // Typescript can't see the guard in the upper context
+      // TypeScript can't see the guard in the upper context
       if (!this.sortBy) {
         return 0;
       }
