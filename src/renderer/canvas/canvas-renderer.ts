@@ -18,6 +18,14 @@ import {
 import { throttle } from '../../utils/function.utils';
 import { getThrottleMsFromFPS } from '../../utils/math.utils';
 import { copyObject } from '../../utils/object.utils';
+import {
+  appendCanvas,
+  IObserveDPRUnsubscribe,
+  observeDevicePixelRatioChanges,
+  setupContainer,
+} from '../../utils/html.utils';
+import { OrbError } from '../../exceptions';
+import { isNumber } from '../../utils/type.utils';
 
 const DEBUG = false;
 const DEBUG_RED = '#FF5733';
@@ -26,12 +34,16 @@ const DEBUG_BLUE = '#3383FF';
 const DEBUG_PINK = '#F333FF';
 
 export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Emitter<RE> implements IRenderer<N, E> {
+  private readonly _container: HTMLElement;
+  private readonly _canvas: HTMLCanvasElement;
+  private _resizeObs: ResizeObserver;
+
   // Contains the HTML5 Canvas element which is used for drawing nodes and edges.
   private readonly _context: CanvasRenderingContext2D;
 
   // Width and height of the canvas. Used for clearing
-  public width: number;
-  public height: number;
+  private _width: number;
+  private _height: number;
   private _settings: IRendererSettings;
 
   // Includes translation (pan) in the x and y direction
@@ -45,21 +57,56 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
   private _isInitiallyRendered = false;
 
   private _throttleRender: (graph: IGraph<N, E>) => void;
+  private _dprObserveUnsubscribe?: IObserveDPRUnsubscribe;
 
-  constructor(context: CanvasRenderingContext2D, settings?: Partial<IRendererSettings>) {
+  constructor(container: HTMLElement, settings?: Partial<IRendererSettings>) {
     super();
+    setupContainer(container, settings?.areCollapsedContainerDimensionsAllowed);
+    this._container = container;
+    this._canvas = appendCanvas(container);
+
+    const context = this._canvas.getContext('2d');
+    if (!context) {
+      throw new OrbError('Failed to create Canvas context.');
+    }
+
     this._context = context;
-    this.width = DEFAULT_RENDERER_WIDTH;
-    this.height = DEFAULT_RENDERER_HEIGHT;
+    this._width = DEFAULT_RENDERER_WIDTH;
+    this._height = DEFAULT_RENDERER_HEIGHT;
     this.transform = zoomIdentity;
     this._settings = {
       ...DEFAULT_RENDERER_SETTINGS,
       ...settings,
     };
 
+    // Resize the canvas based on the dimensions of its parent container <div>.
+    this._resizeObs = new ResizeObserver(() => this._resize());
+    this._resizeObs.observe(this._container);
+    this._resize();
+
+    if (!isNumber(settings?.devicePixelRatio)) {
+      this._dprObserveUnsubscribe = observeDevicePixelRatioChanges(() => this._resize());
+    }
+
     this._throttleRender = throttle((graph: IGraph<N, E>) => {
       this._render(graph);
     }, getThrottleMsFromFPS(this._settings.fps));
+  }
+
+  get width(): number {
+    return this._width;
+  }
+
+  get height(): number {
+    return this._height;
+  }
+
+  get container(): HTMLElement {
+    return this._container;
+  }
+
+  get canvas(): HTMLCanvasElement {
+    return this._canvas;
   }
 
   get isInitiallyRendered(): boolean {
@@ -72,6 +119,9 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
 
   setSettings(settings: Partial<IRendererSettings>) {
     const isFpsChanged = settings.fps && settings.fps !== this._settings.fps;
+    const previousDprValue = this._settings.devicePixelRatio;
+    const newDprValue = settings.devicePixelRatio;
+
     this._settings = {
       ...this._settings,
       ...settings,
@@ -82,6 +132,17 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
         this._render(graph);
       }, getThrottleMsFromFPS(this._settings.fps));
     }
+
+    // Change DPR from automatic to manual handling or change DPR value manually
+    if (!isNumber(previousDprValue) && isNumber(newDprValue)) {
+      this._dprObserveUnsubscribe?.();
+      this._resize();
+    }
+
+    // Change DPR from manual to automatic handling
+    if (isNumber(previousDprValue) && newDprValue === null) {
+      this._dprObserveUnsubscribe = observeDevicePixelRatioChanges(() => this._resize());
+    }
   }
 
   render(graph: IGraph<N, E>) {
@@ -89,38 +150,34 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
   }
 
   private _render(graph: IGraph<N, E>) {
-    if (!graph.getNodeCount()) {
-      return;
-    }
-
     this.emit(RenderEventType.RENDER_START, undefined);
     const renderStartedAt = Date.now();
 
     // Clear drawing.
-    this._context.clearRect(0, 0, this.width, this.height);
+    this._context.clearRect(0, 0, this._width, this._height);
     if (this._settings.backgroundColor) {
       this._context.fillStyle = this._settings.backgroundColor.toString();
-      this._context.fillRect(0, 0, this.width, this.height);
+      this._context.fillRect(0, 0, this._width, this._height);
     }
     this._context.save();
 
     if (DEBUG) {
       this._context.lineWidth = 3;
       this._context.fillStyle = DEBUG_RED;
-      this._context.fillRect(0, 0, this.width, this.height);
+      this._context.fillRect(0, 0, this._width, this._height);
     }
 
     // Apply any scaling (zoom) or translation (pan) transformations.
     this._context.translate(this.transform.x, this.transform.y);
     if (DEBUG) {
       this._context.fillStyle = DEBUG_BLUE;
-      this._context.fillRect(0, 0, this.width, this.height);
+      this._context.fillRect(0, 0, this._width, this._height);
     }
 
     this._context.scale(this.transform.k, this.transform.k);
     if (DEBUG) {
       this._context.fillStyle = DEBUG_GREEN;
-      this._context.fillRect(0, 0, this.width, this.height);
+      this._context.fillRect(0, 0, this._width, this._height);
     }
 
     // Move coordinates (0, 0) to canvas center.
@@ -129,11 +186,11 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
     // relative to (0, 0), so any source mouse event position needs to take this
     // offset into account. (Handled in getMousePos())
     if (this._isOriginCentered) {
-      this._context.translate(this.width / 2, this.height / 2);
+      this._context.translate(this._width / 2, this._height / 2);
     }
     if (DEBUG) {
       this._context.fillStyle = DEBUG_PINK;
-      this._context.fillRect(0, 0, this.width, this.height);
+      this._context.fillRect(0, 0, this._width, this._height);
     }
 
     this.drawObjects(graph.getEdges());
@@ -195,6 +252,23 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
     }
   }
 
+  private _resize() {
+    const dpr = this._settings.devicePixelRatio || window.devicePixelRatio || 1;
+
+    const containerSize = this._container.getBoundingClientRect();
+    this._canvas.style.width = `${containerSize.width}px`;
+    this._canvas.style.height = `${containerSize.height}px`;
+    this._canvas.width = containerSize.width * dpr;
+    this._canvas.height = containerSize.height * dpr;
+
+    // Normalize coordinate system to use CSS pixels
+    this._context.scale(dpr, dpr);
+
+    this._width = containerSize.width;
+    this._height = containerSize.height;
+    this.emit(RenderEventType.RESIZE, undefined);
+  }
+
   private drawObject(obj: INode<N, E> | IEdge<N, E>, options?: Partial<INodeDrawOptions> | Partial<IEdgeDrawOptions>) {
     if (isNode(obj)) {
       drawNode(this._context, obj, options);
@@ -207,7 +281,7 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
     this.transform = zoomIdentity;
 
     // Clear drawing.
-    this._context.clearRect(0, 0, this.width, this.height);
+    this._context.clearRect(0, 0, this._width, this._height);
     this._context.save();
   }
 
@@ -252,8 +326,8 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
     // simulation coordinates (O) when dragging and hovering nodes.
     const [x, y] = this.transform.invert([canvasPoint.x, canvasPoint.y]);
     return {
-      x: x - this.width / 2,
-      y: y - this.height / 2,
+      x: x - this._width / 2,
+      y: y - this._height / 2,
     };
   }
 
@@ -264,7 +338,7 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
    */
   getSimulationViewRectangle(): IRectangle {
     const topLeftPosition = this.getSimulationPosition({ x: 0, y: 0 });
-    const bottomRightPosition = this.getSimulationPosition({ x: this.width, y: this.height });
+    const bottomRightPosition = this.getSimulationPosition({ x: this._width, y: this._height });
     return {
       x: topLeftPosition.x,
       y: topLeftPosition.y,
@@ -275,5 +349,12 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
 
   translateOriginToCenter() {
     this._isOriginCentered = true;
+  }
+
+  destroy(): void {
+    this._resizeObs.unobserve(this._container);
+    this._dprObserveUnsubscribe?.();
+    this.removeAllListeners();
+    this._canvas.outerHTML = '';
   }
 }

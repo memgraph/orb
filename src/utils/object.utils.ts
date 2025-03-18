@@ -120,3 +120,11 @@ const copyPlainObject = <T>(obj: Record<string, T>): Record<string, T> => {
   });
   return newObject;
 };
+
+export const patchProperties = <T>(target: T, source: T): void => {
+  const keys = Object.keys(source as Object) as (keyof T)[];
+
+  for (let i = 0; i < keys.length; i++) {
+    target[keys[i]] = source[keys[i]];
+  }
+};

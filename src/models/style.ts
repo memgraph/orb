@@ -33,8 +33,9 @@ export const getDefaultGraphStyle = <N extends INodeBase, E extends IEdgeBase>()
 const getPredefinedLabel = <N extends INodeBase, E extends IEdgeBase>(
   obj: INode<N, E> | IEdge<N, E>,
 ): string | undefined => {
+  const objData = obj.getData();
   for (let i = 0; i < LABEL_PROPERTY_NAMES.length; i++) {
-    const value = (obj.data as any)[LABEL_PROPERTY_NAMES[i]];
+    const value = (objData as any)[LABEL_PROPERTY_NAMES[i]];
     if (value !== undefined && value !== null) {
       return `${value}`;
     }

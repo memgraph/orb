@@ -1,0 +1,616 @@
+import { D3DragEvent, drag } from 'd3-drag';
+import { easeLinear } from 'd3-ease';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// @ts-ignore: Transition needs to be imported in order to be available to d3
+import transition from 'd3-transition';
+/* eslint-enable @typescript-eslint/no-unused-vars */
+import { D3ZoomEvent, zoom, ZoomBehavior } from 'd3-zoom';
+import { select } from 'd3-selection';
+import { IPosition, isEqualPosition } from '../common';
+import { ISimulator, SimulatorFactory } from '../simulator';
+import { Graph, IGraph, INodeFilter, IEdgeFilter } from '../models/graph';
+import { INode, INodeBase, isNode } from '../models/node';
+import { IEdge, IEdgeBase, isEdge } from '../models/edge';
+import { IOrbView } from './shared';
+import { DefaultEventStrategy, IEventStrategy, IEventStrategySettings } from '../models/strategy';
+import { ID3SimulatorEngineSettings } from '../simulator/engine/d3-simulator-engine';
+import { copyObject } from '../utils/object.utils';
+import { OrbEmitter, OrbEventType } from '../events';
+import { IRenderer, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
+import { RendererFactory } from '../renderer/factory';
+import { SimulatorEventType } from '../simulator/shared';
+import { getDefaultGraphStyle } from '../models/style';
+import { isBoolean } from '../utils/type.utils';
+import { IObserver, IObserverDataPayload } from '../utils/observer.utils';
+
+export interface IGraphInteractionSettings {
+  isDragEnabled: boolean;
+  isZoomEnabled: boolean;
+}
+
+export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
+  getPosition?(node: INode<N, E>): IPosition | undefined;
+  simulation: Partial<ID3SimulatorEngineSettings>;
+  render: Partial<IRendererSettings>;
+  strategy: Partial<IEventStrategySettings>;
+  interaction: Partial<IGraphInteractionSettings>;
+  zoomFitTransitionMs: number;
+  isOutOfBoundsDragEnabled: boolean;
+  areCoordinatesRounded: boolean;
+}
+
+export type IOrbViewSettingsInit<N extends INodeBase, E extends IEdgeBase> = Omit<
+  Partial<IOrbViewSettings<N, E>>,
+  'render'
+> & { render?: Partial<IRendererSettingsInit> };
+
+export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E, IOrbViewSettings<N, E>> {
+  private _container: HTMLElement;
+  private _graph: IGraph<N, E>;
+  private _events: OrbEmitter<N, E>;
+  private _strategy: IEventStrategy<N, E>;
+  private _settings: IOrbViewSettings<N, E>;
+
+  private readonly _renderer: IRenderer<N, E>;
+  private readonly _simulator: ISimulator;
+
+  // private _isSimulating = false;
+  private _onSimulationEnd: (() => void) | undefined;
+  private _simulationStartedAt = Date.now();
+  private _d3Zoom: ZoomBehavior<HTMLCanvasElement, any>;
+  private _dragStartPosition: IPosition | undefined;
+
+  constructor(container: HTMLElement, settings?: Partial<IOrbViewSettingsInit<N, E>>) {
+    this._container = container;
+    this._settings = {
+      getPosition: settings?.getPosition,
+      zoomFitTransitionMs: 200,
+      isOutOfBoundsDragEnabled: false,
+      areCoordinatesRounded: true,
+      ...settings,
+      simulation: {
+        isPhysicsEnabled: false,
+        ...settings?.simulation,
+      },
+      render: {
+        ...settings?.render,
+      },
+      strategy: {
+        isDefaultHoverEnabled: true,
+        isDefaultSelectEnabled: true,
+        ...settings?.strategy,
+      },
+      interaction: {
+        isDragEnabled: true,
+        isZoomEnabled: true,
+        ...settings?.interaction,
+      },
+    };
+
+    this._graph = new Graph<N, E>(undefined, {
+      onLoadedImages: () => {
+        // Not to call render() before user's .render()
+        if (this._renderer.isInitiallyRendered) {
+          this.render();
+        }
+      },
+      listeners: [this._update],
+    });
+    this._graph.setDefaultStyle(getDefaultGraphStyle());
+    this._events = new OrbEmitter<N, E>();
+
+    this._strategy = new DefaultEventStrategy<N, E>({
+      isDefaultSelectEnabled: this._settings.strategy.isDefaultSelectEnabled ?? false,
+      isDefaultHoverEnabled: this._settings.strategy.isDefaultHoverEnabled ?? false,
+    });
+
+    try {
+      this._renderer = RendererFactory.getRenderer<N, E>(
+        this._container,
+        settings?.render?.type,
+        this._settings.render,
+      );
+    } catch (error: any) {
+      this._container.textContent = error.message;
+      throw error;
+    }
+    this._renderer.on(RenderEventType.RENDER_START, () => {
+      this._events.emit(OrbEventType.RENDER_START, undefined);
+    });
+    this._renderer.on(RenderEventType.RENDER_END, (data) => {
+      this._events.emit(OrbEventType.RENDER_END, data);
+    });
+    this._renderer.on(RenderEventType.RESIZE, () => {
+      if (this._renderer.isInitiallyRendered) {
+        this._renderer.render(this._graph);
+      }
+    });
+
+    this._renderer.translateOriginToCenter();
+    this._settings.render = this._renderer.getSettings();
+
+    this._d3Zoom = zoom<HTMLCanvasElement, any>()
+      .scaleExtent([this._renderer.getSettings().minZoom, this._renderer.getSettings().maxZoom])
+      .on('zoom', this.zoomed);
+
+    select<HTMLCanvasElement, any>(this._renderer.canvas)
+      .call(
+        drag<HTMLCanvasElement, any>()
+          .container(this._renderer.canvas)
+          .subject(this.dragSubject)
+          .on('start', this.dragStarted)
+          .on('drag', this.dragged)
+          .on('end', this.dragEnded),
+      )
+      .call(this._d3Zoom)
+      .on('click', this.mouseClicked)
+      .on('mousemove', this.mouseMoved)
+      .on('contextmenu', this.mouseRightClicked)
+      .on('dblclick.zoom', this.mouseDoubleClicked);
+
+    this._simulator = SimulatorFactory.getSimulator();
+    this._simulator.on(SimulatorEventType.SIMULATION_START, () => {
+      // this._isSimulating = true;
+      this._simulationStartedAt = Date.now();
+      this._events.emit(OrbEventType.SIMULATION_START, undefined);
+    });
+    this._simulator.on(SimulatorEventType.SIMULATION_PROGRESS, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
+      this.render();
+    });
+    this._simulator.on(SimulatorEventType.SIMULATION_END, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this.render();
+      // this._isSimulating = false;
+      this._onSimulationEnd?.();
+      this._onSimulationEnd = undefined;
+      this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
+    });
+    this._simulator.on(SimulatorEventType.SIMULATION_STEP, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this.render();
+    });
+    this._simulator.on(SimulatorEventType.NODE_DRAG, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this.render();
+    });
+    this._simulator.on(SimulatorEventType.SETTINGS_UPDATE, (data) => {
+      this._settings.simulation = data.settings;
+    });
+
+    this._simulator.setSettings(this._settings.simulation);
+
+    // TODO(dlozic): Optimize crud operations here.
+    this._graph.setSettings({
+      onSetupData: () => {
+        // if (this._isSimulating) {
+        //   console.warn('Already running a simulation. Discarding the setup data call.');
+        //   return;
+        // }
+        // this._isSimulating = true;
+        this._assignPositions(this._graph.getNodes());
+        const nodePositions = this._graph.getNodePositions();
+        const edgePositions = this._graph.getEdgePositions();
+        // this._onSimulationEnd = onRendered;
+        this._simulator.setupData({ nodes: nodePositions, edges: edgePositions });
+      },
+      onMergeData: (data) => {
+        const nodeIds = new Set(data.nodes?.map((node) => node.id));
+        const nodeFilter: INodeFilter<N, E> = (node: INode<N, E>) => nodeIds.has(node.getId());
+        const edgeIds = new Set(data.edges?.map((edge) => edge.id));
+        const edgeFilter: IEdgeFilter<N, E> = (edge: IEdge<N, E>) => edgeIds.has(edge.getId());
+
+        this._assignPositions(this._graph.getNodes(nodeFilter));
+
+        const nodePositions = this._graph.getNodePositions(nodeFilter);
+        const edgePositions = this._graph.getEdgePositions(edgeFilter);
+
+        this._simulator.mergeData({ nodes: nodePositions, edges: edgePositions });
+      },
+      onRemoveData: (data) => {
+        this._simulator.deleteData(data);
+      },
+    });
+  }
+
+  get data(): IGraph<N, E> {
+    return this._graph;
+  }
+
+  get events(): OrbEmitter<N, E> {
+    return this._events;
+  }
+
+  getSettings(): IOrbViewSettings<N, E> {
+    return copyObject(this._settings);
+  }
+
+  setSettings(settings: Partial<IOrbViewSettings<N, E>>) {
+    if (settings.getPosition) {
+      this._settings.getPosition = settings.getPosition;
+    }
+
+    if (settings.simulation) {
+      this._settings.simulation = {
+        ...this._settings.simulation,
+        ...settings.simulation,
+      };
+      this._simulator.setSettings(this._settings.simulation);
+    }
+
+    if (settings.render) {
+      this._renderer.setSettings(settings.render);
+      this._settings.render = this._renderer.getSettings();
+    }
+
+    if (settings.strategy) {
+      if (isBoolean(settings.strategy.isDefaultHoverEnabled)) {
+        this._settings.strategy.isDefaultHoverEnabled = settings.strategy.isDefaultHoverEnabled;
+        this._strategy.isHoverEnabled = this._settings.strategy.isDefaultHoverEnabled;
+      }
+
+      if (isBoolean(settings.strategy.isDefaultSelectEnabled)) {
+        this._settings.strategy.isDefaultSelectEnabled = settings.strategy.isDefaultSelectEnabled;
+        this._strategy.isSelectEnabled = this._settings.strategy.isDefaultSelectEnabled;
+      }
+    }
+
+    // Check if interaction settings are provided
+    if (settings.interaction) {
+      // Check if isDragEnabled is a boolean value
+      if (isBoolean(settings.interaction.isDragEnabled)) {
+        // Update the internal isDragEnabled setting based on the provided value
+        this._settings.interaction.isDragEnabled = settings.interaction.isDragEnabled;
+      }
+
+      // Check if isZoomEnabled is a boolean value
+      if (isBoolean(settings.interaction.isZoomEnabled)) {
+        // Update the internal isZoomEnabled setting based on the provided value
+        this._settings.interaction.isZoomEnabled = settings.interaction.isZoomEnabled;
+      }
+    }
+  }
+
+  private _assignPositions = (nodes: INode<N, E>[]) => {
+    if (this._settings.getPosition) {
+      for (let i = 0; i < nodes.length; i++) {
+        const position = this._settings.getPosition(nodes[i]);
+        if (position) {
+          nodes[i].setPosition({ id: nodes[i].getId(), ...position }, { isNotifySkipped: true });
+        }
+      }
+    }
+  };
+
+  render(onRendered?: () => void) {
+    this._renderer.render(this._graph);
+    onRendered?.();
+  }
+
+  recenter(onRendered?: () => void) {
+    const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph);
+
+    select(this._renderer.canvas)
+      .transition()
+      .duration(this._settings.zoomFitTransitionMs)
+      .ease(easeLinear)
+      .call(this._d3Zoom.transform, fitZoomTransform)
+      .call(() => {
+        this.render(onRendered);
+      });
+  }
+
+  destroy() {
+    this._renderer.destroy();
+    this._simulator.terminate();
+  }
+
+  dragSubject = (event: D3DragEvent<any, MouseEvent, INode<N, E>>) => {
+    const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
+    const simulationPoint = this._renderer?.getSimulationPosition(mousePoint);
+    return this._graph.getNearestNode(simulationPoint);
+  };
+
+  dragStarted = (event: D3DragEvent<any, any, INode<N, E>>) => {
+    // If drag is disabled then return
+    if (!this._settings.interaction.isDragEnabled) {
+      return;
+    }
+
+    const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
+    const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
+
+    this._events.emit(OrbEventType.NODE_DRAG_START, {
+      node: event.subject,
+      event: event.sourceEvent,
+      localPoint: simulationPoint,
+      globalPoint: mousePoint,
+    });
+    // Used to detect a click event in favor of a drag event.
+    // A click is when the drag start and end coordinates are identical.
+    this._dragStartPosition = mousePoint;
+  };
+
+  dragged = (event: D3DragEvent<any, any, INode<N, E>>) => {
+    // If drag is disabled then return
+    if (!this._settings.interaction.isDragEnabled) {
+      return;
+    }
+
+    const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
+    const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
+
+    // A drag event de-selects the node, while a click event selects it.
+    if (!isEqualPosition(this._dragStartPosition, mousePoint)) {
+      this._dragStartPosition = undefined;
+    }
+
+    this._simulator.dragNode(event.subject.getId(), simulationPoint);
+    this._events.emit(OrbEventType.NODE_DRAG, {
+      node: event.subject,
+      event: event.sourceEvent,
+      localPoint: simulationPoint,
+      globalPoint: mousePoint,
+    });
+  };
+
+  dragEnded = (event: D3DragEvent<any, any, INode<N, E>>) => {
+    // If drag is disabled then return
+    if (!this._settings.interaction.isDragEnabled) {
+      return;
+    }
+
+    const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
+    const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
+
+    if (!isEqualPosition(this._dragStartPosition, mousePoint)) {
+      this._simulator.endDragNode(event.subject.getId());
+    }
+
+    this._events.emit(OrbEventType.NODE_DRAG_END, {
+      node: event.subject,
+      event: event.sourceEvent,
+      localPoint: simulationPoint,
+      globalPoint: mousePoint,
+    });
+  };
+
+  zoomed = (event: D3ZoomEvent<any, any>) => {
+    // If zoom is disabled then return
+    if (!this._settings.interaction.isZoomEnabled) {
+      return;
+    }
+    this._renderer.transform = event.transform;
+    setTimeout(() => {
+      this.render();
+      this._events.emit(OrbEventType.TRANSFORM, { transform: event.transform });
+    }, 1);
+  };
+
+  getCanvasMousePosition(event: MouseEvent): IPosition {
+    const rect = this._renderer.canvas.getBoundingClientRect();
+    let x = event.clientX ?? event.pageX ?? event.x;
+    let y = event.clientY ?? event.pageY ?? event.y;
+
+    // Cursor x and y positions relative to the top left corner of the canvas element.
+    x = x - rect.left;
+    y = y - rect.top;
+
+    // Improve performance by rounding the canvas coordinates to avoid aliasing.
+    if (this._settings.areCoordinatesRounded) {
+      x = Math.floor(x);
+      y = Math.floor(y);
+    }
+
+    // Disable dragging nodes outside of the canvas borders.
+    if (!this._settings.isOutOfBoundsDragEnabled) {
+      x = Math.max(0, Math.min(this._renderer.width, x));
+      y = Math.max(0, Math.min(this._renderer.height, y));
+    }
+
+    return { x, y };
+  }
+
+  mouseMoved = (event: MouseEvent) => {
+    const mousePoint = this.getCanvasMousePosition(event);
+    const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
+
+    const response = this._strategy.onMouseMove(this._graph, simulationPoint);
+    const subject = response.changedSubject;
+
+    if (subject && response.isStateChanged) {
+      if (isNode(subject)) {
+        this._events.emit(OrbEventType.NODE_HOVER, {
+          node: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
+      }
+      if (isEdge(subject)) {
+        this._events.emit(OrbEventType.EDGE_HOVER, {
+          edge: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
+      }
+    }
+
+    this._events.emit(OrbEventType.MOUSE_MOVE, {
+      subject,
+      event,
+      localPoint: simulationPoint,
+      globalPoint: mousePoint,
+    });
+
+    if (response.isStateChanged) {
+      this.render();
+    }
+  };
+
+  mouseClicked = (event: PointerEvent) => {
+    const mousePoint = this.getCanvasMousePosition(event);
+    const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
+
+    const response = this._strategy.onMouseClick(this._graph, simulationPoint);
+    const subject = response.changedSubject;
+
+    if (subject) {
+      if (isNode(subject)) {
+        this._events.emit(OrbEventType.NODE_CLICK, {
+          node: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
+      }
+      if (isEdge(subject)) {
+        this._events.emit(OrbEventType.EDGE_CLICK, {
+          edge: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
+      }
+    }
+
+    this._events.emit(OrbEventType.MOUSE_CLICK, {
+      subject,
+      event,
+      localPoint: simulationPoint,
+      globalPoint: mousePoint,
+    });
+
+    if (response.isStateChanged || response.changedSubject) {
+      this.render();
+    }
+  };
+
+  mouseRightClicked = (event: PointerEvent) => {
+    const mousePoint = this.getCanvasMousePosition(event);
+    const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
+
+    const response = this._strategy.onMouseRightClick(this._graph, simulationPoint);
+    const subject = response.changedSubject;
+
+    if (subject) {
+      if (isNode(subject)) {
+        this._events.emit(OrbEventType.NODE_RIGHT_CLICK, {
+          node: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
+      }
+      if (isEdge(subject)) {
+        this._events.emit(OrbEventType.EDGE_RIGHT_CLICK, {
+          edge: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
+      }
+    }
+
+    this._events.emit(OrbEventType.MOUSE_RIGHT_CLICK, {
+      subject,
+      event,
+      localPoint: simulationPoint,
+      globalPoint: mousePoint,
+    });
+
+    if (response.isStateChanged || response.changedSubject) {
+      this.render();
+    }
+  };
+
+  mouseDoubleClicked = (event: PointerEvent) => {
+    const mousePoint = this.getCanvasMousePosition(event);
+    const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
+
+    const response = this._strategy.onMouseDoubleClick(this._graph, simulationPoint);
+    const subject = response.changedSubject;
+
+    if (subject) {
+      if (isNode(subject)) {
+        this._events.emit(OrbEventType.NODE_DOUBLE_CLICK, {
+          node: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
+      }
+      if (isEdge(subject)) {
+        this._events.emit(OrbEventType.EDGE_DOUBLE_CLICK, {
+          edge: subject,
+          event,
+          localPoint: simulationPoint,
+          globalPoint: mousePoint,
+        });
+      }
+    }
+
+    this._events.emit(OrbEventType.MOUSE_DOUBLE_CLICK, {
+      subject,
+      event,
+      localPoint: simulationPoint,
+      globalPoint: mousePoint,
+    });
+
+    if (response.isStateChanged || response.changedSubject) {
+      this.render();
+    }
+  };
+
+  zoomIn = (onRendered?: () => void) => {
+    select(this._renderer.canvas)
+      .transition()
+      .duration(this._settings.zoomFitTransitionMs)
+      .ease(easeLinear)
+      .call(this._d3Zoom.scaleBy, 1.2)
+      .call(() => {
+        this.render(onRendered);
+      });
+  };
+
+  zoomOut = (onRendered?: () => void) => {
+    select(this._renderer.canvas)
+      .transition()
+      .duration(this._settings.zoomFitTransitionMs)
+      .ease(easeLinear)
+      .call(this._d3Zoom.scaleBy, 0.8)
+      .call(() => this.render(onRendered));
+  };
+
+  private _update: IObserver = (data?: IObserverDataPayload): void => {
+    if (data && 'x' in data && 'y' in data && 'id' in data) {
+      this._simulator.patchData({
+        nodes: [
+          {
+            x: data.x,
+            y: data.y,
+            sx: data.x,
+            sy: data.y,
+            fx: data.x,
+            fy: data.y,
+            id: data.id,
+          },
+        ],
+        edges: [],
+      });
+    }
+    this.render();
+  };
+
+  // TODO: Do we keep these
+  fixNodes() {
+    this._simulator.fixNodes();
+  }
+
+  // TODO: Do we keep these
+  releaseNodes() {
+    this._simulator.releaseNodes();
+  }
+}

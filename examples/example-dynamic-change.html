@@ -3,7 +3,7 @@
 <head>
   <base href=".">
   <meta charset='UTF-8'>
-  <title>Orb | Simple graph with custom default style on default canvas</title>
+  <title>Orb | Data dynamics: Update nodes and edges data</title>
   <script type="text/javascript" src="./orb.js"></script>
 </head>
 <style>
@@ -14,9 +14,12 @@
 </style>
 <body>
   <div style="display: flex; flex-direction: column; align-items: center; height: 100%;">
-    <h1>Example 2 - Basic + Custom default style</h1>
+    <h1>Example 7 - Data dynamics</h1>
     <p style="width: 70%">
-      Renders a simple graph with a custom default style (color, size, border, text) for nodes and edges.
+      Renders a simple graph to show graph data dynamics: updating nodes and edges data.
+      In intervals of 3 seconds, 1 node gets new size and 1 node gets new color
+      (green or red) and a new border color (white or black). Node will change its 
+      unselected color to blue on node click event.
     </p>
 
     <!--
@@ -40,18 +43,15 @@
       { id: 3, start: 1, end: 2, label: 'B -> C' },
       { id: 4, start: 2, end: 2, label: 'C -> C' },
       { id: 5, start: 0, end: 1, label: 'A -> B' },
-    ]
+    ];
 
-    const orb = new Orb.OrbView(container, {
-      render: {
-        backgroundColor: '#DDDDDD',
-      },
-    });
+    const n = nodes.length - 1;
 
-    // Assign a basic style
+    const orb = new Orb.OrbView(container);
+
     orb.data.setDefaultStyle({
       getNodeStyle(node) {
-        const basicStyle = {
+        return {
           borderColor: '#1d1d1d',
           borderWidth: 0.6,
           color: '#DD2222',
@@ -60,19 +60,6 @@
           fontSize: 3,
           label: node.getData().label,
           size: 6,
-        };
-
-        if (node.getData().label === 'Node A') {
-          return {
-            ...basicStyle,
-            size: 10,
-            color: '#00FF2B',
-            zIndex: 1,
-          };
-        }
-
-        return {
-          ...basicStyle
         };
       },
       getEdgeStyle(edge) {
@@ -92,9 +79,32 @@
     // Initialize nodes and edges
     orb.data.setup({ nodes, edges });
 
+    const randomlyChangeGraphData = () => {
+      console.log('Randomly changing graph data...');
+      setInterval(() => {
+        const firstNodeId = Math.round(Math.random() * n);
+        const secondNodeId = Math.round(Math.random() * n);
+
+        orb.data.getNodeById(firstNodeId).patchStyle({ size: Math.random() * 5 + 2 });
+        orb.data.getNodeById(secondNodeId).patchStyle({ 
+          color: Math.random() > 0.5 ? "#FF0000" : "#00FF00",
+          borderColor: Math.random() > 0.5 ? "#FFFFFF" : "#000000"
+        });
+      }, 3000);
+    }
+
+    randomlyChangeGraphData();
+    
+    orb.events.on(Orb.OrbEventType.NODE_CLICK, (event) => {
+      console.log('Node clicked: ', event.node);
+      orb.data.getNodeById(event.node.getId()).patchStyle({ color: "#0000FF" });
+    });
+
+    // Render and recenter the view
     orb.render(() => {
       orb.recenter();
     });
+
   </script>
 </body>
 </html>

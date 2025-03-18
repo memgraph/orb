@@ -2,6 +2,7 @@ import { INodeBase, INode, NodeShapeType } from '../../models/node';
 import { IEdgeBase } from '../../models/edge';
 import { drawDiamond, drawHexagon, drawSquare, drawStar, drawTriangleDown, drawTriangleUp, drawCircle } from './shapes';
 import { drawLabel, Label, LabelTextBaseline } from './label';
+import { Color } from '../../common';
 
 // The label will be `X` of the size below the Node
 const DEFAULT_LABEL_DISTANCE_SIZE_FROM_NODE = 0.2;
@@ -53,7 +54,7 @@ const drawShape = <N extends INodeBase, E extends IEdgeBase>(context: CanvasRend
   const center = node.getCenter();
   const radius = node.getRadius();
 
-  switch (node.style.shape) {
+  switch (node.getStyle().shape) {
     case NodeShapeType.SQUARE: {
       drawSquare(context, center.x, center.y, radius);
       break;
@@ -96,15 +97,16 @@ const drawNodeLabel = <N extends INodeBase, E extends IEdgeBase>(
 
   const center = node.getCenter();
   const distance = node.getBorderedRadius() * (1 + DEFAULT_LABEL_DISTANCE_SIZE_FROM_NODE);
+  const nodeStyle = node.getStyle();
 
   const label = new Label(nodeLabel, {
     position: { x: center.x, y: center.y + distance },
     textBaseline: LabelTextBaseline.TOP,
     properties: {
-      fontBackgroundColor: node.style.fontBackgroundColor,
-      fontColor: node.style.fontColor,
-      fontFamily: node.style.fontFamily,
-      fontSize: node.style.fontSize,
+      fontBackgroundColor: nodeStyle.fontBackgroundColor,
+      fontColor: nodeStyle.fontColor,
+      fontFamily: nodeStyle.fontFamily,
+      fontSize: nodeStyle.fontSize,
     },
   });
   drawLabel(context, label);
@@ -156,17 +158,19 @@ const setupShadow = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
   node: INode<N, E>,
 ) => {
-  if (node.style.shadowColor) {
-    context.shadowColor = node.style.shadowColor.toString();
+  const nodeStyle = node.getStyle();
+
+  if (nodeStyle.shadowColor) {
+    context.shadowColor = (nodeStyle.shadowColor as string | Color).toString();
   }
-  if (node.style.shadowSize) {
-    context.shadowBlur = node.style.shadowSize;
+  if (nodeStyle.shadowSize) {
+    context.shadowBlur = nodeStyle.shadowSize as number;
   }
-  if (node.style.shadowOffsetX) {
-    context.shadowOffsetX = node.style.shadowOffsetX;
+  if (nodeStyle.shadowOffsetX) {
+    context.shadowOffsetX = nodeStyle.shadowOffsetX as number;
   }
-  if (node.style.shadowOffsetY) {
-    context.shadowOffsetY = node.style.shadowOffsetY;
+  if (nodeStyle.shadowOffsetY) {
+    context.shadowOffsetY = nodeStyle.shadowOffsetY as number;
   }
 };
 
@@ -174,16 +178,18 @@ const clearShadow = <N extends INodeBase, E extends IEdgeBase>(
   context: CanvasRenderingContext2D,
   node: INode<N, E>,
 ) => {
-  if (node.style.shadowColor) {
+  const nodeStyle = node.getStyle();
+
+  if (nodeStyle.shadowColor) {
     context.shadowColor = 'rgba(0,0,0,0)';
   }
-  if (node.style.shadowSize) {
+  if (nodeStyle.shadowSize) {
     context.shadowBlur = 0;
   }
-  if (node.style.shadowOffsetX) {
+  if (nodeStyle.shadowOffsetX) {
     context.shadowOffsetX = 0;
   }
-  if (node.style.shadowOffsetY) {
+  if (nodeStyle.shadowOffsetY) {
     context.shadowOffsetY = 0;
   }
 };

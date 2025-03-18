@@ -4,29 +4,42 @@ import { IGraph } from './graph';
 import { IPosition } from '../common';
 import { GraphObjectState } from './state';
 
+export interface IEventStrategySettings {
+  isDefaultSelectEnabled: boolean;
+  isDefaultHoverEnabled: boolean;
+}
+
 export interface IEventStrategyResponse<N extends INodeBase, E extends IEdgeBase> {
   isStateChanged: boolean;
   changedSubject?: INode<N, E> | IEdge<N, E>;
 }
 
 export interface IEventStrategy<N extends INodeBase, E extends IEdgeBase> {
-  onMouseClick: ((graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>) | null;
-  onMouseMove: ((graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>) | null;
-  onMouseRightClick: ((graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>) | null;
-  onMouseDoubleClick: ((graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>) | null;
+  isSelectEnabled: boolean;
+  isHoverEnabled: boolean;
+  onMouseClick: (graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>;
+  onMouseMove: (graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>;
+  onMouseRightClick: (graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>;
+  onMouseDoubleClick: (graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>;
 }
 
-export const getDefaultEventStrategy = <N extends INodeBase, E extends IEdgeBase>(): IEventStrategy<N, E> => {
-  return new DefaultEventStrategy<N, E>();
-};
+export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> implements IEventStrategy<N, E> {
+  private _lastHoveredNode?: INode<N, E>;
+  public isSelectEnabled: boolean;
+  public isHoverEnabled: boolean;
 
-class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> implements IEventStrategy<N, E> {
-  lastHoveredNode?: INode<N, E>;
+  constructor(settings: IEventStrategySettings) {
+    this.isSelectEnabled = settings.isDefaultSelectEnabled;
+    this.isHoverEnabled = settings.isDefaultHoverEnabled;
+  }
 
   onMouseClick(graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> {
     const node = graph.getNearestNode(point);
     if (node) {
-      selectNode(graph, node);
+      if (this.isSelectEnabled) {
+        selectNode(graph, node);
+      }
+
       return {
         isStateChanged: true,
         changedSubject: node,
@@ -35,11 +48,18 @@ class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> implements 
 
     const edge = graph.getNearestEdge(point);
     if (edge) {
-      selectEdge(graph, edge);
+      if (this.isSelectEnabled) {
+        selectEdge(graph, edge);
+      }
+
       return {
         isStateChanged: true,
         changedSubject: edge,
       };
+    }
+
+    if (!this.isSelectEnabled) {
+      return { isStateChanged: false };
     }
 
     const { changedCount } = unselectAll(graph);
@@ -50,24 +70,27 @@ class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> implements 
 
   onMouseMove(graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> {
     const node = graph.getNearestNode(point);
-    if (node && !node.isSelected()) {
-      if (node === this.lastHoveredNode) {
+    if (node && (!this.isSelectEnabled || (this.isSelectEnabled && !node.isSelected()))) {
+      if (node === this._lastHoveredNode) {
         return {
           changedSubject: node,
           isStateChanged: false,
         };
       }
 
-      hoverNode(graph, node);
-      this.lastHoveredNode = node;
+      if (this.isHoverEnabled) {
+        hoverNode(graph, node);
+      }
+
+      this._lastHoveredNode = node;
       return {
         isStateChanged: true,
         changedSubject: node,
       };
     }
 
-    this.lastHoveredNode = undefined;
-    if (!node) {
+    this._lastHoveredNode = undefined;
+    if (!node && this.isHoverEnabled) {
       const { changedCount } = unhoverAll(graph);
       return {
         isStateChanged: changedCount > 0,
@@ -80,7 +103,10 @@ class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> implements 
   onMouseRightClick(graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> {
     const node = graph.getNearestNode(point);
     if (node) {
-      selectNode(graph, node);
+      if (this.isSelectEnabled) {
+        selectNode(graph, node);
+      }
+
       return {
         isStateChanged: true,
         changedSubject: node,
@@ -89,11 +115,18 @@ class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> implements 
 
     const edge = graph.getNearestEdge(point);
     if (edge) {
-      selectEdge(graph, edge);
+      if (this.isSelectEnabled) {
+        selectEdge(graph, edge);
+      }
+
       return {
         isStateChanged: true,
         changedSubject: edge,
       };
+    }
+
+    if (!this.isSelectEnabled) {
+      return { isStateChanged: false };
     }
 
     const { changedCount } = unselectAll(graph);
@@ -105,7 +138,10 @@ class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> implements 
   onMouseDoubleClick(graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> {
     const node = graph.getNearestNode(point);
     if (node) {
-      selectNode(graph, node);
+      if (this.isSelectEnabled) {
+        selectNode(graph, node);
+      }
+
       return {
         isStateChanged: true,
         changedSubject: node,
@@ -114,11 +150,18 @@ class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> implements 
 
     const edge = graph.getNearestEdge(point);
     if (edge) {
-      selectEdge(graph, edge);
+      if (this.isSelectEnabled) {
+        selectEdge(graph, edge);
+      }
+
       return {
         isStateChanged: true,
         changedSubject: edge,
       };
+    }
+
+    if (!this.isSelectEnabled) {
+      return { isStateChanged: false };
     }
 
     const { changedCount } = unselectAll(graph);
@@ -186,24 +229,24 @@ const setNodeState = <N extends INodeBase, E extends IEdgeBase>(
   options?: ISetShapeStateOptions,
 ): void => {
   if (isStateChangeable(node, options)) {
-    node.state = state;
+    node.setState(state, { isNotifySkipped: true });
   }
 
   node.getInEdges().forEach((edge) => {
     if (edge && isStateChangeable(edge, options)) {
-      edge.state = state;
+      edge.setState(state, { isNotifySkipped: true });
     }
     if (edge.startNode && isStateChangeable(edge.startNode, options)) {
-      edge.startNode.state = state;
+      edge.startNode.setState(state, { isNotifySkipped: true });
     }
   });
 
   node.getOutEdges().forEach((edge) => {
     if (edge && isStateChangeable(edge, options)) {
-      edge.state = state;
+      edge.setState(state, { isNotifySkipped: true });
     }
     if (edge.endNode && isStateChangeable(edge.endNode, options)) {
-      edge.endNode.state = state;
+      edge.endNode.setState(state, { isNotifySkipped: true });
     }
   });
 };
@@ -214,15 +257,15 @@ const setEdgeState = <N extends INodeBase, E extends IEdgeBase>(
   options?: ISetShapeStateOptions,
 ): void => {
   if (isStateChangeable(edge, options)) {
-    edge.state = state;
+    edge.setState(state, { isNotifySkipped: true });
   }
 
   if (edge.startNode && isStateChangeable(edge.startNode, options)) {
-    edge.startNode.state = state;
+    edge.startNode.setState(state, { isNotifySkipped: true });
   }
 
   if (edge.endNode && isStateChangeable(edge.endNode, options)) {
-    edge.endNode.state = state;
+    edge.endNode.setState(state, { isNotifySkipped: true });
   }
 };
 
@@ -231,5 +274,5 @@ const isStateChangeable = <N extends INodeBase, E extends IEdgeBase>(
   options?: ISetShapeStateOptions,
 ): boolean => {
   const isOverride = options?.isStateOverride;
-  return isOverride || (!isOverride && !graphObject.state);
+  return isOverride || (!isOverride && !graphObject.getState());
 };

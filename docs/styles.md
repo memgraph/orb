@@ -1,5 +1,4 @@
-Styling nodes and edges in Orb
-===
+# Styling nodes and edges in Orb
 
 Styling nodes and edges in Orb refers to the configuration of colors, size, width, and other visual
 properties. In the following section, you can find all the details and available style properties to
@@ -14,7 +13,7 @@ through which you can get and set style properties.
 ```typescript
 const node = orb.data.getNodeById(0);
 // Set node size to 10
-node.style.size = 10;
+node.patchStyle({ size: 10 });
 ```
 
 ## Properties
@@ -22,31 +21,31 @@ node.style.size = 10;
 The interface that defines all the node style properties is `INodeStyle`. It contains
 the following properties:
 
-| Property name         | Type                | Description                                     |
-| --------------------- | ------------------- | ----------------------------------------------- |
-| `borderColor`         | Color &#124; string | Node border color.                              |
-| `borderColorHover`    | Color &#124; string | Node border color on mouse hover event. If not defined, `borderColor` is used. |
-| `borderColorSelected` | Color &#124; string | Node border color on mouse click event. If not defined, `borderColor` is used. |
-| `borderWidth`         | number              | Node border width.                              |
-| `borderWidthSelected` | number              | Node border width on mouse click event. If not defined, `borderWidth` is used. |
-| `color`               | Color &#124; string | Node background color. The default is `#1d87c9`.    |
-| `colorHover`          | Color &#124; string | Node background color on mouse hover event. If not defined `color` is used. |
-| `colorSelected`       | Color &#124; string | Node background color on mouse click event. If not defined `color` is used. |
-| `fontBackgroundColor` | Color &#124; string | Node text (label) background color.             |
-| `fontColor`           | Color &#124; string | Node text (label) font color. The default is `#000000`. |
-| `fontFamily`          | string              | Node text (label) font family. The default is `"Roboto, sans-serif"`. |
-| `fontSize`            | number              | Node text (label) font size. The default is `4`.    |
-| `imageUrl`            | string              | Image used for a node background. If image is defined, `color` won't be used. | 
-| `imageUrlSelected`    | string              | Image used for a node background on mouse click event. If image is defined, `colorSelected` and `color` won't be used. |
-| `label`               | string              | Node text content. Text content will be shown below the node if `fontSize` is greater than zero. |
-| `shadowColor`         | Color &#124; string | Node background shadow color.                   |
-| `shadowSize`          | number              | Node shadow blur size. If set to `0` the shadow will be a solid color defined by `shadowColor`. |
-| `shadowOffsetX`       | number              | Node shadow horizontal offset. A positive value puts the shadow on the right side of the element, a negative value puts the shadow on the left side of the element. |
-| `shadowOffsetY`       | number              | Node shadow vertical offset. A positive value puts the shadow below the element, a negative value puts the shadow above the element. |
+| Property name         | Type                | Description                                                                                                                                                                     |
+| --------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `borderColor`         | Color &#124; string | Node border color.                                                                                                                                                              |
+| `borderColorHover`    | Color &#124; string | Node border color on mouse hover event. If not defined, `borderColor` is used.                                                                                                  |
+| `borderColorSelected` | Color &#124; string | Node border color on mouse click event. If not defined, `borderColor` is used.                                                                                                  |
+| `borderWidth`         | number              | Node border width.                                                                                                                                                              |
+| `borderWidthSelected` | number              | Node border width on mouse click event. If not defined, `borderWidth` is used.                                                                                                  |
+| `color`               | Color &#124; string | Node background color. The default is `#1d87c9`.                                                                                                                                |
+| `colorHover`          | Color &#124; string | Node background color on mouse hover event. If not defined `color` is used.                                                                                                     |
+| `colorSelected`       | Color &#124; string | Node background color on mouse click event. If not defined `color` is used.                                                                                                     |
+| `fontBackgroundColor` | Color &#124; string | Node text (label) background color.                                                                                                                                             |
+| `fontColor`           | Color &#124; string | Node text (label) font color. The default is `#000000`.                                                                                                                         |
+| `fontFamily`          | string              | Node text (label) font family. The default is `"Roboto, sans-serif"`.                                                                                                           |
+| `fontSize`            | number              | Node text (label) font size. The default is `4`.                                                                                                                                |
+| `imageUrl`            | string              | Image used for a node background. If image is defined, `color` won't be used.                                                                                                   |
+| `imageUrlSelected`    | string              | Image used for a node background on mouse click event. If image is defined, `colorSelected` and `color` won't be used.                                                          |
+| `label`               | string              | Node text content. Text content will be shown below the node if `fontSize` is greater than zero.                                                                                |
+| `shadowColor`         | Color &#124; string | Node background shadow color.                                                                                                                                                   |
+| `shadowSize`          | number              | Node shadow blur size. If set to `0` the shadow will be a solid color defined by `shadowColor`.                                                                                 |
+| `shadowOffsetX`       | number              | Node shadow horizontal offset. A positive value puts the shadow on the right side of the element, a negative value puts the shadow on the left side of the element.             |
+| `shadowOffsetY`       | number              | Node shadow vertical offset. A positive value puts the shadow below the element, a negative value puts the shadow above the element.                                            |
 | `shape`               | NodeShapeType       | Node shape enum. Possible values are: `CIRCLE`, `DOT` (same as circle), `SQUARE`, `DIAMOND`, `TRIANGLE`, `TRIANGLE_DOWN`, `STAR`, `HEXAGON`. Default is `NodeShapeEnum.CIRCLE`. |
-| `size`                | number              | Node size (usually the radius). The default is `5`. |
-| `mass`                | number              | Node mass. _(Currently not used)_               |
-| `zIndex`              | number              | Specifies the stack order of an element during rendering. The default is `0`. |
+| `size`                | number              | Node size (usually the radius). The default is `5`.                                                                                                                             |
+| `mass`                | number              | Node mass. _(Currently not used)_                                                                                                                                               |
+| `zIndex`              | number              | Specifies the stack order of an element during rendering. The default is `0`.                                                                                                   |
 
 ## Shape enumeration
 
@@ -54,14 +53,14 @@ The enum `NodeShapeType` which is used for the node `shape` property is defined 
 
 ```typescript
 export enum NodeShapeType {
-  CIRCLE = 'circle',
-  DOT = 'dot',
-  SQUARE = 'square',
-  DIAMOND = 'diamond',
-  TRIANGLE = 'triangle',
-  TRIANGLE_DOWN = 'triangleDown',
-  STAR = 'star',
-  HEXAGON = 'hexagon',
+  CIRCLE = "circle",
+  DOT = "dot",
+  SQUARE = "square",
+  DIAMOND = "diamond",
+  TRIANGLE = "triangle",
+  TRIANGLE_DOWN = "triangleDown",
+  STAR = "star",
+  HEXAGON = "hexagon",
 }
 ```
 
@@ -72,10 +71,10 @@ Default node style values are defined as follows:
 ```typescript
 const DEFAULT_NODE_STYLE: INodeStyle = {
   size: 5,
-  color: new Color('#1d87c9'),
+  color: new Color("#1d87c9"),
   fontSize: 4,
-  fontColor: '#000000',
-  fontFamily: 'Roboto, sans-serif',
+  fontColor: "#000000",
+  fontFamily: "Roboto, sans-serif",
   shape: NodeShapeType.CIRCLE,
 };
 ```
@@ -85,20 +84,24 @@ const DEFAULT_NODE_STYLE: INodeStyle = {
 > below:
 
 ```typescript
+import { OrbView } from "@memgraph/orb";
+
 const nodes: MyNode[] = [
   { id: 1, name: "First" },
   { id: 1, name: "Second" },
 ];
 
-const orb = new Orb<MyNode, MyEdge>(container);
+const orb = new OrbView<MyNode, MyEdge>(container);
+
 orb.data.setDefaultStyle({
   getNodeStyle: (node) => {
     return {
-      ...node.style,
-      label: node.data.name,
+      ...node.getStyle(),
+      label: node.getData().name,
     };
   },
 });
+
 orb.data.setup({ nodes });
 ```
 
@@ -111,7 +114,7 @@ through which you can get and set style properties.
 ```typescript
 const edge = orb.data.getEdgebyId(0);
 // Set edge width to 1
-edge.style.width = 1;
+edge.patchStyle({ width: 1 });
 ```
 
 ## Properties
@@ -119,25 +122,26 @@ edge.style.width = 1;
 The interface that defines all the node properties is `IEdgeStyle`. It contains the following
 style properties:
 
-| Property name         | Type                | Description                                         |
-| --------------------- | ------------------- | --------------------------------------------------- |
+| Property name         | Type                | Description                                                                                                                                                            |
+| --------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `arrowSize`           | number              | The scale of the edge arrow compared to the `width` of the edge. If set to `0`, an arrow will be dismissed. The default is `1` (follows the size of the edge `width`). |
-| `color`               | Color &#124; string | Edge line color. The default is `#ababab`.              |
-| `colorHover`          | Color &#124; string | Edge line color on mouse hover event. If not defined `color` is used. |
-| `colorSelected`       | Color &#124; string | Edge line color on mouse click event. If not defined `color` is used. |
-| `fontBackgroundColor` | Color &#124; string | Edge text (label) background color.
-| `fontColor`           | Color &#124; string | Edge text (label) font color. The default is `#000000`. |
-| `fontFamily`          | string              | Edge text (label) font family. The default is `"Roboto, sans-serif"`. |
-| `fontSize`            | number              | Edge text (label) font size. The default is `4`.        |
-| `label`               | string              | Edge text content. Text content will be shown at the middle of the edge line if `fontSize` is greater than zero. |
-| `shadowColor`         | Color &#124; string | Edge line background shadow color.                  |
-| `shadowSize`          | number              | Edge line shadow blur size. If set to `0` the shadow will be a solid color defined by `shadowColor`. |
-| `shadowOffsetX`       | number              | Edge shadow horizontal offset. A positive value puts the shadow on the right side of the line, a negative value puts the shadow on the left side of the line. |
-| `shadowOffsetY`       | number              | Edge shadow vertical offset. A positive value puts the shadow below the line, a negative value puts the shadow above the line. |
-| `width`               | number              | Edge line width. If the width is `0`, the edge won't be drawn. The default is `0.3`. |
-| `widthHover`          | number              | Edge line width on mouse hover event. If not defined `width` is used. |
-| `widthSelected`       | number              | Edge line width on mouse click event. If not defined `width` is used. |
-| `zIndex`              | number              | Specifies the stack order of an element during rendering. The default is `0`. |
+| `color`               | Color &#124; string | Edge line color. The default is `#ababab`.                                                                                                                             |
+| `colorHover`          | Color &#124; string | Edge line color on mouse hover event. If not defined `color` is used.                                                                                                  |
+| `colorSelected`       | Color &#124; string | Edge line color on mouse click event. If not defined `color` is used.                                                                                                  |
+| `fontBackgroundColor` | Color &#124; string | Edge text (label) background color.                                                                                                                                    |
+| `fontColor`           | Color &#124; string | Edge text (label) font color. The default is `#000000`.                                                                                                                |
+| `fontFamily`          | string              | Edge text (label) font family. The default is `"Roboto, sans-serif"`.                                                                                                  |
+| `fontSize`            | number              | Edge text (label) font size. The default is `4`.                                                                                                                       |
+| `label`               | string              | Edge text content. Text content will be shown at the middle of the edge line if `fontSize` is greater than zero.                                                       |
+| `shadowColor`         | Color &#124; string | Edge line background shadow color.                                                                                                                                     |
+| `shadowSize`          | number              | Edge line shadow blur size. If set to `0` the shadow will be a solid color defined by `shadowColor`.                                                                   |
+| `shadowOffsetX`       | number              | Edge shadow horizontal offset. A positive value puts the shadow on the right side of the line, a negative value puts the shadow on the left side of the line.          |
+| `shadowOffsetY`       | number              | Edge shadow vertical offset. A positive value puts the shadow below the line, a negative value puts the shadow above the line.                                         |
+| `width`               | number              | Edge line width. If the width is `0`, the edge won't be drawn. The default is `0.3`.                                                                                   |
+| `widthHover`          | number              | Edge line width on mouse hover event. If not defined `width` is used.                                                                                                  |
+| `widthSelected`       | number              | Edge line width on mouse click event. If not defined `width` is used.                                                                                                  |
+| `zIndex`              | number              | Specifies the stack order of an element during rendering. The default is `0`.                                                                                          |
+| `lineStyle`           | object              | Allows to customize the style of edges in the graph visualization. The default is `{type: 'solid'}`                                                                    |
 
 ## Default style values
 
@@ -145,12 +149,12 @@ Default edge style values are defined as follows:
 
 ```typescript
 const DEFAULT_EDGE_STYLE: IEdgeStyle = {
-  color: new Color('#ababab'),
+  color: new Color("#ababab"),
   width: 0.3,
   fontSize: 4,
   arrowSize: 1,
-  fontColor: '#000000',
-  fontFamily: 'Roboto, sans-serif',
+  fontColor: "#000000",
+  fontFamily: "Roboto, sans-serif",
 };
 ```
 
@@ -163,17 +167,17 @@ Orb exports a utility class `Color` which you can use to define colors too. It c
 functions for easier color handling:
 
 ```typescript
-import { Color } from '@memgraph/orb';
+import { Color } from "@memgraph/orb";
 
 // Constructor always receives a color HEX code
-const red = new Color('#FF0000');
+const red = new Color("#FF0000");
 
 // Returns darker or lighter color by input factor (default is 0.3)
 const darkerRed = red.getDarkerColor();
 const lighterRed = red.getLighterColor();
 
 // Mix two colors (RGB values are joined and divided by 2)
-const mixedColor = red.getMixedColor(new Color('#ffffff'));
+const mixedColor = red.getMixedColor(new Color("#ffffff"));
 
 // Get a color object by RGB values, not HEX code
 const redByRGB = Color.getColorFromRGB({ r: 255, g: 0, b: 0 });
@@ -186,26 +190,27 @@ If you would like to have a lighter/darker tone of a node on node select/hover, 
 that with `getLighterColor` or `getDarkerColor` functions:
 
 ```typescript
-const nodeBaseColor = new Color('#FF0000');
+const nodeBaseColor = new Color("#FF0000");
 
-node.style.color = nodeBaseColor;
-node.style.colorSelected = nodeBaseColor.getDarkerColor();
-node.style.colorHover = nodeBaseColor.getLighterColor();
+node.patchStyle({ color: nodeBaseColor });
+node.patchStyle({ colorSelected: nodeBaseColor.getDarkerColor() });
+node.patchStyle({ colorHover: nodeBaseColor.getLighterColor() });
 ```
 
 # Setting up styles
 
 There are two ways to set up a style:
-* Setting up default style which is an initial style applied to new nodes and new edges
-* Changing the style properties of particular nodes and edges
+
+- Setting up default style which is an initial style applied to new nodes and new edges
+- Changing the style properties of particular nodes and edges
 
 ## Setting default style
 
 Orb comes with a default style which you can override with the function `orb.data.setDefaultStyle`.
 The function expects an object where you can define one or both style callback functions:
 
-* `getNodeStyle(node)` - expects an object containing node style properties.
-* `getEdgeStyle(edge)` - expects an object containing edge style properties.
+- `getNodeStyle(node)` - expects an object containing node style properties.
+- `getEdgeStyle(edge)` - expects an object containing edge style properties.
 
 The default style is an easy way to set up a style that will be applied to all newly created
 nodes or edges. With it, you don't need to worry about setting up style properties for each
@@ -215,15 +220,15 @@ node or edge.
 orb.data.setDefaultStyle({
   getNodeStyle(node) {
     return {
-      color: '#FF0000',
+      color: "#FF0000",
       fontSize: 10,
       size: 10,
-      label: `Node: ${node.data.title}`,
+      label: `Node: ${node.getData().title}`,
     };
   },
   getEdgeStyle() {
     return {
-      color: '#000000',
+      color: "#000000",
       width: 3,
     };
   },
@@ -235,7 +240,6 @@ orb.data.setDefaultStyle({
 // For all the `newNodes` and `newEdges` that have a new unique ID, a default
 // style defined above will be automatically applied
 orb.data.merge({ nodes: newNodes, edges: newEdges });
-
 ```
 
 Without a default style, you would need to do the following after each call of `orb.data.setup`
@@ -245,22 +249,22 @@ or `orb.data.merge` where new nodes/edges are created:
 // Without default style, after each call of `orb.data.setup` or `orb.data.merge`
 // you need to call the following code
 orb.data.getNodes().forEach((node) => {
-  node.style = {
-    color: '#FF0000',
+  node.setStyle({
+    color: "#FF0000",
     fontSize: 10,
     size: 10,
-    label: `Node: ${node.data.title}`,
-  };
+    label: `Node: ${node.getData().title}`,
+  });
 });
 orb.data.getEdges().forEach((edge) => {
-  edge.style = {
-    color: '#000000',
+  edge.setStyle({
+    color: "#000000",
     width: 3,
-  };
+  });
 });
 
 // For all the `newNodes` and `newEdges` that have a new unique ID, Orb's default
-// style will be applied, not the style properties above 
+// style will be applied, not the style properties above
 orb.data.merge({ nodes: newNodes, edges: newEdges });
 ```
 
@@ -271,28 +275,28 @@ node (`INode`) or edge (`IEdge`) object. Using those objects, you can change the
 any time:
 
 ```typescript
-import { OrbEventType } from '@memgraph/orb';
+import { OrbView, OrbEventType } from "@memgraph/orb";
 
-const orb = new Orb<MyNode, MyEdge>(container);
+const orb = new OrbView<MyNode, MyEdge>(container);
 orb.data.setup({ nodes, edges });
 
 const node = orb.data.getNodeById(0);
 // Override existing node style properties with the new ones
-node.style = {
-  color: '#FF0000',
+node.setStyle({
+  color: "#FF0000",
   fontSize: 10,
   size: 10,
-  label: `Node: ${node.data.title}`,
-};
+  label: `Node: ${node.getData().title}`,
+});
 
 // Change the width of all the edges to 1, but keep other style properties
 orb.data.getEdges().forEach((edge) => {
-  edge.style.width = 1;
+  edge.patchStyle({ width: 1 });
 });
 
 orb.events.on(OrbEventType.NODE_CLICK, ({ node }) => {
   // If a node is clicked, set its size to be 10
-  node.style.size = 10;
+  node.patchStyle({ size: 10 });
 });
 ```
 
@@ -310,16 +314,18 @@ without setting `(node|edge).style.label = ""` or `(node|edge).style.fontSize = 
 each node/edge, you can use the view settings to enable/disable labels globally:
 
 ```typescript
+import { OrbView } from "@memgraph/orb";
+
 // Change on view init
-orb.setView((context) => new DefaultView(context, {
+const orb = new OrbView<MyNode, MyEdge>(container, {
   render: {
     labelsIsEnabled: true,
     labelsOnEventIsEnabled: true,
   },
-}));
+});
 
 // Change anytime for the current view
-orb.view.setSettings({
+orb.setSettings({
   render: {
     labelsIsEnabled: true,
     labelsOnEventIsEnabled: true,
@@ -338,16 +344,18 @@ for the large number of nodes/edges. To simplify the way to disable/enable shado
 whole graph you can use the view settings to enable/disable shadows globally:
 
 ```typescript
+import { OrbView } from "@memgraph/orb";
+
 // Change on view init
-orb.setView((context) => new DefaultView(context, {
+const orb = new OrbView<MyNode, MyEdge>(container, {
   render: {
     shadowIsEnabled: true,
     shadowOnEventIsEnabled: true,
   },
-}));
+});
 
 // Change anytime for the current view
-orb.view.setSettings({
+orb.setSettings({
   render: {
     shadowIsEnabled: true,
     shadowOnEventIsEnabled: true,
@@ -363,26 +371,28 @@ properties are `true`.
 
 Additional performance affected property is the transparency of nodes/edges that are not selected nor
 hovered. Default Orb behavior on node/edge select (click) and hover to make all other nodes 30%
-transparent, so the selection/hover is easily visible. 
+transparent, so the selection/hover is easily visible.
 
 You can configure the transparency with the following two properties:
 
-* `contextAlphaOnEvent` - Transparency factor between 0 (hidden) and 1 (opaque). The default
+- `contextAlphaOnEvent` - Transparency factor between 0 (hidden) and 1 (opaque). The default
   is `0.3`.
-* `contextAlphaOnEventIsEnabled` - Enable or disable transparency regardless of the factor. 
+- `contextAlphaOnEventIsEnabled` - Enable or disable transparency regardless of the factor.
   The default is `true`.
 
 ```typescript
+import { OrbView } from "@memgraph/orb";
+
 // Change on view init
-orb.setView((context) => new DefaultView(context, {
+const orb = new OrbView<MyNode, MyEdge>(container, {
   render: {
     contextAlphaOnEvent: 0.3,
     contextAlphaOnEventIsEnabled: true,
   },
-}));
+});
 
 // Change anytime for the current view
-orb.view.setSettings({
+orb.setSettings({
   render: {
     contextAlphaOnEvent: 0.3,
     contextAlphaOnEventIsEnabled: true,

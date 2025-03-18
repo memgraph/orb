@@ -25,7 +25,7 @@
       an event will be logged in the console with a message showing clicked/hovered
       node or edge.
     </p>
-    <div id='graph-event-output'>< Click on any of the nodes or edges ></div>
+    <div id='graph-event-output'>[ Click on any of the nodes or edges ]</div>
     <div id="progressBar" class="progress-bar"></div>
 
     <!--
@@ -53,7 +53,7 @@
       };
     }
 
-    const orb = new Orb.Orb(container);
+    const orb = new Orb.OrbView(container);
 
     // Assign a basic style
     orb.data.setDefaultStyle({
@@ -65,7 +65,7 @@
           colorHover: '#e7644e',
           colorSelected: '#e7644e',
           fontSize: 3,
-          label: node.data.label,
+          label: node.getData().label,
           size: 6,
         };
       },
@@ -78,7 +78,7 @@
           width: 0.3,
           widthHover: 0.9,
           widthSelected: 0.9,
-          label: edge.data.label,
+          label: edge.getData().label,
         };
       },
     });
@@ -87,8 +87,8 @@
     orb.data.setup({ nodes, edges });
 
     // Render and recenter the view
-    orb.view.render(() => {
-      orb.view.recenter(() => {
+    orb.render(() => {
+      orb.recenter(() => {
         output.innerHTML = '< Click on any of the nodes or edges >';
       });
     });
@@ -103,27 +103,27 @@
 
     orb.events.on(Orb.OrbEventType.NODE_CLICK, (event) => {
       console.log('Event: node-click', event);
-      output.innerHTML = `<b>${event.node.data.label}</b> clicked!`;
+      output.innerHTML = `<b>${event.node.getData().label}</b> clicked!`;
     });
     orb.events.on(Orb.OrbEventType.NODE_HOVER, (event) => {
       console.log('Event: node-hover', event);
-      output.innerHTML = `<b>${event.node.data.label}</b> hovered!`;
+      output.innerHTML = `<b>${event.node.getData().label}</b> hovered!`;
     });
     orb.events.on(Orb.OrbEventType.EDGE_CLICK, (event) => {
       console.log('Event: edge-click', event);
-      output.innerHTML = `Edge with id <b>${event.edge.data.id}</b> clicked!`;
+      output.innerHTML = `Edge with id <b>${event.edge.getData().id}</b> clicked!`;
     });
 
     orb.events.on(Orb.OrbEventType.NODE_RIGHT_CLICK, (data) => {
       data.event.preventDefault();
       console.log("Event: node-right-click", data);
-      output.innerHTML = `<b>${data.node.data.label}</b> right clicked!`;
+      output.innerHTML = `<b>${data.node.getData().label}</b> right clicked!`;
     })
 
     orb.events.on(Orb.OrbEventType.EDGE_RIGHT_CLICK, (data) => {
       data.event.preventDefault();
       console.log("Event: edge-right-click", data);
-      output.innerHTML = `Edge with id <b>${data.edge.data.id}</b> right clicked!`;
+      output.innerHTML = `Edge with id <b>${data.edge.getData().id}</b> right clicked!`;
     })
 
     orb.events.on(Orb.OrbEventType.MOUSE_RIGHT_CLICK, (data) => {
@@ -136,12 +136,12 @@
 
     orb.events.on(Orb.OrbEventType.NODE_DOUBLE_CLICK, (data) => {
       console.log("Event: node-double-click", data);
-      output.innerHTML = `<b>${data.node.data.label}</b> double clicked!`;
+      output.innerHTML = `<b>${data.node.getData().label}</b> double clicked!`;
     })
 
     orb.events.on(Orb.OrbEventType.EDGE_DOUBLE_CLICK, (data) => {
       console.log("Event: edge-double-click", data);
-      output.innerHTML = `Edge with id <b>${data.edge.data.id}</b> double clicked!`;
+      output.innerHTML = `Edge with id <b>${data.edge.getData().id}</b> double clicked!`;
     })
 
     orb.events.on(Orb.OrbEventType.MOUSE_DOUBLE_CLICK, (data) => {
