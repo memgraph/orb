@@ -1,31 +1,37 @@
 import { IEdgeBase } from '../../models/edge';
 import { INode, INodeBase, INodePosition } from '../../models/node';
-import { CircularLayout } from './layouts/circular';
+import { CircularLayout, ICircularLayoutOptions } from './layouts/circular';
 import { GridLayout } from './layouts/grid';
-import { HierarchicalLayout } from './layouts/hierarchical';
+import { HierarchicalLayout, IHierarchicalLayoutOptions } from './layouts/hierarchical';
 
 export type LayoutType = 'hierarchical' | 'circular' | 'grid';
 
+export type LayoutSettingsMap = {
+  hierarchical: IHierarchicalLayoutOptions;
+  circular: ICircularLayoutOptions;
+  grid: Record<string, never>;
+};
+
 export interface ILayoutSettings {
   type: LayoutType;
+  options?: LayoutSettingsMap[LayoutType];
 }
 
 export interface ILayout<N extends INodeBase, E extends IEdgeBase> {
   getPositions(nodes: INode<N, E>[]): INodePosition[];
 }
 
-// todo(Alex): add layout options
 export class LayoutFactory {
   static create<N extends INodeBase, E extends IEdgeBase>(
-    type: LayoutType,
     width: number,
     height: number,
+    settings?: Partial<ILayoutSettings>,
   ): ILayout<N, E> | null {
-    switch (type) {
+    switch (settings?.type) {
       case 'hierarchical':
-        return new HierarchicalLayout<N, E>(width, height);
+        return new HierarchicalLayout<N, E>(width, height, settings.options as IHierarchicalLayoutOptions);
       case 'circular':
-        return new CircularLayout<N, E>(width, height);
+        return new CircularLayout<N, E>(width, height, settings.options as ICircularLayoutOptions);
       case 'grid':
         return new GridLayout<N, E>(width, height);
       default:

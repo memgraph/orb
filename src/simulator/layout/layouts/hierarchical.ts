@@ -2,10 +2,24 @@ import { IEdgeBase } from '../../../models/edge';
 import { INode, INodeBase, INodePosition } from '../../../models/node';
 import { ILayout } from '../layout';
 
+export type HierarchicalLayoutOrientation = 'horizontal' | 'vertical';
+
+export interface IHierarchicalLayoutOptions {
+  orientation?: HierarchicalLayoutOrientation;
+  reversed?: boolean;
+}
+
 export class HierarchicalLayout<N extends INodeBase, E extends IEdgeBase> implements ILayout<N, E> {
-  constructor(private width: number, private height: number) {
-    this.width = width;
-    this.height = height;
+  private _width: number;
+  private _height: number;
+  private _orientation: HierarchicalLayoutOrientation;
+  private _reversed: boolean;
+
+  constructor(width: number, height: number, options?: IHierarchicalLayoutOptions) {
+    this._width = width;
+    this._height = height;
+    this._orientation = options?.orientation || 'vertical';
+    this._reversed = options?.reversed || false;
   }
 
   getPositions(nodes: INode<N, E>[]): INodePosition[] {
@@ -49,11 +63,20 @@ export class HierarchicalLayout<N extends INodeBase, E extends IEdgeBase> implem
 
     const positions: INodePosition[] = [];
     for (const [depth, nodes] of depthGroups.entries()) {
-      const y = (depth + 1) * (this.height / (depthGroups.size + 1));
-      const xOffset = this.width / (nodes.length + 1);
+      let y = (depth + 1) * ((this._orientation === 'vertical' ? this._height : this._width) / (depthGroups.size + 1));
+      const xOffset = (this._orientation === 'vertical' ? this._width : this._height) / (nodes.length + 1);
+
+      if (this._reversed) {
+        y = (this._orientation === 'vertical' ? this._height : this._width) - y;
+      }
+
       nodes.forEach((node, index) => {
         const x = (index + 1) * xOffset;
-        positions.push({ id: node.getId(), x, y });
+        if (this._orientation === 'horizontal') {
+          positions.push({ id: node.getId(), x: y, y: x });
+        } else {
+          positions.push({ id: node.getId(), x, y });
+        }
       });
     }
     return positions;

@@ -198,8 +198,8 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         const nodePositions = this._graph.getNodePositions();
         const edgePositions = this._graph.getEdgePositions();
         // this._onSimulationEnd = onRendered;
-        if (this._settings.layout.type) {
-          const layout = LayoutFactory.create(this._settings.layout.type, this._renderer.width, this._renderer.height);
+        if (this._settings.layout) {
+          const layout = LayoutFactory.create(this._renderer.width, this._renderer.height, this._settings.layout);
           if (layout) {
             this._graph.setLayout(layout);
           }
