@@ -1,29 +1,35 @@
 import { IEdgeBase } from '../../models/edge';
 import { INode, INodeBase, INodePosition } from '../../models/node';
-import { CircleLayout } from './layouts/circle';
+import { CircularLayout } from './layouts/circular';
+import { GridLayout } from './layouts/grid';
+import { HierarchicalLayout } from './layouts/hierarchical';
 
-export enum layouts {
-  DEFAULT = 'default',
-  CIRCLE = 'circle',
+export type LayoutType = 'hierarchical' | 'circular' | 'grid';
+
+export interface ILayoutSettings {
+  type: LayoutType;
 }
 
 export interface ILayout<N extends INodeBase, E extends IEdgeBase> {
-  getPositions(nodes: INode<N, E>[], width: number, height: number): INodePosition[];
+  getPositions(nodes: INode<N, E>[]): INodePosition[];
 }
 
-export class Layout<N extends INodeBase, E extends IEdgeBase> implements ILayout<N, E> {
-  private readonly _layout: ILayout<N, E> | null;
-
-  private layoutByLayoutName: Record<string, ILayout<N, E> | null> = {
-    [layouts.DEFAULT]: null,
-    [layouts.CIRCLE]: new CircleLayout(),
-  };
-
-  constructor(layoutName: string) {
-    this._layout = this.layoutByLayoutName[layoutName];
-  }
-
-  getPositions(nodes: INode<N, E>[], width: number, height: number): INodePosition[] {
-    return this._layout === null ? [] : this._layout.getPositions(nodes, width, height);
+// todo(Alex): add layout options
+export class LayoutFactory {
+  static create<N extends INodeBase, E extends IEdgeBase>(
+    type: LayoutType,
+    width: number,
+    height: number,
+  ): ILayout<N, E> | null {
+    switch (type) {
+      case 'hierarchical':
+        return new HierarchicalLayout<N, E>(width, height);
+      case 'circular':
+        return new CircularLayout<N, E>(width, height);
+      case 'grid':
+        return new GridLayout<N, E>(width, height);
+      default:
+        return null;
+    }
   }
 }

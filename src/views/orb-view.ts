@@ -22,6 +22,7 @@ import { SimulatorEventType } from '../simulator/shared';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
 import { IObserver, IObserverDataPayload } from '../utils/observer.utils';
+import { ILayoutSettings, LayoutFactory } from '../simulator/layout/layout';
 
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;
@@ -34,6 +35,7 @@ export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   render: Partial<IRendererSettings>;
   strategy: Partial<IEventStrategySettings>;
   interaction: Partial<IGraphInteractionSettings>;
+  layout: Partial<ILayoutSettings>;
   zoomFitTransitionMs: number;
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
@@ -71,6 +73,9 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       simulation: {
         isPhysicsEnabled: false,
         ...settings?.simulation,
+      },
+      layout: {
+        ...settings?.layout,
       },
       render: {
         ...settings?.render,
@@ -193,6 +198,12 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         const nodePositions = this._graph.getNodePositions();
         const edgePositions = this._graph.getEdgePositions();
         // this._onSimulationEnd = onRendered;
+        if (this._settings.layout.type) {
+          const layout = LayoutFactory.create(this._settings.layout.type, this._renderer.width, this._renderer.height);
+          if (layout) {
+            this._graph.setLayout(layout);
+          }
+        }
         this._simulator.setupData({ nodes: nodePositions, edges: edgePositions });
       },
       onMergeData: (data) => {
