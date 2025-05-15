@@ -255,6 +255,18 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       this._settings.render = this._renderer.getSettings();
     }
 
+    if (settings.layout) {
+      this._settings.layout = {
+        ...this._settings.layout,
+        ...settings.layout,
+      };
+
+      const layout = LayoutFactory.create(this._renderer.width, this._renderer.height, this._settings.layout);
+      if (layout) {
+        this._graph.setLayout(layout);
+      }
+    }
+
     if (settings.strategy) {
       if (isBoolean(settings.strategy.isDefaultHoverEnabled)) {
         this._settings.strategy.isDefaultHoverEnabled = settings.strategy.isDefaultHoverEnabled;
