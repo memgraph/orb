@@ -97,7 +97,6 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
 
   setLayout(layout: ILayout<N, E>): void {
     this._layout = layout;
-    console.log('Layout set', layout);
     this.resetLayout();
   }
 

@@ -4,29 +4,36 @@ import { ILayout } from '../layout';
 
 export interface ICircularLayoutOptions {
   radius?: number;
+  centerX?: number;
+  centerY?: number;
 }
 
-export class CircularLayout<N extends INodeBase, E extends IEdgeBase> implements ILayout<N, E> {
-  private _width: number;
-  private _height: number;
-  private _radius: number;
+export const DEFAULT_CIRCULAR_LAYOUT_OPTIONS: ICircularLayoutOptions = {
+  radius: 100,
+  centerX: 0,
+  centerY: 0,
+};
 
-  constructor(width: number, height: number, options?: ICircularLayoutOptions) {
-    this._width = width;
-    this._height = height;
-    this._radius = options?.radius || Math.min(width, height) / 2;
+export class CircularLayout<N extends INodeBase, E extends IEdgeBase> implements ILayout<N, E> {
+  private _radius: number;
+  private _centerX: number;
+  private _centerY: number;
+
+  constructor(options?: ICircularLayoutOptions) {
+    const _options = { ...DEFAULT_CIRCULAR_LAYOUT_OPTIONS, ...options } as Required<ICircularLayoutOptions>;
+    this._radius = _options.radius;
+    this._centerX = _options.centerX;
+    this._centerY = _options.centerY;
   }
 
   getPositions(nodes: INode<N, E>[]): INodePosition[] {
-    const centerX = this._width / 2;
-    const centerY = this._height / 2;
     const angleStep = (2 * Math.PI) / nodes.length;
 
     return nodes.map((node) => {
       return {
         id: node.getId(),
-        x: centerX + this._radius * Math.cos(angleStep * node.getId()),
-        y: centerY + this._radius * Math.sin(angleStep * node.getId()),
+        x: this._centerX + this._radius * Math.cos(angleStep * node.getId()),
+        y: this._centerY + this._radius * Math.sin(angleStep * node.getId()),
       };
     });
   }

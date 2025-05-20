@@ -5,80 +5,152 @@ import { ILayout } from '../layout';
 export type HierarchicalLayoutOrientation = 'horizontal' | 'vertical';
 
 export interface IHierarchicalLayoutOptions {
+  nodeGap?: number;
+  levelGap?: number;
+  treeGap?: number;
   orientation?: HierarchicalLayoutOrientation;
   reversed?: boolean;
 }
 
+export const DEFAULT_HIERARCHICAL_LAYOUT_OPTIONS: IHierarchicalLayoutOptions = {
+  nodeGap: 50,
+  levelGap: 50,
+  treeGap: 100,
+  orientation: 'vertical',
+  reversed: false,
+};
+
 export class HierarchicalLayout<N extends INodeBase, E extends IEdgeBase> implements ILayout<N, E> {
-  private _width: number;
-  private _height: number;
+  private _nodeGap: number;
+  private _levelGap: number;
+  private _treeGap: number;
   private _orientation: HierarchicalLayoutOrientation;
   private _reversed: boolean;
 
-  constructor(width: number, height: number, options?: IHierarchicalLayoutOptions) {
-    this._width = width;
-    this._height = height;
-    this._orientation = options?.orientation || 'vertical';
-    this._reversed = options?.reversed || false;
+  constructor(options?: IHierarchicalLayoutOptions) {
+    const _options = { ...DEFAULT_HIERARCHICAL_LAYOUT_OPTIONS, ...options } as Required<IHierarchicalLayoutOptions>;
+
+    this._nodeGap = _options.nodeGap;
+    this._levelGap = _options.levelGap;
+    this._treeGap = _options.treeGap;
+    this._orientation = _options.orientation;
+    this._reversed = _options.reversed;
   }
 
   getPositions(nodes: INode<N, E>[]): INodePosition[] {
-    if (nodes.length === 0) {
-      return [];
-    }
+    const components = this.getConnectedComponents(nodes);
+    const positions: INodePosition[] = [];
+    let maxX = 0;
+    let maxHeight = 0;
 
-    const outEdgesCounts = nodes.map((node) => (node.getInEdges().length > 0 ? 0 : node.getOutEdges().length));
-    const indexOfRoot = outEdgesCounts.indexOf(Math.max(...outEdgesCounts));
-    const rootNode = nodes[indexOfRoot];
+    for (const [index, component] of components.entries()) {
+      const levels: Map<number, INode<N, E>[]> = this.assignLevels(component);
+      const maxLevelSize = Math.max(...Array.from(levels.values()).map((levelNodes) => levelNodes.length));
 
-    const depthMap = new Map<INode<N, E>, number>();
-    const depthGroups = new Map<number, INode<N, E>[]>();
-    const queue: INode<N, E>[] = [rootNode];
-
-    depthMap.set(rootNode, 0);
-    depthGroups.set(0, [rootNode]);
-    while (queue.length > 0) {
-      const current = queue.shift();
-      if (!current) {
-        break;
+      if (levels.size * this._levelGap > maxHeight) {
+        maxHeight = levels.size * this._levelGap;
       }
 
-      const depth = depthMap.get(current) || 0;
-      const children = current
-        .getOutEdges()
-        .map((edge) => edge.endNode)
-        .concat(current.getInEdges().map((edge) => edge.startNode));
+      let offsetX = this._treeGap + maxX;
 
-      for (const child of children) {
-        if (!depthMap.has(child)) {
-          depthMap.set(child, depth + 1);
-          if (!depthGroups.has(depth + 1)) {
-            depthGroups.set(depth + 1, []);
+      if (index > 0) {
+        offsetX += ((maxLevelSize - 1) * this._nodeGap) / 2;
+      }
+
+      for (const [level, levelNodes] of levels) {
+        const y = level * this._levelGap;
+        const width = levelNodes.length * this._nodeGap;
+
+        for (let i = 0; i < levelNodes.length; i++) {
+          const node = levelNodes[i];
+          const x = width / 2 - i * this._nodeGap + offsetX;
+          if (x > maxX) {
+            maxX = x;
           }
-          depthGroups.get(depth + 1)?.push(child);
-          queue.push(child);
+
+          positions.push({
+            id: node.getId(),
+            x: this._orientation === 'horizontal' ? y : x,
+            y: this._orientation === 'horizontal' ? x : y,
+          });
         }
       }
     }
 
-    const positions: INodePosition[] = [];
-    for (const [depth, nodes] of depthGroups.entries()) {
-      let y = (depth + 1) * ((this._orientation === 'vertical' ? this._height : this._width) / (depthGroups.size + 1));
-      const xOffset = (this._orientation === 'vertical' ? this._width : this._height) / (nodes.length + 1);
-
-      if (this._reversed) {
-        y = (this._orientation === 'vertical' ? this._height : this._width) - y;
-      }
-
-      nodes.forEach((node, index) => {
-        const x = (index + 1) * xOffset;
-        if (this._orientation === 'horizontal') {
-          positions.push({ id: node.getId(), x: y, y: x });
-        } else {
-          positions.push({ id: node.getId(), x, y });
+    if (this._reversed === true) {
+      positions.forEach((position) => {
+        if (this._orientation === 'horizontal' && position.x !== undefined) {
+          position.x = maxX - position.x;
+        }
+        if (this._orientation === 'vertical' && position.y !== undefined) {
+          position.y = maxHeight - position.y;
         }
       });
     }
+
     return positions;
   }
+
+  getConnectedComponents = (nodes: INode<N, E>[]): INode<N, E>[][] => {
+    const visited = new Set<INode<N, E>>();
+    const components: INode<N, E>[][] = [];
+
+    for (const node of nodes) {
+      if (!visited.has(node)) {
+        const component: INode<N, E>[] = [];
+        const queue: INode<N, E>[] = [node];
+        visited.add(node);
+
+        while (queue.length > 0) {
+          const current = queue.pop();
+
+          if (current) {
+            component.push(current);
+            for (const neighbor of current.getAdjacentNodes()) {
+              if (!visited.has(neighbor)) {
+                visited.add(neighbor);
+                queue.push(neighbor);
+              }
+            }
+          }
+        }
+
+        components.push(component);
+      }
+    }
+
+    return components;
+  };
+
+  assignLevels = (nodes: INode<N, E>[]): Map<number, INode<N, E>[]> => {
+    const levels = new Map<number, INode<N, E>[]>();
+    const visited = new Set<INode<N, E>>();
+
+    let root = nodes.filter((node) => node.getInEdges().length === 0)[0];
+
+    if (!root) {
+      root = nodes.sort((a, b) => a.getInEdges().length - b.getInEdges().length)[0];
+    }
+
+    const queue: [INode<N, E>, number][] = [[root, 0]];
+
+    for (const [node, level] of queue) {
+      if (visited.has(node)) {
+        continue;
+      }
+
+      visited.add(node);
+      if (levels.has(level)) {
+        levels.get(level)?.push(node);
+      } else {
+        levels.set(level, [node]);
+      }
+
+      for (const child of node.getAdjacentNodes()) {
+        queue.push([child, level + 1]);
+      }
+    }
+
+    return levels;
+  };
 }
