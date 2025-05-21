@@ -13,7 +13,12 @@ import { INode, INodeBase, isNode } from '../models/node';
 import { IEdge, IEdgeBase, isEdge } from '../models/edge';
 import { IOrbView } from './shared';
 import { DefaultEventStrategy, IEventStrategy, IEventStrategySettings } from '../models/strategy';
-import { ID3SimulatorEngineSettings } from '../simulator/engine/d3-simulator-engine';
+import {
+  DEFAULT_SETTINGS,
+  ID3SimulatorEngineSettings,
+  ID3SimulatorEngineSettingsCentering,
+  ID3SimulatorEngineSettingsLinks,
+} from '../simulator/engine/d3-simulator-engine';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
 import { IRenderer, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
@@ -23,6 +28,7 @@ import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
 import { IObserver, IObserverDataPayload } from '../utils/observer.utils';
 import { ILayoutSettings, LayoutFactory } from '../simulator/layout/layout';
+import { DEFAULT_FORCE_LAYOUT_OPTIONS, IForceLayoutOptions } from '../simulator/layout/layouts/force';
 
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;
@@ -187,6 +193,25 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         this._settings.simulation = data.settings;
       });
 
+      if (this._settings.layout.options) {
+        const _options = {
+          ...DEFAULT_FORCE_LAYOUT_OPTIONS,
+          ...this._settings.layout.options,
+        } as Required<IForceLayoutOptions>;
+
+        this._settings.simulation.centering = {
+          ...(DEFAULT_SETTINGS.centering as Required<ID3SimulatorEngineSettingsCentering>),
+          ...this._settings.simulation.centering,
+          x: _options.centerX,
+          y: _options.centerY,
+        };
+
+        this._settings.simulation.links = {
+          ...(DEFAULT_SETTINGS.links as Required<ID3SimulatorEngineSettingsLinks>),
+          ...this._settings.simulation.links,
+          distance: _options.nodeDistance,
+        };
+      }
       this._simulator.setSettings(this._settings.simulation);
     }
 

@@ -97,17 +97,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
 
   setLayout(layout: ILayout<N, E>): void {
     this._layout = layout;
-    this.resetLayout();
-  }
-
-  resetLayout(): void {
-    if (!this._layout) {
-      return;
-    }
-
-    const positions = this._layout.getPositions(this.getNodes());
-    this.setNodePositions(positions);
-    this.notifyListeners();
+    this._resetLayout();
   }
 
   /**
@@ -292,10 +282,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
 
     this._applyEdgeOffsets();
     this._applyStyle();
-
-    if (this._layout) {
-      this.setNodePositions(this._layout.getPositions(this.getNodes()));
-    }
+    this._resetLayout();
 
     this._settings?.onMergeData?.(data);
   }
@@ -309,10 +296,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
 
     this._applyEdgeOffsets();
     this._applyStyle();
-
-    if (this._layout) {
-      this.setNodePositions(this._layout.getPositions(this.getNodes()));
-    }
+    this._resetLayout();
 
     if (this._settings && this._settings.onRemoveData) {
       const removedData: IGraphObjectsIds = {
@@ -627,6 +611,16 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     this._edges.removeMany(removedEdgeIds);
 
     return { nodeIds: [], edgeIds: removedEdgeIds };
+  }
+
+  private _resetLayout(): void {
+    if (!this._layout) {
+      return;
+    }
+
+    const positions = this._layout.getPositions(this.getNodes());
+    this.setNodePositions(positions);
+    this.notifyListeners();
   }
 
   private _applyEdgeOffsets() {

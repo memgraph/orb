@@ -1,6 +1,7 @@
 import { IEdgeBase } from '../../models/edge';
 import { INode, INodeBase, INodePosition } from '../../models/node';
 import { CircularLayout, ICircularLayoutOptions } from './layouts/circular';
+import { IForceLayoutOptions } from './layouts/force';
 import { GridLayout, IGridLayoutOptions } from './layouts/grid';
 import { HierarchicalLayout, IHierarchicalLayoutOptions } from './layouts/hierarchical';
 
@@ -8,7 +9,7 @@ export type LayoutType = 'circular' | 'force' | 'grid' | 'hierarchical';
 
 export type LayoutSettingsMap = {
   circular: ICircularLayoutOptions;
-  force: Record<string, never>;
+  force: IForceLayoutOptions;
   grid: IGridLayoutOptions;
   hierarchical: IHierarchicalLayoutOptions;
 };
