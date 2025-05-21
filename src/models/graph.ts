@@ -293,6 +293,10 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     this._applyEdgeOffsets();
     this._applyStyle();
 
+    if (this._layout) {
+      this.setNodePositions(this._layout.getPositions(this.getNodes()));
+    }
+
     this._settings?.onMergeData?.(data);
   }
 
@@ -305,6 +309,10 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
 
     this._applyEdgeOffsets();
     this._applyStyle();
+
+    if (this._layout) {
+      this.setNodePositions(this._layout.getPositions(this.getNodes()));
+    }
 
     if (this._settings && this._settings.onRemoveData) {
       const removedData: IGraphObjectsIds = {

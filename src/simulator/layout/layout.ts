@@ -34,7 +34,7 @@ export class LayoutFactory {
       case 'hierarchical':
         return new HierarchicalLayout<N, E>(settings.options as IHierarchicalLayoutOptions);
       default:
-        return null;
+        throw new Error('Incorrect layout type.');
     }
   }
 }

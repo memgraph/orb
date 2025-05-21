@@ -29,12 +29,14 @@ export class CircularLayout<N extends INodeBase, E extends IEdgeBase> implements
   getPositions(nodes: INode<N, E>[]): INodePosition[] {
     const angleStep = (2 * Math.PI) / nodes.length;
 
-    return nodes.map((node) => {
+    const positions = nodes.map((node, index) => {
       return {
-        id: node.getId(),
-        x: this._centerX + this._radius * Math.cos(angleStep * node.getId()),
-        y: this._centerY + this._radius * Math.sin(angleStep * node.getId()),
+        id: node.id,
+        x: this._centerX + this._radius * Math.cos(angleStep * index),
+        y: this._centerY + this._radius * Math.sin(angleStep * index),
       };
     });
+
+    return positions;
   }
 }
