@@ -1,4 +1,4 @@
-import { IEdgeBase } from '../../../models/edge';
+import { IEdge, IEdgeBase } from '../../../models/edge';
 import { INode, INodeBase, INodePosition } from '../../../models/node';
 import { ILayout } from '../layout';
 
@@ -126,10 +126,10 @@ export class HierarchicalLayout<N extends INodeBase, E extends IEdgeBase> implem
     const levels = new Map<number, INode<N, E>[]>();
     const visited = new Set<INode<N, E>>();
 
-    let root = nodes.filter((node) => node.getInEdges().length === 0)[0];
+    let root = nodes.filter((node) => this.getExternalInEdges(node).length === 0)[0];
 
     if (!root) {
-      root = nodes.sort((a, b) => a.getInEdges().length - b.getInEdges().length)[0];
+      root = nodes.sort((a, b) => this.getExternalInEdges(a).length - this.getExternalInEdges(b).length)[0];
     }
 
     const queue: [INode<N, E>, number][] = [[root, 0]];
@@ -152,5 +152,9 @@ export class HierarchicalLayout<N extends INodeBase, E extends IEdgeBase> implem
     }
 
     return levels;
+  };
+
+  getExternalInEdges = (node: INode<N, E>): IEdge<N, E>[] => {
+    return node.getInEdges().filter((edge) => edge.startNode.id !== edge.endNode.id);
   };
 }
