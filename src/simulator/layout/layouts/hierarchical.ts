@@ -12,7 +12,7 @@ export interface IHierarchicalLayoutOptions {
   reversed?: boolean;
 }
 
-export const DEFAULT_HIERARCHICAL_LAYOUT_OPTIONS: IHierarchicalLayoutOptions = {
+export const DEFAULT_HIERARCHICAL_LAYOUT_OPTIONS: Required<IHierarchicalLayoutOptions> = {
   nodeGap: 50,
   levelGap: 50,
   treeGap: 100,
@@ -21,68 +21,64 @@ export const DEFAULT_HIERARCHICAL_LAYOUT_OPTIONS: IHierarchicalLayoutOptions = {
 };
 
 export class HierarchicalLayout<N extends INodeBase, E extends IEdgeBase> implements ILayout<N, E> {
-  private _nodeGap: number;
-  private _levelGap: number;
-  private _treeGap: number;
-  private _orientation: HierarchicalLayoutOrientation;
-  private _reversed: boolean;
+  private _config: Required<IHierarchicalLayoutOptions>;
 
   constructor(options?: IHierarchicalLayoutOptions) {
-    const _options = { ...DEFAULT_HIERARCHICAL_LAYOUT_OPTIONS, ...options } as Required<IHierarchicalLayoutOptions>;
-
-    this._nodeGap = _options.nodeGap;
-    this._levelGap = _options.levelGap;
-    this._treeGap = _options.treeGap;
-    this._orientation = _options.orientation;
-    this._reversed = _options.reversed;
+    this._config = { ...DEFAULT_HIERARCHICAL_LAYOUT_OPTIONS, ...options };
   }
 
   getPositions(nodes: INode<N, E>[]): INodePosition[] {
     const components = this.getConnectedComponents(nodes);
-    const positions: INodePosition[] = [];
+    const positions: INodePosition[] = new Array(nodes.length);
     let maxX = 0;
     let maxHeight = 0;
+    let counter = 0;
 
-    for (const [index, component] of components.entries()) {
-      const levels: Map<number, INode<N, E>[]> = this.assignLevels(component);
+    for (let i = 0; i < components.length; i++) {
+      const levels: Map<number, INode<N, E>[]> = this.assignLevels(components[i]);
       const maxLevelSize = Math.max(...Array.from(levels.values()).map((levelNodes) => levelNodes.length));
 
-      if (levels.size * this._levelGap > maxHeight) {
-        maxHeight = levels.size * this._levelGap;
+      if (levels.size * this._config.levelGap > maxHeight) {
+        maxHeight = levels.size * this._config.levelGap;
       }
 
-      let offsetX = this._treeGap + maxX;
+      let offsetX = i === 0 ? 0 : this._config.treeGap + maxX;
 
-      if (index > 0) {
-        offsetX += ((maxLevelSize - 1) * this._nodeGap) / 2;
+      if (i > 0) {
+        offsetX += ((maxLevelSize - 1) * this._config.nodeGap) / 2;
       }
 
-      for (const [level, levelNodes] of levels) {
-        const y = level * this._levelGap;
-        const width = levelNodes.length * this._nodeGap;
+      for (let j = 0; j < levels.size; j++) {
+        const y = j * this._config.levelGap;
+        const level = levels.get(j);
+        if (!level) {
+          continue;
+        }
 
-        for (let i = 0; i < levelNodes.length; i++) {
-          const node = levelNodes[i];
-          const x = width / 2 - i * this._nodeGap + offsetX;
+        const width = level.length * this._config.nodeGap;
+
+        for (let k = 0; k < level.length; k++) {
+          const node = level[k];
+          const x = width / 2 - k * this._config.nodeGap + offsetX;
           if (x > maxX) {
             maxX = x;
           }
 
-          positions.push({
+          positions[counter++] = {
             id: node.getId(),
-            x: this._orientation === 'horizontal' ? y : x,
-            y: this._orientation === 'horizontal' ? x : y,
-          });
+            x: this._config.orientation === 'horizontal' ? y : x,
+            y: this._config.orientation === 'horizontal' ? x : y,
+          };
         }
       }
     }
 
-    if (this._reversed === true) {
+    if (this._config.reversed === true) {
       positions.forEach((position) => {
-        if (this._orientation === 'horizontal' && position.x !== undefined) {
+        if (this._config.orientation === 'horizontal' && position.x !== undefined) {
           position.x = maxX - position.x;
         }
-        if (this._orientation === 'vertical' && position.y !== undefined) {
+        if (this._config.orientation === 'vertical' && position.y !== undefined) {
           position.y = maxHeight - position.y;
         }
       });
@@ -95,28 +91,33 @@ export class HierarchicalLayout<N extends INodeBase, E extends IEdgeBase> implem
     const visited = new Set<INode<N, E>>();
     const components: INode<N, E>[][] = [];
 
-    for (const node of nodes) {
-      if (!visited.has(node)) {
-        const component: INode<N, E>[] = [];
-        const queue: INode<N, E>[] = [node];
-        visited.add(node);
+    for (let i = 0; i < nodes.length; i++) {
+      if (visited.has(nodes[i])) {
+        continue;
+      }
 
-        while (queue.length > 0) {
-          const current = queue.pop();
+      const component: INode<N, E>[] = [];
+      const queue: INode<N, E>[] = [nodes[i]];
+      visited.add(nodes[i]);
 
-          if (current) {
-            component.push(current);
-            for (const neighbor of current.getAdjacentNodes()) {
-              if (!visited.has(neighbor)) {
-                visited.add(neighbor);
-                queue.push(neighbor);
-              }
+      while (queue.length > 0) {
+        const current = queue.pop();
+
+        if (current) {
+          component.push(current);
+          const neighbors = current.getAdjacentNodes();
+          for (let j = 0; j < neighbors.length; j++) {
+            if (visited.has(neighbors[j])) {
+              continue;
             }
+
+            visited.add(neighbors[j]);
+            queue.push(neighbors[j]);
           }
         }
-
-        components.push(component);
       }
+
+      components.push(component);
     }
 
     return components;
@@ -146,8 +147,10 @@ export class HierarchicalLayout<N extends INodeBase, E extends IEdgeBase> implem
         levels.set(level, [node]);
       }
 
-      for (const child of node.getAdjacentNodes()) {
-        queue.push([child, level + 1]);
+      const neighbors = node.getAdjacentNodes();
+
+      for (let i = 0; i < neighbors.length; i++) {
+        queue.push([neighbors[i], level + 1]);
       }
     }
 

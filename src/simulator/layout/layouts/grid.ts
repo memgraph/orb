@@ -7,19 +7,16 @@ export interface IGridLayoutOptions {
   colGap?: number;
 }
 
-export const DEFAULT_GRID_LAYOUT_OPTIONS: IGridLayoutOptions = {
+export const DEFAULT_GRID_LAYOUT_OPTIONS: Required<IGridLayoutOptions> = {
   rowGap: 50,
   colGap: 50,
 };
 
 export class GridLayout<N extends INodeBase, E extends IEdgeBase> implements ILayout<N, E> {
-  private _rowGap: number;
-  private _colGap: number;
+  private _config: Required<IGridLayoutOptions>;
 
   constructor(options?: IGridLayoutOptions) {
-    const _options = { ...DEFAULT_GRID_LAYOUT_OPTIONS, ...options } as Required<IGridLayoutOptions>;
-    this._rowGap = _options.rowGap;
-    this._colGap = _options.colGap;
+    this._config = { ...DEFAULT_GRID_LAYOUT_OPTIONS, ...options };
   }
 
   getPositions(nodes: INode<N, E>[]): INodePosition[] {
@@ -27,13 +24,14 @@ export class GridLayout<N extends INodeBase, E extends IEdgeBase> implements ILa
     const cols = Math.ceil(nodes.length / rows);
 
     const positions: INodePosition[] = [];
-    nodes.forEach((node, index) => {
-      const row = Math.floor(index / cols);
-      const col = index % cols;
-      const x = col * this._colGap;
-      const y = row * this._rowGap;
-      positions.push({ id: node.getId(), x, y });
-    });
+
+    for (let i = 0; i < nodes.length; i++) {
+      const row = Math.floor(i / cols);
+      const col = i % cols;
+      const x = col * this._config.colGap;
+      const y = row * this._config.rowGap;
+      positions.push({ id: nodes[i].getId(), x, y });
+    }
 
     return positions;
   }

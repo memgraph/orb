@@ -28,7 +28,7 @@ import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
 import { IObserver, IObserverDataPayload } from '../utils/observer.utils';
 import { ILayoutSettings, LayoutFactory } from '../simulator/layout/layout';
-import { DEFAULT_FORCE_LAYOUT_OPTIONS, IForceLayoutOptions } from '../simulator/layout/layouts/force';
+import { DEFAULT_FORCE_LAYOUT_OPTIONS } from '../simulator/layout/layouts/force';
 
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;
@@ -197,7 +197,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         const _options = {
           ...DEFAULT_FORCE_LAYOUT_OPTIONS,
           ...this._settings.layout.options,
-        } as Required<IForceLayoutOptions>;
+        };
 
         this._settings.simulation.centering = {
           ...(DEFAULT_SETTINGS.centering as Required<ID3SimulatorEngineSettingsCentering>),

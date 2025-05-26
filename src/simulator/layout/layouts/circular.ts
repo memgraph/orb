@@ -8,22 +8,17 @@ export interface ICircularLayoutOptions {
   centerY?: number;
 }
 
-export const DEFAULT_CIRCULAR_LAYOUT_OPTIONS: ICircularLayoutOptions = {
+export const DEFAULT_CIRCULAR_LAYOUT_OPTIONS: Required<ICircularLayoutOptions> = {
   radius: 100,
   centerX: 0,
   centerY: 0,
 };
 
 export class CircularLayout<N extends INodeBase, E extends IEdgeBase> implements ILayout<N, E> {
-  private _radius: number;
-  private _centerX: number;
-  private _centerY: number;
+  private _config: Required<ICircularLayoutOptions>;
 
   constructor(options?: ICircularLayoutOptions) {
-    const _options = { ...DEFAULT_CIRCULAR_LAYOUT_OPTIONS, ...options } as Required<ICircularLayoutOptions>;
-    this._radius = _options.radius;
-    this._centerX = _options.centerX;
-    this._centerY = _options.centerY;
+    this._config = { ...DEFAULT_CIRCULAR_LAYOUT_OPTIONS, ...options };
   }
 
   getPositions(nodes: INode<N, E>[]): INodePosition[] {
@@ -32,8 +27,8 @@ export class CircularLayout<N extends INodeBase, E extends IEdgeBase> implements
     const positions = nodes.map((node, index) => {
       return {
         id: node.id,
-        x: this._centerX + this._radius * Math.cos(angleStep * index),
-        y: this._centerY + this._radius * Math.sin(angleStep * index),
+        x: this._config.centerX + this._config.radius * Math.cos(angleStep * index),
+        y: this._config.centerY + this._config.radius * Math.sin(angleStep * index),
       };
     });
 
