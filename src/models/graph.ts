@@ -51,7 +51,7 @@ export interface IGraph<N extends INodeBase, E extends IEdgeBase> extends ISubje
   getNearestNode(point: IPosition): INode<N, E> | undefined;
   getNearestEdge(point: IPosition, minDistance?: number): IEdge<N, E> | undefined;
   setSettings(settings: Partial<IGraphSettings<N, E>>): void;
-  setLayout(layout: ILayout<N, E>): void;
+  setLayout(layout: ILayout<N, E> | undefined): void;
 }
 
 export interface IGraphSettings<N extends INodeBase, E extends IEdgeBase> {
@@ -95,7 +95,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     this.notifyListeners();
   }
 
-  setLayout(layout: ILayout<N, E>): void {
+  setLayout(layout: ILayout<N, E> | undefined): void {
     this._layout = layout;
     this._resetLayout();
   }
@@ -615,6 +615,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
 
   private _resetLayout(): void {
     if (!this._layout) {
+      this.clearPositions();
       return;
     }
 

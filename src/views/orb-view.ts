@@ -163,57 +163,29 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._simulator = SimulatorFactory.getSimulator();
 
     if (this._settings.layout.type === 'force') {
-      this._simulator.on(SimulatorEventType.SIMULATION_START, () => {
-        // this._isSimulating = true;
-        this._simulationStartedAt = Date.now();
-        this._events.emit(OrbEventType.SIMULATION_START, undefined);
-      });
-      this._simulator.on(SimulatorEventType.SIMULATION_PROGRESS, (data) => {
-        this._graph.setNodePositions(data.nodes);
-        this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
-        this.render();
-      });
-      this._simulator.on(SimulatorEventType.SIMULATION_END, (data) => {
-        this._graph.setNodePositions(data.nodes);
-        this.render();
-        // this._isSimulating = false;
-        this._onSimulationEnd?.();
-        this._onSimulationEnd = undefined;
-        this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
-      });
-      this._simulator.on(SimulatorEventType.SIMULATION_STEP, (data) => {
-        this._graph.setNodePositions(data.nodes);
-        this.render();
-      });
-      this._simulator.on(SimulatorEventType.NODE_DRAG, (data) => {
-        this._graph.setNodePositions(data.nodes);
-        this.render();
-      });
-      this._simulator.on(SimulatorEventType.SETTINGS_UPDATE, (data) => {
-        this._settings.simulation = data.settings;
-      });
-
-      if (this._settings.layout.options) {
-        const _options = {
-          ...DEFAULT_FORCE_LAYOUT_OPTIONS,
-          ...this._settings.layout.options,
-        };
-
-        this._settings.simulation.centering = {
-          ...(DEFAULT_SETTINGS.centering as Required<ID3SimulatorEngineSettingsCentering>),
-          ...this._settings.simulation.centering,
-          x: _options.centerX,
-          y: _options.centerY,
-        };
-
-        this._settings.simulation.links = {
-          ...(DEFAULT_SETTINGS.links as Required<ID3SimulatorEngineSettingsLinks>),
-          ...this._settings.simulation.links,
-          distance: _options.nodeDistance,
-        };
-      }
-      this._simulator.setSettings(this._settings.simulation);
+      this._enableSimulation();
     }
+
+    if (this._settings.layout.options) {
+      const _options = {
+        ...DEFAULT_FORCE_LAYOUT_OPTIONS,
+        ...this._settings.layout.options,
+      };
+
+      this._settings.simulation.centering = {
+        ...(DEFAULT_SETTINGS.centering as Required<ID3SimulatorEngineSettingsCentering>),
+        ...this._settings.simulation.centering,
+        x: _options.centerX,
+        y: _options.centerY,
+      };
+
+      this._settings.simulation.links = {
+        ...(DEFAULT_SETTINGS.links as Required<ID3SimulatorEngineSettingsLinks>),
+        ...this._settings.simulation.links,
+        distance: _options.nodeDistance,
+      };
+    }
+    this._simulator.setSettings(this._settings.simulation);
 
     // TODO(dlozic): Optimize crud operations here.
     this._graph.setSettings({
@@ -228,10 +200,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         const edgePositions = this._graph.getEdgePositions();
         // this._onSimulationEnd = onRendered;
         if (this._settings.layout) {
-          const layout = LayoutFactory.create(this._settings.layout);
-          if (layout) {
-            this._graph.setLayout(layout);
-          }
+          this._graph.setLayout(LayoutFactory.create(this._settings.layout));
         }
         this._simulator.setupData({ nodes: nodePositions, edges: edgePositions });
       },
@@ -243,10 +212,12 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
         this._assignPositions(this._graph.getNodes(nodeFilter));
 
-        const nodePositions = this._graph.getNodePositions(nodeFilter);
-        const edgePositions = this._graph.getEdgePositions(edgeFilter);
+        if (this._settings.layout.type === 'force') {
+          const nodePositions = this._graph.getNodePositions(nodeFilter);
+          const edgePositions = this._graph.getEdgePositions(edgeFilter);
 
-        this._simulator.mergeData({ nodes: nodePositions, edges: edgePositions });
+          this._simulator.mergeData({ nodes: nodePositions, edges: edgePositions });
+        }
       },
       onRemoveData: (data) => {
         this._simulator.deleteData(data);
@@ -290,9 +261,21 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         ...settings.layout,
       };
 
-      const layout = LayoutFactory.create(this._settings.layout);
-      if (layout) {
-        this._graph.setLayout(layout);
+      this._graph.setLayout(LayoutFactory.create(this._settings.layout));
+
+      if (this._settings.layout.type === 'force') {
+        this._simulator.clearData();
+
+        const nodePositions = this._graph.getNodePositions();
+        const edgePositions = this._graph.getEdgePositions();
+
+        this._simulator.setupData({ nodes: nodePositions, edges: edgePositions });
+
+        this._simulator.releaseNodes();
+        this._enableSimulation();
+      } else {
+        this._disableSimulation();
+        this._simulator.clearData();
       }
     }
 
@@ -654,6 +637,72 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       });
     }
     this.render();
+  };
+
+  private _enableSimulation = () => {
+    this._simulator.on(SimulatorEventType.SIMULATION_START, () => {
+      // this._isSimulating = true;
+      this._simulationStartedAt = Date.now();
+      this._events.emit(OrbEventType.SIMULATION_START, undefined);
+    });
+    this._simulator.on(SimulatorEventType.SIMULATION_PROGRESS, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
+      this.render();
+    });
+    this._simulator.on(SimulatorEventType.SIMULATION_END, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this.render();
+      // this._isSimulating = false;
+      this._onSimulationEnd?.();
+      this._onSimulationEnd = undefined;
+      this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
+    });
+    this._simulator.on(SimulatorEventType.SIMULATION_STEP, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this.render();
+    });
+    this._simulator.on(SimulatorEventType.NODE_DRAG, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this.render();
+    });
+    this._simulator.on(SimulatorEventType.SETTINGS_UPDATE, (data) => {
+      this._settings.simulation = data.settings;
+    });
+
+    this._simulator.activateSimulation();
+  };
+
+  private _disableSimulation = () => {
+    this._simulator.off(SimulatorEventType.SIMULATION_START, () => {
+      // this._isSimulating = true;
+      this._simulationStartedAt = Date.now();
+      this._events.emit(OrbEventType.SIMULATION_START, undefined);
+    });
+    this._simulator.off(SimulatorEventType.SIMULATION_PROGRESS, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
+      this.render();
+    });
+    this._simulator.off(SimulatorEventType.SIMULATION_END, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this.render();
+      // this._isSimulating = false;
+      this._onSimulationEnd?.();
+      this._onSimulationEnd = undefined;
+      this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
+    });
+    this._simulator.off(SimulatorEventType.SIMULATION_STEP, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this.render();
+    });
+    this._simulator.off(SimulatorEventType.NODE_DRAG, (data) => {
+      this._graph.setNodePositions(data.nodes);
+      this.render();
+    });
+    this._simulator.off(SimulatorEventType.SETTINGS_UPDATE, (data) => {
+      this._settings.simulation = data.settings;
+    });
   };
 
   // TODO: Do we keep these

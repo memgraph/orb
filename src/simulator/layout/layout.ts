@@ -24,12 +24,14 @@ export interface ILayout<N extends INodeBase, E extends IEdgeBase> {
 }
 
 export class LayoutFactory {
-  static create<N extends INodeBase, E extends IEdgeBase>(settings?: Partial<ILayoutSettings>): ILayout<N, E> | null {
+  static create<N extends INodeBase, E extends IEdgeBase>(
+    settings?: Partial<ILayoutSettings>,
+  ): ILayout<N, E> | undefined {
     switch (settings?.type) {
       case 'circular':
         return new CircularLayout<N, E>(settings.options as ICircularLayoutOptions);
       case 'force':
-        return null;
+        return undefined;
       case 'grid':
         return new GridLayout<N, E>(settings.options as IGridLayoutOptions);
       case 'hierarchical':
