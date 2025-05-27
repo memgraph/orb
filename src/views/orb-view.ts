@@ -273,9 +273,11 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
         this._simulator.releaseNodes();
         this._enableSimulation();
+        this.recenter();
       } else {
         this._disableSimulation();
         this._simulator.clearData();
+        this.recenter();
       }
     }
 
