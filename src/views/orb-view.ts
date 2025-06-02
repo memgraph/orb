@@ -263,22 +263,24 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
       this._graph.setLayout(LayoutFactory.create(this._settings.layout));
 
+      const nodePositions = this._graph.getNodePositions();
+      const edgePositions = this._graph.getEdgePositions();
+
+      this._simulator.setupData({ nodes: nodePositions, edges: edgePositions });
+
       if (this._settings.layout.type === 'force') {
-        this._simulator.clearData();
-
-        const nodePositions = this._graph.getNodePositions();
-        const edgePositions = this._graph.getEdgePositions();
-
-        this._simulator.setupData({ nodes: nodePositions, edges: edgePositions });
-
-        this._simulator.releaseNodes();
         this._enableSimulation();
-        this.recenter();
+        this._simulator.releaseNodes();
       } else {
         this._disableSimulation();
         this._simulator.clearData();
-        this.recenter();
       }
+
+      setTimeout(() => this.recenter(), 10);
+      this._simulator.once(SimulatorEventType.SIMULATION_END, () => {
+        this.recenter();
+      });
+      this.render();
     }
 
     if (settings.strategy) {
@@ -705,6 +707,8 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._simulator.off(SimulatorEventType.SETTINGS_UPDATE, (data) => {
       this._settings.simulation = data.settings;
     });
+
+    this._simulator.stopSimulation();
   };
 
   // TODO: Do we keep these

@@ -104,6 +104,10 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     this.emitToWorker({ type: WorkerInputType.ActivateSimulation });
   }
 
+  stopSimulation() {
+    this.emitToWorker({ type: WorkerInputType.StopSimulation });
+  }
+
   updateSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
     this.emitToWorker({ type: WorkerInputType.UpdateSimulation, data: { nodes, edges } });
   }

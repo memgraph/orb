@@ -20,6 +20,7 @@ const DEFAULT_LINK_DISTANCE = 50;
 
 export enum D3SimulatorEngineEventType {
   SIMULATION_START = 'simulation-start',
+  SIMULATION_STOP = 'simulation-stop',
   SIMULATION_PROGRESS = 'simulation-progress',
   SIMULATION_END = 'simulation-end',
   SIMULATION_TICK = 'simulation-tick',
@@ -282,8 +283,16 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
    * This does not count as "stabilization" and won't emit any progress.
    */
   activateSimulation() {
-    this.unfixNodes(); // If physics is disabled, the nodes get fixed in the callback from the initial setup (`simulation.on('end', () => {})`).
+    if (this._settings.isPhysicsEnabled) {
+      this.unfixNodes(); // If physics is disabled, the nodes get fixed in the callback from the initial setup (`simulation.on('end', () => {})`).
+    } else {
+      this.fixNodes();
+    }
     this._simulation.alpha(this._settings.alpha.alpha).alphaTarget(this._settings.alpha.alphaTarget).restart();
+  }
+
+  stopSimulation() {
+    this._simulation.stop();
   }
 
   setupData(data: ISimulationGraph) {
@@ -299,6 +308,10 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
 
   mergeData(data: Partial<ISimulationGraph>) {
     this._initializeNewData(data);
+
+    if (!this._settings.isPhysicsEnabled) {
+      this.fixNodes();
+    }
 
     if (this._settings.isSimulatingOnDataUpdate) {
       this._updateSimulationData();

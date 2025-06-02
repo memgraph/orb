@@ -73,6 +73,10 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
     this._simulator.activateSimulation();
   }
 
+  stopSimulation() {
+    this._simulator.stopSimulation();
+  }
+
   startDragNode() {
     this._simulator.startDragNode();
   }
