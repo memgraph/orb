@@ -61,6 +61,16 @@ interface IOrbViewSettings {
       };
     };
   };
+  // For graph layouting (if present, physics is disabled)
+  layout: {
+    type: 'hierarchical' | 'grid' | 'circular';
+    options: null | {
+      orientation: 'vertical' | 'horizontal';
+      reversed: boolean;
+    } | {
+      radius: number;
+    }
+  };
   // For canvas rendering and events
   render: {
     devicePixelRatio: number | null;
@@ -265,6 +275,34 @@ your nodes that you assigned in the `orb.data.setup()` function.
 Here you can use your original properties to indicate which ones represent your node coordinates
 (`node.getData().posX`, `node.getData().posY`). All you have to do is return a `IPosition` that requires
 2 basic properties: `x` and `y` (`{ x: node.getData().posX, y: node.getData().posY }`).
+
+### Property `layout`
+
+If you want to use one of the predefined layouts (hierarchical (tree), grid, circular...) you can specify
+the optional property `layout`. Simulation physics are ignored when a layout is applied. There is no layout
+applied by default.
+
+#### Property `type`
+
+You can specify the desired layout using the `type` property that can have one of the following values:
+
+- `hierarchical` - a tree-like layout style that tries to portrait graph nodes in a hierarchy
+
+- `circular` - arranges the nodes of the graph in a circle
+
+- `grid` - a layout where nodes are aligned in rows and columns
+
+#### Property `options`
+
+Each layout type has its own option list you can tweak in order to change the layout behaviour.
+
+- `hierarchical`
+  - `orientation` - The tree orientation that could be whether `vertical` (by default) or `horizontal`
+  - `reversed` - Whether the orientation is reversed. Default orientation is top-bottom for vertical and
+  left-right for horizontal which is reversed when this property is set to `true`. Disabled by default `false`
+
+- `circular`
+  - `radius` - Radius of the circle in relativa units.
 
 ### Property `render`
 
