@@ -256,6 +256,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     }
 
     if (settings.layout) {
+      const shouldRecenter = this._settings.layout.type !== settings.layout.type;
       this._settings.layout = {
         ...this._settings.layout,
         ...settings.layout,
@@ -276,10 +277,12 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         this._simulator.clearData();
       }
 
-      setTimeout(() => this.recenter(), 10);
-      this._simulator.once(SimulatorEventType.SIMULATION_END, () => {
-        this.recenter();
-      });
+      if (shouldRecenter) {
+        this._simulator.once(SimulatorEventType.SIMULATION_END, () => {
+          this.recenter();
+        });
+      }
+
       this.render();
     }
 
