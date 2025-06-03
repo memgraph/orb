@@ -407,7 +407,10 @@ export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
     const edgeIds = new Set(data.edgeIds);
     this._edges = this._edges.filter((edge) => !edgeIds.has(edge.id));
     this._setNodeIndexByNodeId();
-    this._updateSimulationData();
+    if (this._settings.isSimulatingOnDataUpdate) {
+      this._updateSimulationData();
+      this.activateSimulation();
+    }
   }
 
   /**
