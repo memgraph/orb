@@ -8,7 +8,6 @@ import { IEntityState, EntityState } from '../utils/entity.utils';
 import { IObserver, IObserverDataPayload, ISubject, Subject } from '../utils/observer.utils';
 import { patchProperties } from '../utils/object.utils';
 import { dedupArrays } from '../utils/array.utils';
-import { ILayout } from '../simulator/layout/layout';
 
 export interface IGraphData<N extends INodeBase, E extends IEdgeBase> {
   nodes: N[];
@@ -51,7 +50,6 @@ export interface IGraph<N extends INodeBase, E extends IEdgeBase> extends ISubje
   getNearestNode(point: IPosition): INode<N, E> | undefined;
   getNearestEdge(point: IPosition, minDistance?: number): IEdge<N, E> | undefined;
   setSettings(settings: Partial<IGraphSettings<N, E>>): void;
-  setLayout(layout: ILayout<N, E> | undefined): void;
 }
 
 export interface IGraphSettings<N extends INodeBase, E extends IEdgeBase> {
@@ -75,7 +73,6 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
   });
   private _defaultStyle?: Partial<IGraphStyle<N, E>>;
   private _settings: IGraphSettings<N, E>;
-  private _layout: ILayout<N, E> | undefined;
 
   constructor(data?: Partial<IGraphData<N, E>>, settings?: Partial<IGraphSettings<N, E>>) {
     // TODO(dlozic): How to use object assign here? If I add add and export a default const here, it needs N, E.
@@ -93,11 +90,6 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
   setSettings(settings: Partial<IGraphSettings<N, E>>) {
     patchProperties(this._settings, settings);
     this.notifyListeners();
-  }
-
-  setLayout(layout: ILayout<N, E> | undefined): void {
-    this._layout = layout;
-    this._resetLayout();
   }
 
   /**
@@ -282,7 +274,6 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
 
     this._applyEdgeOffsets();
     this._applyStyle();
-    this._resetLayout();
 
     this._settings?.onMergeData?.(data);
   }
@@ -296,7 +287,6 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
 
     this._applyEdgeOffsets();
     this._applyStyle();
-    this._resetLayout();
 
     if (this._settings && this._settings.onRemoveData) {
       const removedData: IGraphObjectsIds = {
@@ -611,17 +601,6 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     this._edges.removeMany(removedEdgeIds);
 
     return { nodeIds: [], edgeIds: removedEdgeIds };
-  }
-
-  private _resetLayout(): void {
-    if (!this._layout) {
-      this.clearPositions();
-      return;
-    }
-
-    const positions = this._layout.getPositions(this.getNodes());
-    this.setNodePositions(positions);
-    this.notifyListeners();
   }
 
   private _applyEdgeOffsets() {

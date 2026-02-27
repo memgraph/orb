@@ -1,7 +1,7 @@
 import { IPosition } from '../../../../common';
 import { ISimulationNode, ISimulationEdge } from '../../../shared';
-import { ID3SimulatorEngineSettingsUpdate } from '../../../engine/d3-simulator-engine';
 import { IWorkerPayload } from './worker-payload';
+import { ILayoutSettings, IEngineSettingsUpdate } from '../../../engine/shared';
 
 // Messages are objects going into the simulation worker.
 // They can be thought of similar to requests.
@@ -30,6 +30,7 @@ export enum WorkerInputType {
 
   // Settings and special params
   SetSettings = 'Set Settings',
+  SetLayoutEngine = 'Set Layout Engine',
 }
 
 type IWorkerInputSetupDataPayload = IWorkerPayload<
@@ -113,7 +114,9 @@ type IWorkerInputReleaseNodesPayload = IWorkerPayload<
   }
 >;
 
-type IWorkerInputSetSettingsPayload = IWorkerPayload<WorkerInputType.SetSettings, ID3SimulatorEngineSettingsUpdate>;
+type IWorkerInputSetSettingsPayload = IWorkerPayload<WorkerInputType.SetSettings, IEngineSettingsUpdate>;
+
+type IWorkerInputSetLayoutEnginePayload = IWorkerPayload<WorkerInputType.SetLayoutEngine, ILayoutSettings>;
 
 export type IWorkerInputPayload =
   | IWorkerInputSetupDataPayload
@@ -131,4 +134,5 @@ export type IWorkerInputPayload =
   | IWorkerInputFixNodesPayload
   | IWorkerInputReleaseNodesPayload
   | IWorkerInputEndDragNodePayload
-  | IWorkerInputSetSettingsPayload;
+  | IWorkerInputSetSettingsPayload
+  | IWorkerInputSetLayoutEnginePayload;

@@ -8,15 +8,15 @@ import {
   ISimulationGraph,
   ISimulationIds,
 } from '../../shared';
-import { ID3SimulatorEngineSettingsUpdate } from '../../engine/d3-simulator-engine';
 import { IWorkerInputPayload, WorkerInputType } from './message/worker-input';
 import { IWorkerOutputPayload, WorkerOutputType } from './message/worker-output';
 import { Emitter } from '../../../utils/emitter.utils';
+import { ILayoutSettings, IEngineSettingsUpdate } from '../../engine/shared';
 
 export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISimulator {
   protected readonly _worker: Worker;
 
-  constructor() {
+  constructor(settings: ILayoutSettings) {
     super();
     this._worker = new Worker(
       new URL(
@@ -26,6 +26,8 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
       ),
       { type: 'module' },
     );
+
+    this.emitToWorker({ type: WorkerInputType.SetLayoutEngine, data: settings });
 
     this._worker.onmessage = ({ data }: MessageEvent<IWorkerOutputPayload>) => {
       switch (data.type) {
@@ -132,8 +134,12 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     this.emitToWorker({ type: WorkerInputType.ReleaseNodes, data: { nodes } });
   }
 
-  setSettings(settings: ID3SimulatorEngineSettingsUpdate) {
-    this.emitToWorker({ type: WorkerInputType.SetSettings, data: settings });
+  setSettings(settings: IEngineSettingsUpdate) {
+    this.emitToWorker({ type: WorkerInputType.SetSettings, data: settings } as IWorkerInputPayload);
+  }
+
+  setLayoutEngine(settings: ILayoutSettings) {
+    this.emitToWorker({ type: WorkerInputType.SetLayoutEngine, data: settings });
   }
 
   terminate() {

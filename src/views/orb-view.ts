@@ -14,11 +14,11 @@ import { IEdge, IEdgeBase, isEdge } from '../models/edge';
 import { IOrbView } from './shared';
 import { DefaultEventStrategy, IEventStrategy, IEventStrategySettings } from '../models/strategy';
 import {
-  DEFAULT_SETTINGS,
-  ID3SimulatorEngineSettings,
-  ID3SimulatorEngineSettingsCentering,
-  ID3SimulatorEngineSettingsLinks,
-} from '../simulator/engine/d3-simulator-engine';
+  DEFAULT_FORCE_LAYOUT_SETTINGS,
+  IForceLayoutSettings,
+  IForceLayoutCentering,
+  IForceLayoutLinks,
+} from '../simulator/engine/shared';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
 import { IRenderer, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
@@ -27,8 +27,7 @@ import { SimulatorEventType } from '../simulator/shared';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
 import { IObserver, IObserverDataPayload } from '../utils/observer.utils';
-import { ILayoutSettings, LayoutFactory } from '../simulator/layout/layout';
-import { DEFAULT_FORCE_LAYOUT_OPTIONS } from '../simulator/layout/layouts/force';
+import { ILayoutSettings, DEFAULT_FORCE_LAYOUT_OPTIONS } from '../simulator/engine/shared';
 
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;
@@ -37,7 +36,7 @@ export interface IGraphInteractionSettings {
 
 export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
-  simulation: Partial<ID3SimulatorEngineSettings>;
+  simulation: Partial<IForceLayoutSettings>;
   render: Partial<IRendererSettings>;
   strategy: Partial<IEventStrategySettings>;
   interaction: Partial<IGraphInteractionSettings>;
@@ -62,8 +61,6 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   private readonly _renderer: IRenderer<N, E>;
   private readonly _simulator: ISimulator;
 
-  // private _isSimulating = false;
-  private _onSimulationEnd: (() => void) | undefined;
   private _simulationStartedAt = Date.now();
   private _d3Zoom: ZoomBehavior<HTMLCanvasElement, any>;
   private _dragStartPosition: IPosition | undefined;
@@ -160,11 +157,8 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       .on('contextmenu', this.mouseRightClicked)
       .on('dblclick.zoom', this.mouseDoubleClicked);
 
-    this._simulator = SimulatorFactory.getSimulator();
-
-    if (this._settings.layout.type === 'force') {
-      this._enableSimulation();
-    }
+    this._simulator = SimulatorFactory.getSimulator(this._settings.layout);
+    this._initializeSimulationEvents();
 
     if (this._settings.layout.options) {
       const _options = {
@@ -173,35 +167,25 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       };
 
       this._settings.simulation.centering = {
-        ...(DEFAULT_SETTINGS.centering as Required<ID3SimulatorEngineSettingsCentering>),
+        ...(DEFAULT_FORCE_LAYOUT_SETTINGS.centering as Required<IForceLayoutCentering>),
         ...this._settings.simulation.centering,
         x: _options.centerX,
         y: _options.centerY,
       };
 
       this._settings.simulation.links = {
-        ...(DEFAULT_SETTINGS.links as Required<ID3SimulatorEngineSettingsLinks>),
+        ...(DEFAULT_FORCE_LAYOUT_SETTINGS.links as Required<IForceLayoutLinks>),
         ...this._settings.simulation.links,
         distance: _options.nodeDistance,
       };
     }
     this._simulator.setSettings(this._settings.simulation);
 
-    // TODO(dlozic): Optimize crud operations here.
     this._graph.setSettings({
       onSetupData: () => {
-        // if (this._isSimulating) {
-        //   console.warn('Already running a simulation. Discarding the setup data call.');
-        //   return;
-        // }
-        // this._isSimulating = true;
         this._assignPositions(this._graph.getNodes());
         const nodePositions = this._graph.getNodePositions();
         const edgePositions = this._graph.getEdgePositions();
-        // this._onSimulationEnd = onRendered;
-        if (this._settings.layout) {
-          this._graph.setLayout(LayoutFactory.create(this._settings.layout));
-        }
         this._simulator.setupData({ nodes: nodePositions, edges: edgePositions });
       },
       onMergeData: (data) => {
@@ -212,12 +196,9 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
         this._assignPositions(this._graph.getNodes(nodeFilter));
 
-        if (this._settings.layout.type === 'force') {
-          const nodePositions = this._graph.getNodePositions(nodeFilter);
-          const edgePositions = this._graph.getEdgePositions(edgeFilter);
-
-          this._simulator.mergeData({ nodes: nodePositions, edges: edgePositions });
-        }
+        const nodePositions = this._graph.getNodePositions(nodeFilter);
+        const edgePositions = this._graph.getEdgePositions(edgeFilter);
+        this._simulator.mergeData({ nodes: nodePositions, edges: edgePositions });
       },
       onRemoveData: (data) => {
         this._simulator.deleteData(data);
@@ -262,20 +243,9 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         ...settings.layout,
       };
 
-      this._graph.setLayout(LayoutFactory.create(this._settings.layout));
-
-      const nodePositions = this._graph.getNodePositions();
-      const edgePositions = this._graph.getEdgePositions();
-
-      this._simulator.setupData({ nodes: nodePositions, edges: edgePositions });
-
-      if (this._settings.layout.type === 'force') {
-        this._enableSimulation();
-        this._simulator.releaseNodes();
-      } else {
-        this._disableSimulation();
-        this._simulator.clearData();
-      }
+      this._simulator.setLayoutEngine(this._settings.layout as ILayoutSettings);
+      this._simulator.setSettings(this._settings.simulation);
+      this._simulator.releaseNodes();
 
       if (shouldRecenter) {
         this._simulator.once(SimulatorEventType.SIMULATION_END, () => {
@@ -283,7 +253,17 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         });
       }
 
-      this.render();
+      const nodePositions = this._graph.getNodePositions();
+      const edgePositions = this._graph.getEdgePositions();
+
+      if (shouldRecenter && this._settings.layout.type === 'force') {
+        for (let i = 0; i < nodePositions.length; i++) {
+          delete (nodePositions[i] as any).x;
+          delete (nodePositions[i] as any).y;
+        }
+      }
+
+      this._simulator.setupData({ nodes: nodePositions, edges: edgePositions });
     }
 
     if (settings.strategy) {
@@ -646,9 +626,8 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this.render();
   };
 
-  private _enableSimulation = () => {
+  private _initializeSimulationEvents = () => {
     this._simulator.on(SimulatorEventType.SIMULATION_START, () => {
-      // this._isSimulating = true;
       this._simulationStartedAt = Date.now();
       this._events.emit(OrbEventType.SIMULATION_START, undefined);
     });
@@ -660,9 +639,6 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._simulator.on(SimulatorEventType.SIMULATION_END, (data) => {
       this._graph.setNodePositions(data.nodes);
       this.render();
-      // this._isSimulating = false;
-      this._onSimulationEnd?.();
-      this._onSimulationEnd = undefined;
       this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
     });
     this._simulator.on(SimulatorEventType.SIMULATION_STEP, (data) => {
@@ -676,42 +652,6 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._simulator.on(SimulatorEventType.SETTINGS_UPDATE, (data) => {
       this._settings.simulation = data.settings;
     });
-
-    this._simulator.activateSimulation();
-  };
-
-  private _disableSimulation = () => {
-    this._simulator.off(SimulatorEventType.SIMULATION_START, () => {
-      // this._isSimulating = true;
-      this._simulationStartedAt = Date.now();
-      this._events.emit(OrbEventType.SIMULATION_START, undefined);
-    });
-    this._simulator.off(SimulatorEventType.SIMULATION_PROGRESS, (data) => {
-      this._graph.setNodePositions(data.nodes);
-      this._events.emit(OrbEventType.SIMULATION_STEP, { progress: data.progress });
-      this.render();
-    });
-    this._simulator.off(SimulatorEventType.SIMULATION_END, (data) => {
-      this._graph.setNodePositions(data.nodes);
-      this.render();
-      // this._isSimulating = false;
-      this._onSimulationEnd?.();
-      this._onSimulationEnd = undefined;
-      this._events.emit(OrbEventType.SIMULATION_END, { durationMs: Date.now() - this._simulationStartedAt });
-    });
-    this._simulator.off(SimulatorEventType.SIMULATION_STEP, (data) => {
-      this._graph.setNodePositions(data.nodes);
-      this.render();
-    });
-    this._simulator.off(SimulatorEventType.NODE_DRAG, (data) => {
-      this._graph.setNodePositions(data.nodes);
-      this.render();
-    });
-    this._simulator.off(SimulatorEventType.SETTINGS_UPDATE, (data) => {
-      this._settings.simulation = data.settings;
-    });
-
-    this._simulator.stopSimulation();
   };
 
   // TODO: Do we keep these

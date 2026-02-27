@@ -1,108 +1,116 @@
 // / <reference lib="webworker" />
-import { D3SimulatorEngine, D3SimulatorEngineEventType } from '../../engine/d3-simulator-engine';
+import { LayoutEngineFactory } from '../../engine/factory';
+import { ILayoutEngine } from '../../engine/shared';
+import { SimulatorEventType } from '../../shared';
 import { IWorkerInputPayload, WorkerInputType } from './message/worker-input';
 import { IWorkerOutputPayload, WorkerOutputType } from './message/worker-output';
 
-const simulator = new D3SimulatorEngine();
+let engine: ILayoutEngine = LayoutEngineFactory.create({ type: 'force' });
 
 const emitToMain = (message: IWorkerOutputPayload) => {
-  // @ts-ignore Web worker postMessage is a global function
   postMessage(message);
 };
 
-simulator.on(D3SimulatorEngineEventType.SIMULATION_START, () => {
-  emitToMain({ type: WorkerOutputType.SIMULATION_START });
-});
+function wireEngineEvents(target: ILayoutEngine) {
+  target.on(SimulatorEventType.SIMULATION_START, () => {
+    emitToMain({ type: WorkerOutputType.SIMULATION_START });
+  });
+  target.on(SimulatorEventType.SIMULATION_PROGRESS, (data) => {
+    emitToMain({ type: WorkerOutputType.SIMULATION_PROGRESS, data });
+  });
+  target.on(SimulatorEventType.SIMULATION_END, (data) => {
+    emitToMain({ type: WorkerOutputType.SIMULATION_END, data });
+  });
+  target.on(SimulatorEventType.SIMULATION_STEP, (data) => {
+    emitToMain({ type: WorkerOutputType.SIMULATION_STEP, data });
+  });
+  target.on(SimulatorEventType.NODE_DRAG, (data) => {
+    emitToMain({ type: WorkerOutputType.NODE_DRAG, data });
+  });
+  target.on(SimulatorEventType.SETTINGS_UPDATE, (data) => {
+    emitToMain({ type: WorkerOutputType.SETTINGS_UPDATE, data });
+  });
+}
 
-simulator.on(D3SimulatorEngineEventType.SIMULATION_PROGRESS, (data) => {
-  emitToMain({ type: WorkerOutputType.SIMULATION_PROGRESS, data });
-});
-
-simulator.on(D3SimulatorEngineEventType.SIMULATION_END, (data) => {
-  emitToMain({ type: WorkerOutputType.SIMULATION_END, data });
-});
-
-simulator.on(D3SimulatorEngineEventType.NODE_DRAG, (data) => {
-  emitToMain({ type: WorkerOutputType.NODE_DRAG, data });
-});
-
-simulator.on(D3SimulatorEngineEventType.SIMULATION_TICK, (data) => {
-  emitToMain({ type: WorkerOutputType.SIMULATION_STEP, data });
-});
-
-simulator.on(D3SimulatorEngineEventType.SETTINGS_UPDATE, (data) => {
-  emitToMain({ type: WorkerOutputType.SETTINGS_UPDATE, data });
-});
+wireEngineEvents(engine);
 
 addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {
   switch (data.type) {
-    case WorkerInputType.ActivateSimulation: {
-      simulator.activateSimulation();
-      break;
-    }
-
-    case WorkerInputType.StopSimulation: {
-      simulator.stopSimulation();
+    case WorkerInputType.SetLayoutEngine: {
+      engine.removeAllListeners();
+      engine.terminate();
+      engine = LayoutEngineFactory.create(data.data);
+      wireEngineEvents(engine);
       break;
     }
 
     case WorkerInputType.SetupData: {
-      simulator.setupData(data.data);
+      engine.setupData(data.data);
       break;
     }
 
     case WorkerInputType.MergeData: {
-      simulator.mergeData(data.data);
+      engine.mergeData(data.data);
       break;
     }
 
     case WorkerInputType.UpdateData: {
-      simulator.updateData(data.data);
+      engine.updateData(data.data);
       break;
     }
 
     case WorkerInputType.DeleteData: {
-      simulator.deleteData(data.data);
+      engine.deleteData(data.data);
       break;
     }
 
     case WorkerInputType.PatchData: {
-      simulator.patchData(data.data);
+      engine.patchData(data.data);
       break;
     }
 
     case WorkerInputType.ClearData: {
-      simulator.clearData();
+      engine.clearData();
+      break;
+    }
+
+    case WorkerInputType.ActivateSimulation: {
+      engine.activateSimulation();
+      break;
+    }
+
+    case WorkerInputType.StopSimulation: {
+      engine.stopSimulation();
       break;
     }
 
     case WorkerInputType.StartDragNode: {
-      simulator.startDragNode();
+      engine.startDragNode();
       break;
     }
 
     case WorkerInputType.DragNode: {
-      simulator.dragNode(data.data);
-      break;
-    }
-
-    case WorkerInputType.FixNodes: {
-      simulator.stickNodes(data.data.nodes);
-      break;
-    }
-
-    case WorkerInputType.ReleaseNodes: {
-      simulator.unstickNodes(data.data.nodes);
+      engine.dragNode(data.data.id, { x: data.data.x, y: data.data.y });
       break;
     }
 
     case WorkerInputType.EndDragNode: {
-      simulator.endDragNode(data.data);
+      engine.endDragNode(data.data.id);
+      break;
+    }
+
+    case WorkerInputType.FixNodes: {
+      engine.fixNodes(data.data.nodes);
+      break;
+    }
+
+    case WorkerInputType.ReleaseNodes: {
+      engine.releaseNodes(data.data.nodes);
       break;
     }
 
     case WorkerInputType.SetSettings: {
-      simulator.setSettings(data.data);
+      engine.setSettings(data.data);
       break;
     }
   }
