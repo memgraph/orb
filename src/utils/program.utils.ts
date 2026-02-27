@@ -1,4 +1,4 @@
-import { OrbError } from '../../../exceptions';
+import { OrbError } from '../exceptions';
 import { compileShader, ShaderType } from './shaders.utils';
 
 export const createProgram = (

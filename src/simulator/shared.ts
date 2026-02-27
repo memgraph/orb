@@ -1,6 +1,6 @@
 import { IPosition } from '../common';
 import { SimulationLinkDatum, SimulationNodeDatum } from 'd3-force';
-import { ID3SimulatorEngineSettings, ID3SimulatorEngineSettingsUpdate } from './engine/d3-simulator-engine';
+import { ID3SimulatorEngineSettings, ID3SimulatorEngineSettingsUpdate } from './engine/types/d3-simulator-engine';
 import { IEmitter } from '../utils/emitter.utils';
 
 /**

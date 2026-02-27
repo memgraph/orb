@@ -1,4 +1,4 @@
-import { OrbError } from '../../../exceptions';
+import { OrbError } from '../exceptions';
 
 export enum ShaderType {
   VERTEX = 'vertex',

@@ -10,83 +10,31 @@ import {
   Simulation,
   SimulationLinkDatum,
 } from 'd3-force';
-import { IPosition } from '../../common';
-import { ISimulationNode, ISimulationEdge, ISimulationGraph } from '../shared';
-import { Emitter } from '../../utils/emitter.utils';
-import { isObjectEqual, copyObject } from '../../utils/object.utils';
+import { IPosition } from '../../../common';
+import { ISimulationNode, ISimulationEdge, ISimulationGraph } from '../../shared';
+import { Emitter } from '../../../utils/emitter.utils';
+import { isObjectEqual, copyObject } from '../../../utils/object.utils';
+import {
+  ISimulatorEngine,
+  ISimulatorEngineSettingsConfig,
+  ISimulatorEngineSettingsUpdate,
+  SimulatorEngineEventType,
+  SimulatorEngineEvents,
+} from '../shared';
 
 const MANY_BODY_MAX_DISTANCE_TO_LINK_DISTANCE_RATIO = 100;
 const DEFAULT_LINK_DISTANCE = 50;
 
-export enum D3SimulatorEngineEventType {
-  SIMULATION_START = 'simulation-start',
-  SIMULATION_STOP = 'simulation-stop',
-  SIMULATION_PROGRESS = 'simulation-progress',
-  SIMULATION_END = 'simulation-end',
-  SIMULATION_TICK = 'simulation-tick',
-  SIMULATION_RESET = 'simulation-reset',
-  NODE_DRAG = 'node-drag',
-  SETTINGS_UPDATE = 'settings-update',
-  DATA_CLEARED = 'data-cleared',
-}
-
-export interface ID3SimulatorEngineSettingsAlpha {
-  alpha: number;
-  alphaMin: number;
-  alphaDecay: number;
-  alphaTarget: number;
-}
-
-export interface ID3SimulatorEngineSettingsCentering {
-  x: number;
-  y: number;
-  strength: number;
-}
-
-export interface ID3SimulatorEngineSettingsCollision {
-  radius: number;
-  strength: number;
-  iterations: number;
-}
-
-export interface ID3SimulatorEngineSettingsLinks {
-  distance: number;
-  strength?: number;
-  iterations: number;
-}
-
-export interface ID3SimulatorEngineSettingsManyBody {
-  strength: number;
-  theta: number;
-  distanceMin: number;
-  distanceMax: number;
-}
-
-export interface ID3SimulatorEngineSettingsPositioning {
-  forceX: {
-    x: number;
-    strength: number;
-  };
-  forceY: {
-    y: number;
-    strength: number;
-  };
-}
-
-export interface ID3SimulatorEngineSettings {
-  isSimulatingOnDataUpdate: boolean;
-  isSimulatingOnSettingsUpdate: boolean;
-  isSimulatingOnUnstick: boolean;
-  isPhysicsEnabled: boolean;
-  alpha: ID3SimulatorEngineSettingsAlpha;
-  centering: ID3SimulatorEngineSettingsCentering | null;
-  collision: ID3SimulatorEngineSettingsCollision | null;
-  links: ID3SimulatorEngineSettingsLinks;
-  manyBody: ID3SimulatorEngineSettingsManyBody | null;
-  positioning: ID3SimulatorEngineSettingsPositioning | null;
-}
-
-export type ID3SimulatorEngineSettingsUpdate = Partial<ID3SimulatorEngineSettings>;
+// Backward-compatible aliases
+export const D3SimulatorEngineEventType = SimulatorEngineEventType;
+export type ID3SimulatorEngineSettingsAlpha = ISimulatorEngineSettingsConfig['alpha'];
+export type ID3SimulatorEngineSettingsCentering = NonNullable<ISimulatorEngineSettingsConfig['centering']>;
+export type ID3SimulatorEngineSettingsCollision = NonNullable<ISimulatorEngineSettingsConfig['collision']>;
+export type ID3SimulatorEngineSettingsLinks = ISimulatorEngineSettingsConfig['links'];
+export type ID3SimulatorEngineSettingsManyBody = NonNullable<ISimulatorEngineSettingsConfig['manyBody']>;
+export type ID3SimulatorEngineSettingsPositioning = NonNullable<ISimulatorEngineSettingsConfig['positioning']>;
+export type ID3SimulatorEngineSettings = ISimulatorEngineSettingsConfig;
+export type ID3SimulatorEngineSettingsUpdate = ISimulatorEngineSettingsUpdate;
 
 export const getManyBodyMaxDistance = (linkDistance: number) => {
   const distance = linkDistance > 0 ? linkDistance : 1;
@@ -153,18 +101,7 @@ interface IRunSimulationOptions {
   isUpdatingSettings: boolean;
 }
 
-export type D3SimulatorEvents = {
-  [D3SimulatorEngineEventType.SIMULATION_START]: undefined;
-  [D3SimulatorEngineEventType.SIMULATION_PROGRESS]: ISimulationGraph & ID3SimulatorProgress;
-  [D3SimulatorEngineEventType.SIMULATION_END]: ISimulationGraph;
-  [D3SimulatorEngineEventType.SIMULATION_TICK]: ISimulationGraph;
-  [D3SimulatorEngineEventType.SIMULATION_RESET]: ISimulationGraph;
-  [D3SimulatorEngineEventType.NODE_DRAG]: ISimulationGraph;
-  [D3SimulatorEngineEventType.SETTINGS_UPDATE]: ID3SimulatorSettings;
-  [D3SimulatorEngineEventType.DATA_CLEARED]: ISimulationGraph;
-};
-
-export class D3SimulatorEngine extends Emitter<D3SimulatorEvents> {
+export class D3SimulatorEngine extends Emitter<SimulatorEngineEvents> implements ISimulatorEngine {
   protected _linkForce!: ForceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>;
   protected _simulation!: Simulation<ISimulationNode, undefined>;
   protected _settings: ID3SimulatorEngineSettings;

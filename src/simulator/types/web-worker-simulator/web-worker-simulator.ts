@@ -8,7 +8,7 @@ import {
   ISimulationGraph,
   ISimulationIds,
 } from '../../shared';
-import { ID3SimulatorEngineSettingsUpdate } from '../../engine/d3-simulator-engine';
+import { ID3SimulatorEngineSettingsUpdate } from '../../engine/types/d3-simulator-engine';
 import { IWorkerInputPayload, WorkerInputType } from './message/worker-input';
 import { IWorkerOutputPayload, WorkerOutputType } from './message/worker-output';
 import { Emitter } from '../../../utils/emitter.utils';

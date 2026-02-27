@@ -1,10 +1,18 @@
 import { ISimulator } from './shared';
 import { MainThreadSimulator } from './types/main-thread-simulator';
 import { WebWorkerSimulator } from './types/web-worker-simulator/web-worker-simulator';
+import { SimulatorEngineType } from './engine/shared';
+import { SimulatorEngineFactory } from './engine/factory';
 
 // TODO(dlozic & Alex): CORS handling
 export class SimulatorFactory {
-  static getSimulator(): ISimulator {
+  static getSimulator(engineType?: SimulatorEngineType): ISimulator {
+    // GPU engine requires main thread (needs WebGL context)
+    if (engineType === SimulatorEngineType.GPU) {
+      const engine = SimulatorEngineFactory.getEngine(SimulatorEngineType.GPU);
+      return new MainThreadSimulator(engine);
+    }
+
     try {
       if (typeof Worker !== 'undefined') {
         return new WebWorkerSimulator();

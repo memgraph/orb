@@ -1,5 +1,5 @@
 // / <reference lib="webworker" />
-import { D3SimulatorEngine, D3SimulatorEngineEventType } from '../../engine/d3-simulator-engine';
+import { D3SimulatorEngine, D3SimulatorEngineEventType } from '../../engine/types/d3-simulator-engine';
 import { IWorkerInputPayload, WorkerInputType } from './message/worker-input';
 import { IWorkerOutputPayload, WorkerOutputType } from './message/worker-output';
 

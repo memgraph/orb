@@ -15,7 +15,7 @@ import {
 import { copyObject } from '../../utils/object.utils';
 import { appendCanvas, setupContainer } from '../../utils/html.utils';
 import { OrbError } from '../../exceptions';
-import { createProgram } from './utils/program.utils';
+import { createProgram } from '../../utils/program.utils';
 import nodeVertexSource from './shaders/node/node.vert';
 import nodeFragmentSource from './shaders/node/node.frag';
 import edgeVertexSource from './shaders/edge/edge.vert';

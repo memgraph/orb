@@ -1,6 +1,6 @@
 import { ISimulationNode, ISimulationEdge } from '../../../shared';
 import { IWorkerPayload } from './worker-payload';
-import { ID3SimulatorEngineSettings } from '../../../engine/d3-simulator-engine';
+import { ID3SimulatorEngineSettings } from '../../../engine/types/d3-simulator-engine';
 
 export enum WorkerOutputType {
   SIMULATION_START = 'simulation-start',

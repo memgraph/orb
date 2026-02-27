@@ -8,34 +8,32 @@ import {
 } from '../shared';
 import { IPosition } from '../../common';
 import { Emitter } from '../../utils/emitter.utils';
-import {
-  D3SimulatorEngine,
-  D3SimulatorEngineEventType,
-  ID3SimulatorEngineSettingsUpdate,
-} from '../engine/d3-simulator-engine';
+import { ID3SimulatorEngineSettingsUpdate } from '../engine/types/d3-simulator-engine';
+import { ISimulatorEngine, SimulatorEngineEventType } from '../engine/shared';
+import { SimulatorEngineFactory } from '../engine/factory';
 
 export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISimulator {
-  protected readonly _simulator: D3SimulatorEngine;
+  protected readonly _simulator: ISimulatorEngine;
 
-  constructor() {
+  constructor(engine?: ISimulatorEngine) {
     super();
-    this._simulator = new D3SimulatorEngine();
-    this._simulator.on(D3SimulatorEngineEventType.SIMULATION_START, () => {
+    this._simulator = engine ?? SimulatorEngineFactory.getEngine();
+    this._simulator.on(SimulatorEngineEventType.SIMULATION_START, () => {
       this.emit(SimulatorEventType.SIMULATION_START, undefined);
     });
-    this._simulator.on(D3SimulatorEngineEventType.SIMULATION_PROGRESS, (data) => {
+    this._simulator.on(SimulatorEngineEventType.SIMULATION_PROGRESS, (data) => {
       this.emit(SimulatorEventType.SIMULATION_PROGRESS, data);
     });
-    this._simulator.on(D3SimulatorEngineEventType.SIMULATION_END, (data) => {
+    this._simulator.on(SimulatorEngineEventType.SIMULATION_END, (data) => {
       this.emit(SimulatorEventType.SIMULATION_END, data);
     });
-    this._simulator.on(D3SimulatorEngineEventType.NODE_DRAG, (data) => {
+    this._simulator.on(SimulatorEngineEventType.NODE_DRAG, (data) => {
       this.emit(SimulatorEventType.NODE_DRAG, data);
     });
-    this._simulator.on(D3SimulatorEngineEventType.SIMULATION_TICK, (data) => {
+    this._simulator.on(SimulatorEngineEventType.SIMULATION_TICK, (data) => {
       this.emit(SimulatorEventType.SIMULATION_STEP, data);
     });
-    this._simulator.on(D3SimulatorEngineEventType.SETTINGS_UPDATE, (data) => {
+    this._simulator.on(SimulatorEngineEventType.SETTINGS_UPDATE, (data) => {
       this.emit(SimulatorEventType.SETTINGS_UPDATE, data);
     });
   }

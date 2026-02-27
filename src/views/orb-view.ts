@@ -7,7 +7,7 @@ import transition from 'd3-transition';
 import { D3ZoomEvent, zoom, ZoomBehavior } from 'd3-zoom';
 import { select } from 'd3-selection';
 import { IPosition, isEqualPosition } from '../common';
-import { ISimulator, SimulatorFactory } from '../simulator';
+import { ISimulator, SimulatorFactory, SimulatorEngineType } from '../simulator';
 import { Graph, IGraph, INodeFilter, IEdgeFilter } from '../models/graph';
 import { INode, INodeBase, isNode } from '../models/node';
 import { IEdge, IEdgeBase, isEdge } from '../models/edge';
@@ -15,10 +15,9 @@ import { IOrbView } from './shared';
 import { DefaultEventStrategy, IEventStrategy, IEventStrategySettings } from '../models/strategy';
 import {
   DEFAULT_SETTINGS,
-  ID3SimulatorEngineSettings,
   ID3SimulatorEngineSettingsCentering,
   ID3SimulatorEngineSettingsLinks,
-} from '../simulator/engine/d3-simulator-engine';
+} from '../simulator/engine/types/d3-simulator-engine';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
 import { IRenderer, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
@@ -29,6 +28,7 @@ import { isBoolean } from '../utils/type.utils';
 import { IObserver, IObserverDataPayload } from '../utils/observer.utils';
 import { ILayoutSettings, LayoutFactory } from '../simulator/layout/layout';
 import { DEFAULT_FORCE_LAYOUT_OPTIONS } from '../simulator/layout/layouts/force';
+import { ISimulatorEngineSettingsConfig } from '../simulator/engine/shared';
 
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;
@@ -37,7 +37,7 @@ export interface IGraphInteractionSettings {
 
 export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   getPosition?(node: INode<N, E>): IPosition | undefined;
-  simulation: Partial<ID3SimulatorEngineSettings>;
+  simulation: Partial<ISimulatorEngineSettingsConfig> & { engineType?: SimulatorEngineType };
   render: Partial<IRendererSettings>;
   strategy: Partial<IEventStrategySettings>;
   interaction: Partial<IGraphInteractionSettings>;
@@ -160,7 +160,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       .on('contextmenu', this.mouseRightClicked)
       .on('dblclick.zoom', this.mouseDoubleClicked);
 
-    this._simulator = SimulatorFactory.getSimulator();
+    this._simulator = SimulatorFactory.getSimulator(this._settings.simulation.engineType);
 
     if (this._settings.layout.type === 'force') {
       this._enableSimulation();
