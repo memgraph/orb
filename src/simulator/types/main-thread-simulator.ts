@@ -8,21 +8,16 @@ import {
 } from '../shared';
 import { IPosition } from '../../common';
 import { Emitter } from '../../utils/emitter.utils';
-import { ILayoutEngine, ILayoutSettings, IEngineSettingsUpdate } from '../engine/shared';
+import { ILayoutEngine, ILayoutSettings } from '../engine/shared';
 import { LayoutEngineFactory } from '../engine/factory';
+import { DeepPartial } from '../../utils/type.utils';
 
 export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISimulator {
   private _engine: ILayoutEngine;
+  private _isSimulationRunning = false;
 
-  constructor(settings: ILayoutSettings) {
+  constructor(settings: DeepPartial<ILayoutSettings>) {
     super();
-    this._engine = LayoutEngineFactory.create(settings);
-    this._wireEngineEvents();
-  }
-
-  setLayoutEngine(settings: ILayoutSettings) {
-    this._engine.removeAllListeners();
-    this._engine.terminate();
     this._engine = LayoutEngineFactory.create(settings);
     this._wireEngineEvents();
   }
@@ -83,8 +78,20 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
     this._engine.releaseNodes(nodes);
   }
 
-  setSettings(settings: IEngineSettingsUpdate) {
-    this._engine.setSettings(settings);
+  setSettings(settings: ILayoutSettings) {
+    if (settings.type === this._engine.type && settings.options) {
+      this._engine.setSettings(settings.options);
+      return;
+    }
+
+    this._engine.removeAllListeners();
+    this._engine.terminate();
+    this._engine = LayoutEngineFactory.create(settings);
+    this._wireEngineEvents();
+  }
+
+  getIsSimulationRunning(): boolean {
+    return this._isSimulationRunning;
   }
 
   terminate() {
@@ -96,12 +103,14 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
   private _wireEngineEvents() {
     this._engine.on(SimulatorEventType.SIMULATION_START, () => {
       this.emit(SimulatorEventType.SIMULATION_START, undefined);
+      this._isSimulationRunning = true;
     });
     this._engine.on(SimulatorEventType.SIMULATION_PROGRESS, (data) => {
       this.emit(SimulatorEventType.SIMULATION_PROGRESS, data);
     });
     this._engine.on(SimulatorEventType.SIMULATION_END, (data) => {
       this.emit(SimulatorEventType.SIMULATION_END, data);
+      this._isSimulationRunning = false;
     });
     this._engine.on(SimulatorEventType.SIMULATION_STEP, (data) => {
       this.emit(SimulatorEventType.SIMULATION_STEP, data);

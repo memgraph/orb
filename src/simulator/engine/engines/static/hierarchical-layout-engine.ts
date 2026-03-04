@@ -1,9 +1,11 @@
-import { ISimulationNode, ISimulationEdge } from '../../shared';
-import { IHierarchicalLayoutOptions, DEFAULT_HIERARCHICAL_LAYOUT_OPTIONS } from '../shared';
+import { ISimulationNode, ISimulationEdge } from '../../../shared';
+import { IHierarchicalLayoutOptions, DEFAULT_HIERARCHICAL_LAYOUT_OPTIONS, LayoutType } from '../../shared';
 import { StaticLayoutEngine } from './static-layout-engine';
 
 export class HierarchicalLayoutEngine extends StaticLayoutEngine {
   protected _config: Required<IHierarchicalLayoutOptions>;
+
+  readonly type: LayoutType = 'hierarchical';
 
   constructor(options?: IHierarchicalLayoutOptions) {
     super();
@@ -14,6 +16,8 @@ export class HierarchicalLayoutEngine extends StaticLayoutEngine {
     nodes: ISimulationNode[],
     edges: ISimulationEdge[],
     onProgress: (progress: number) => void,
+    isCancelled: () => boolean,
+    onComplete: () => void,
   ) {
     const { adjacency, inDegree } = this._buildAdjacency(nodes, edges);
     const components = this._getConnectedComponents(nodes, adjacency);
@@ -22,8 +26,18 @@ export class HierarchicalLayoutEngine extends StaticLayoutEngine {
     let maxHeight = 0;
     let counter = 0;
     let lastProgress = -1;
+    let componentIndex = 0;
 
-    for (let i = 0; i < components.length; i++) {
+    const processComponent = () => {
+      if (isCancelled() || componentIndex >= components.length) {
+        if (!isCancelled() && this._config.reversed) {
+          this._applyReversal(nodes, maxX, maxHeight);
+        }
+        onComplete();
+        return;
+      }
+
+      const i = componentIndex;
       const levels = this._assignLevels(components[i], adjacency, inDegree);
       const maxLevelSize = Math.max(...Array.from(levels.values()).map((level) => level.length));
 
@@ -61,19 +75,32 @@ export class HierarchicalLayoutEngine extends StaticLayoutEngine {
           }
 
           counter++;
-          lastProgress = this._emitProgress(counter, nodes.length, lastProgress, onProgress);
         }
       }
-    }
 
-    if (this._config.reversed) {
-      for (let i = 0; i < nodes.length; i++) {
-        if (this._config.orientation === 'horizontal' && nodes[i].x !== undefined) {
-          nodes[i].x = maxX - (nodes[i].x ?? 0);
+      componentIndex++;
+
+      if (componentIndex < components.length && !this._cancelSimulation) {
+        lastProgress = this._emitProgress(counter, nodes.length, lastProgress, onProgress);
+        this._scheduleNext(processComponent);
+      } else {
+        if (!isCancelled() && this._config.reversed) {
+          this._applyReversal(nodes, maxX, maxHeight);
         }
-        if (this._config.orientation === 'vertical' && nodes[i].y !== undefined) {
-          nodes[i].y = maxHeight - (nodes[i].y ?? 0);
-        }
+        onComplete();
+      }
+    };
+
+    processComponent();
+  }
+
+  private _applyReversal(nodes: ISimulationNode[], maxX: number, maxHeight: number) {
+    for (let i = 0; i < nodes.length; i++) {
+      if (this._config.orientation === 'horizontal' && nodes[i].x !== undefined) {
+        nodes[i].x = maxX - (nodes[i].x ?? 0);
+      }
+      if (this._config.orientation === 'vertical' && nodes[i].y !== undefined) {
+        nodes[i].y = maxHeight - (nodes[i].y ?? 0);
       }
     }
   }

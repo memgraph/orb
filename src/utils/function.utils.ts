@@ -1,28 +1,26 @@
 export const throttle = (fn: Function, waitMs = 300) => {
-  let isInThrottle = false;
-  let lastTimer: ReturnType<typeof setTimeout>;
-  let lastTimestamp: number = Date.now();
+  let lastTime = 0;
+  let timer: ReturnType<typeof setTimeout> | null = null;
 
   return function () {
     // eslint-disable-next-line prefer-rest-params
     const args = arguments;
     const now = Date.now();
+    const remaining = waitMs - (now - lastTime);
 
-    if (!isInThrottle) {
-      fn(...args);
-      lastTimestamp = now;
-      isInThrottle = true;
-      return;
-    }
-
-    clearTimeout(lastTimer);
-    const timerWaitMs = Math.max(waitMs - (now - lastTimestamp), 0);
-
-    lastTimer = setTimeout(() => {
-      if (now - lastTimestamp >= waitMs) {
-        fn(...args);
-        lastTimestamp = now;
+    if (remaining <= 0) {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
       }
-    }, timerWaitMs);
+      lastTime = now;
+      fn(...args);
+    } else if (!timer) {
+      timer = setTimeout(() => {
+        lastTime = Date.now();
+        timer = null;
+        fn(...args);
+      }, remaining);
+    }
   };
 };

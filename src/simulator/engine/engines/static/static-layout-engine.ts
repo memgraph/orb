@@ -1,22 +1,24 @@
-import { IPosition } from '../../../common';
-import { Emitter } from '../../../utils/emitter.utils';
-import { copyObject, isObjectEqual } from '../../../utils/object.utils';
+import { IPosition } from '../../../../common';
+import { copyObject, isObjectEqual } from '../../../../utils/object.utils';
 import {
   ISimulationNode,
   ISimulationEdge,
   ISimulationGraph,
   ISimulationIds,
-  SimulatorEvents,
   SimulatorEventType,
-} from '../../shared';
-import { ILayoutEngine, IEngineSettingsUpdate } from '../shared';
+} from '../../../shared';
+import { IEngineSettingsUpdate, LayoutType } from '../../shared';
+import { BaseLayoutEngine } from '../base-layout-engine';
 
-export abstract class StaticLayoutEngine extends Emitter<SimulatorEvents> implements ILayoutEngine {
+export const CHUNK_SIZE = 5000;
+
+export abstract class StaticLayoutEngine extends BaseLayoutEngine {
   protected abstract _config: Record<string, unknown>;
 
-  protected _nodes: ISimulationNode[] = [];
-  protected _edges: ISimulationEdge[] = [];
-  protected _nodeIndexByNodeId: Record<number, number> = {};
+  private _isCalculating = false;
+  private _pendingRecalculation = false;
+
+  abstract readonly type: LayoutType;
 
   setupData(data: ISimulationGraph) {
     this._nodes = [...data.nodes];
@@ -120,14 +122,17 @@ export abstract class StaticLayoutEngine extends Emitter<SimulatorEvents> implem
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   endDragNode(_nodeId: number) {
     // No-op for static layouts
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   fixNodes(_nodes?: ISimulationNode[]) {
     // No-op for static layouts
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   releaseNodes(_nodes?: ISimulationNode[]) {
     // No-op for static layouts
   }
@@ -142,39 +147,58 @@ export abstract class StaticLayoutEngine extends Emitter<SimulatorEvents> implem
   }
 
   terminate() {
-    this.removeAllListeners();
+    this._pendingRecalculation = false;
+    super.terminate();
   }
 
   protected _calculateAndEmit() {
-    if (this._nodes.length === 0) {
+    if (this._nodes.length === 0 || this._cancelSimulation) {
       return;
     }
 
+    if (this._isCalculating) {
+      this._pendingRecalculation = true;
+      return;
+    }
+
+    this._isCalculating = true;
     this.emit(SimulatorEventType.SIMULATION_START, undefined);
 
-    this.calculatePositions(this._nodes, this._edges, (progress) => {
-      this.emit(SimulatorEventType.SIMULATION_PROGRESS, {
-        nodes: this._nodes,
-        edges: this._edges,
-        progress,
-      });
-    });
+    this.calculatePositions(
+      this._nodes,
+      this._edges,
+      (progress) => {
+        this.emit(SimulatorEventType.SIMULATION_PROGRESS, {
+          nodes: this._nodes,
+          edges: this._edges,
+          progress,
+        });
+      },
+      () => this._cancelSimulation,
+      () => {
+        this._isCalculating = false;
 
-    this.emit(SimulatorEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
+        if (!this._cancelSimulation) {
+          this.emit(SimulatorEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
+        }
+
+        this._cancelSimulation = false;
+
+        if (this._pendingRecalculation) {
+          this._pendingRecalculation = false;
+          this._calculateAndEmit();
+        }
+      },
+    );
   }
 
   protected abstract calculatePositions(
     nodes: ISimulationNode[],
     edges: ISimulationEdge[],
     onProgress: (progress: number) => void,
+    isCancelled: () => boolean,
+    onComplete: () => void,
   ): void;
-
-  protected _rebuildNodeIndex() {
-    this._nodeIndexByNodeId = {};
-    for (let i = 0; i < this._nodes.length; i++) {
-      this._nodeIndexByNodeId[this._nodes[i].id] = i;
-    }
-  }
 
   protected _emitProgress(index: number, total: number, lastProgress: number, onProgress: (p: number) => void): number {
     const currentProgress = Math.round((index * 100) / total);

@@ -109,42 +109,49 @@ The default settings that `OrbView` uses is:
 
 ```typescript
 const defaultSettings = {
-  simulation: {
-    isPhysicsEnabled: false;
-    alpha: {
-      alpha: 1,
-      alphaMin: 0.001,
-      alphaDecay: 0.0228,
-      alphaTarget: 0.1,
-    },
-    centering: {
-      x: 0,
-      y: 0,
-      strength: 1,
-    },
-    collision: {
-      radius: 15,
-      strength: 1,
-      iterations: 1,
-    },
-    links: {
-      distance: 30,
-      iterations: 1,
-    },
-    manyBody: {
-      strength: -100,
-      theta: 0.9,
-      distanceMin: 0,
-      distanceMax: 3000,
-    },
-    positioning: {
-      forceX: {
-        x: 0,
-        strength: 0.1,
+  layout: {
+    type: 'force',
+    options: {
+      isPhysicsEnabled: false,
+      isSimulatingOnDataUpdate: true,
+      isSimulatingOnSettingsUpdate: true,
+      isSimulatingOnUnstick: true,
+      alpha: {
+        alpha: 1,
+        alphaMin: 0.001,
+        alphaDecay: 0.0228,
+        alphaTarget: 0,
       },
-      forceY: {
+      centering: {
+        x: 0,
         y: 0,
-        strength: 0.1,
+        strength: 1,
+      },
+      collision: {
+        radius: 15,
+        strength: 1,
+        iterations: 1,
+      },
+      links: {
+        distance: DEFAULT_LINK_DISTANCE,
+        strength: 1,
+        iterations: 1,
+      },
+      manyBody: {
+        strength: -100,
+        theta: 0.9,
+        distanceMin: 0,
+        distanceMax: getManyBodyMaxDistance(DEFAULT_LINK_DISTANCE),
+      },
+      positioning: {
+        forceX: {
+          x: 0,
+          strength: 0.1,
+        },
+        forceY: {
+          y: 0,
+          strength: 0.1,
+        },
       },
     },
   },
@@ -168,13 +175,13 @@ const defaultSettings = {
     isDefaultHoverEnabled: true,
   },
   interaction: {
-    isDragEnabled: true;
-    isZoomEnabled:  true;
+    isDragEnabled: true,
+    isZoomEnabled: true,
   },
   zoomFitTransitionMs: 200,
   isOutOfBoundsDragEnabled: false,
   areCoordinatesRounded: true,
-  areCollapsedContainerDimensionsAllowed: false;
+  areCollapsedContainerDimensionsAllowed: false,
 }
 ```
 
@@ -188,13 +195,6 @@ There are two basic ways to use the `OrbView` API based on the node positions:
   your nodes.
 - **Fixed coordinates** - You provide node coordinates through the `getPosition()`
   callback function.
-
-#### Simulated node positions
-
-In this mode, the `OrbView` arranges node positions by internally calculating their
-coordinates using the [D3.js](https://d3js.org/) library, or more specifically,
-[`d3-force`](https://github.com/d3/d3-force). This method is applied by default - you don't
-need to initialize Orb with any additional configuration.
 
 ![](./assets/view-default-simulated.png)
 
@@ -278,13 +278,19 @@ Here you can use your original properties to indicate which ones represent your 
 
 ### Property `layout`
 
-If you want to use one of the predefined layouts (hierarchical (tree), grid, circular...) you can specify
-the optional property `layout`. Simulation physics are ignored when a layout is applied. There is no layout
-applied by default.
+The optional property `layout` controls how graph nodes are positioned. You can choose between
+a physics-based force layout or one of the predefined static layouts (hierarchical (tree), grid,
+circular). The default layout is `force`.
 
 #### Property `type`
 
 You can specify the desired layout using the `type` property that can have one of the following values:
+
+- `force` - fine-grained [D3.js](https://d3js.org/) simulation engine settings. They include `isPhysicsEnabled`, `alpha`,
+`centering`, `collision`, `links`, `manyBody`, and `positioning`. You can use `isPhysicsEnabled`
+to enable or disable physics. You can read more about the other settings on the official
+[`d3-force docs`](https://github.com/d3/d3-force). This may be condensed into fewer, more abstract
+settings in the future
 
 - `hierarchical` - a tree-like layout style that tries to portrait graph nodes in a hierarchy
 
@@ -303,6 +309,43 @@ Each layout type has its own option list you can tweak in order to change the la
 
 - `circular`
   - `radius` - Radius of the circle in relativa units.
+
+- `grid`
+  - `rowGap` - The gap between rows of nodes. Default `50`.
+  - `colGap` - The gap between columns of nodes. Default `50`.
+
+- `force`
+  - `isPhysicsEnabled` - Enables or disables continuous physics simulation. Disabled by default (`false`).
+  - `isSimulatingOnDataUpdate` - Whether to run simulation when graph data is updated. Enabled by default (`true`).
+  - `isSimulatingOnSettingsUpdate` - Whether to re-run simulation when settings are updated. Enabled by default (`true`).
+  - `isSimulatingOnUnstick` - Whether to re-run simulation when a node is unstuck. Enabled by default (`true`).
+  - `alpha` - Fine-grained control over the simulation's annealing process.
+    - `alpha` - Current alpha value. Default `1`.
+    - `alphaMin` - Minimum alpha threshold below which simulation stops. Default `0.001`.
+    - `alphaDecay` - Rate at which alpha decreases over time. Default `0.0228`.
+    - `alphaTarget` - Target alpha the simulation converges toward. Default `0`.
+  - `centering` - Centers the graph around a point.
+    - `x` - X coordinate of the center. Default `0`.
+    - `y` - Y coordinate of the center. Default `0`.
+    - `strength` - Strength of the centering force. Default `1`.
+  - `collision` - Prevents nodes from overlapping.
+    - `radius` - Collision radius per node. Default `15`.
+    - `strength` - Strength of the collision force. Default `1`.
+    - `iterations` - Number of iterations per tick. Default `1`.
+  - `links` - Controls the length and rigidity of edges.
+    - `distance` - Desired distance between linked nodes.
+    - `strength` - Strength of the link force. Default `1`.
+    - `iterations` - Number of iterations per tick. Default `1`.
+  - `manyBody` - Simulates attraction or repulsion between all nodes.
+    - `strength` - Negative values repel, positive attract. Default `-100`.
+    - `theta` - Barnes-Hut approximation parameter. Default `0.9`.
+    - `distanceMin` - Minimum distance between nodes. Default `0`.
+    - `distanceMax` - Maximum distance over which force applies.
+  - `positioning` - Applies independent forces along each axis.
+    - `forceX.x` - Target X position. Default `0`.
+    - `forceX.strength` - Strength of the X positioning force. Default `0.1`.
+    - `forceY.y` - Target Y position. Default `0`.
+    - `forceY.strength` - Strength of the Y positioning force. Default `0.1`.
 
 ### Property `render`
 
@@ -397,14 +440,6 @@ These properties provide a straightforward way to enable or disable dragging and
 // Disable default drag interaction and enable zooming
 orb.setSettings({ interaction: { isDragEnabled: false, isZoomEnabled: true } });
 ```
-
-### Property `simulation`
-
-Fine-grained D3 simulation engine settings. They include `isPhysicsEnabled`, `alpha`,
-`centering`, `collision`, `links`, `manyBody`, and `positioning`. You can use `isPhysicsEnabled`
-to enable or disable physics. You can read more about the other settings on the official
-[`d3-force docs`](https://github.com/d3/d3-force). This may be condensed into fewer, more abstract
-settings in the future.
 
 ### Property `zoomFitTransitionMs`
 

@@ -10,48 +10,45 @@ import {
   Simulation,
   SimulationLinkDatum,
 } from 'd3-force';
-import { IPosition } from '../../../common';
-import {
-  ISimulationNode,
-  ISimulationEdge,
-  ISimulationGraph,
-  ISimulationIds,
-  SimulatorEvents,
-  SimulatorEventType,
-} from '../../shared';
-import { Emitter } from '../../../utils/emitter.utils';
-import { isObjectEqual, copyObject } from '../../../utils/object.utils';
-import { ILayoutEngine, IEngineSettingsUpdate, IForceLayoutSettings, DEFAULT_FORCE_LAYOUT_SETTINGS } from '../shared';
+import { IPosition } from '../../../../common';
+import { ISimulationNode, ISimulationGraph, ISimulationIds, SimulatorEventType } from '../../../shared';
+import { isObjectEqual, copyObject } from '../../../../utils/object.utils';
+import { IEngineSettingsUpdate, IForceLayoutOptions, DEFAULT_FORCE_LAYOUT_OPTIONS, LayoutType } from '../../shared';
+import { BaseLayoutEngine } from '../base-layout-engine';
+
+const MAX_SIMULATION_STEPS = 500;
+const CHUNK_SIZE = 100;
 
 interface IRunSimulationOptions {
   isUpdatingSettings: boolean;
 }
 
-export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayoutEngine {
+export class ForceLayoutEngine extends BaseLayoutEngine {
   private _linkForce!: ForceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>;
   private _simulation!: Simulation<ISimulationNode, undefined>;
-  private _settings: IForceLayoutSettings;
-
-  private _edges: ISimulationEdge[] = [];
-  private _nodes: ISimulationNode[] = [];
-  private _nodeIndexByNodeId: Record<number, number> = {};
+  private _settings: IForceLayoutOptions;
 
   private _isDragging = false;
   private _isStabilizing = false;
 
-  private _initialSettings: IForceLayoutSettings | undefined;
+  private _initialSettings: IForceLayoutOptions | undefined;
 
-  constructor() {
+  readonly type: LayoutType = 'force';
+
+  constructor(options?: IForceLayoutOptions) {
     super();
-    this._settings = this._resetSettings();
+    this._settings = {
+      ...DEFAULT_FORCE_LAYOUT_OPTIONS,
+      ...options,
+    };
     this.clearData();
   }
 
   setSettings(settings: IEngineSettingsUpdate) {
-    const forceSettings = settings as Partial<IForceLayoutSettings>;
+    const forceSettings = settings as Partial<IForceLayoutOptions>;
 
     if (!this._initialSettings) {
-      this._initialSettings = Object.assign(copyObject(DEFAULT_FORCE_LAYOUT_SETTINGS), forceSettings);
+      this._initialSettings = Object.assign(copyObject(DEFAULT_FORCE_LAYOUT_OPTIONS), forceSettings);
     }
 
     const previousSettings = copyObject(this._settings);
@@ -62,13 +59,15 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
     }
 
     this._applySettingsToSimulation(forceSettings);
-    this.emit(SimulatorEventType.SETTINGS_UPDATE, { settings: this._settings });
+    this.emit(SimulatorEventType.SETTINGS_UPDATE, {
+      settings: { type: 'force', options: this._settings },
+    });
 
     const hasPhysicsBeenDisabled = previousSettings.isPhysicsEnabled && !forceSettings.isPhysicsEnabled;
 
     if (hasPhysicsBeenDisabled) {
       this._simulation.stop();
-    } else if (this._settings.isSimulatingOnSettingsUpdate) {
+    } else if (this._settings.isSimulatingOnSettingsUpdate && this._nodes.length > 0) {
       this.activateSimulation();
     }
   }
@@ -97,14 +96,12 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
   }
 
   updateData(data: ISimulationGraph) {
-    data.nodes = this._fixAndStickDefinedNodes(data.nodes);
-
     const newNodeIds = new Set(data.nodes.map((node) => node.id));
     const oldNodes = this._nodes.filter((node) => newNodeIds.has(node.id));
     const newNodes = data.nodes.filter((node) => this._nodeIndexByNodeId[node.id] === undefined);
 
     this._nodes = [...oldNodes, ...newNodes];
-    this._setNodeIndexByNodeId();
+    this._rebuildNodeIndex();
     this._edges = data.edges;
 
     if (this._settings.isSimulatingOnSettingsUpdate) {
@@ -122,7 +119,7 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
       const edgeIds = new Set(data.edgeIds);
       this._edges = this._edges.filter((edge) => !edgeIds.has(edge.id));
     }
-    this._setNodeIndexByNodeId();
+    this._rebuildNodeIndex();
 
     if (this._settings.isSimulatingOnDataUpdate) {
       this._updateSimulationData();
@@ -132,7 +129,6 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
 
   patchData(data: Partial<ISimulationGraph>) {
     if (data.nodes) {
-      data.nodes = this._fixAndStickDefinedNodes(data.nodes);
       const nodeIds: { [id: number]: number } = {};
 
       for (let i = 0; i < this._nodes.length; i++) {
@@ -160,7 +156,7 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
   clearData() {
     this._nodes = [];
     this._edges = [];
-    this._setNodeIndexByNodeId();
+    this._rebuildNodeIndex();
     this._resetSimulation();
   }
 
@@ -223,7 +219,7 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
       nodes = this._nodes;
     }
     for (let i = 0; i < nodes.length; i++) {
-      this._stickNode(this._nodes[i]);
+      this._stickNode(nodes[i]);
     }
   }
 
@@ -232,24 +228,26 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
       nodes = this._nodes;
     }
     for (let i = 0; i < nodes.length; i++) {
-      this._unstickNode(this._nodes[i]);
+      this._unstickNode(nodes[i]);
     }
 
-    if (this._settings.isSimulatingOnUnstick) {
+    if (this._settings.isSimulatingOnUnstick && this._nodes.length > 0) {
       this.activateSimulation();
     }
   }
 
   terminate() {
-    this.removeAllListeners();
-  }
-
-  private _resetSettings(): IForceLayoutSettings {
-    return Object.assign(copyObject(DEFAULT_FORCE_LAYOUT_SETTINGS), this._initialSettings);
+    super.terminate();
+    this._simulation?.stop();
   }
 
   // TODO(Alex): Listeners memory leak (D3 force research)
   private _resetSimulation() {
+    if (this._simulation) {
+      this._simulation.stop();
+      this._simulation.on('tick', null).on('end', null);
+    }
+
     this._linkForce = forceLink<ISimulationNode, SimulationLinkDatum<ISimulationNode>>(this._edges).id(
       (node) => node.id,
     );
@@ -273,9 +271,10 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
   }
 
   private _runSimulation(options?: IRunSimulationOptions) {
-    if (this._isStabilizing) {
+    if (this._isStabilizing || this._cancelSimulation) {
       return;
     }
+
     if (this._settings.isPhysicsEnabled || options?.isUpdatingSettings) {
       this._unpinNodes();
     }
@@ -285,30 +284,51 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
     this._isStabilizing = true;
     this._simulation.alpha(this._settings.alpha.alpha).alphaTarget(this._settings.alpha.alphaTarget).stop();
 
-    const totalSimulationSteps = Math.ceil(
-      Math.log(this._settings.alpha.alphaMin) / Math.log(1 - this._settings.alpha.alphaDecay),
+    const totalSimulationSteps = Math.min(
+      MAX_SIMULATION_STEPS,
+      Math.ceil(Math.log(this._settings.alpha.alphaMin) / Math.log(1 - this._settings.alpha.alphaDecay)),
     );
 
     let lastProgress = -1;
-    for (let i = 0; i < totalSimulationSteps; i++) {
-      const currentProgress = Math.round((i * 100) / totalSimulationSteps);
-      if (currentProgress > lastProgress) {
-        lastProgress = currentProgress;
-        this.emit(SimulatorEventType.SIMULATION_PROGRESS, {
-          nodes: this._nodes,
-          edges: this._edges,
-          progress: currentProgress / 100,
-        });
+    let i = 0;
+
+    const runChunk = () => {
+      if (this._cancelSimulation) {
+        this._isStabilizing = false;
+        this._cancelSimulation = false;
+        return;
       }
-      this._simulation.tick();
-    }
 
-    if (!this._settings.isPhysicsEnabled) {
-      this._pinNodes();
-    }
+      const end = Math.min(i + CHUNK_SIZE, totalSimulationSteps);
 
-    this._isStabilizing = false;
-    this.emit(SimulatorEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
+      for (; i < end; i++) {
+        this._simulation.tick();
+
+        const currentProgress = Math.round((i * 100) / totalSimulationSteps);
+        if (currentProgress > lastProgress) {
+          lastProgress = currentProgress;
+          this.emit(SimulatorEventType.SIMULATION_PROGRESS, {
+            nodes: this._nodes,
+            edges: this._edges,
+            progress: currentProgress / 100,
+          });
+        }
+      }
+
+      if (i < totalSimulationSteps && !this._cancelSimulation) {
+        this._scheduleNext(runChunk);
+      } else {
+        if (!this._settings.isPhysicsEnabled) {
+          this._pinNodes();
+        }
+
+        this._isStabilizing = false;
+        this._cancelSimulation = false;
+        this.emit(SimulatorEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
+      }
+    };
+
+    runChunk();
   }
 
   private _updateSimulationData() {
@@ -318,11 +338,10 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
 
   private _initializeNewData(data: Partial<ISimulationGraph>) {
     if (data.nodes) {
-      data.nodes = this._fixAndStickDefinedNodes(data.nodes);
       for (let i = 0; i < data.nodes.length; i += 1) {
         const nodeId = data.nodes[i].id;
 
-        if (this._nodeIndexByNodeId[nodeId]) {
+        if (this._nodeIndexByNodeId[nodeId] !== undefined) {
           this._nodeIndexByNodeId[nodeId] = i;
         } else {
           this._nodes.push(data.nodes[i]);
@@ -331,12 +350,14 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
     } else {
       this._nodes = [];
     }
+
     if (data.edges) {
       this._edges = this._edges.concat(data.edges);
     } else {
       this._edges = [];
     }
-    this._setNodeIndexByNodeId();
+
+    this._rebuildNodeIndex();
   }
 
   private _pinNodes(nodes?: ISimulationNode[]) {
@@ -352,6 +373,7 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
     if (!nodes) {
       nodes = this._nodes;
     }
+
     for (let i = 0; i < nodes.length; i++) {
       this._unpinNode(this._nodes[i]);
     }
@@ -361,6 +383,7 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
     if (node.sx === null || node.sx === undefined) {
       node.fx = node.x;
     }
+
     if (node.sy === null || node.sy === undefined) {
       node.fy = node.y;
     }
@@ -370,6 +393,7 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
     if (node.sx === null || node.sx === undefined) {
       node.fx = null;
     }
+
     if (node.sy === null || node.sy === undefined) {
       node.fy = null;
     }
@@ -392,21 +416,7 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
     }
   }
 
-  private _fixAndStickDefinedNodes(nodes: ISimulationNode[]): ISimulationNode[] {
-    for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i].x !== null && nodes[i].x !== undefined) {
-        nodes[i].fx = nodes[i].x;
-        nodes[i].sx = nodes[i].x;
-      }
-      if (nodes[i].y !== null && nodes[i].y !== undefined) {
-        nodes[i].fy = nodes[i].y;
-        nodes[i].sy = nodes[i].y;
-      }
-    }
-    return nodes;
-  }
-
-  private _applySettingsToSimulation(settings: Partial<IForceLayoutSettings>) {
+  private _applySettingsToSimulation(settings: Partial<IForceLayoutOptions>) {
     if (settings.alpha) {
       this._simulation
         .alpha(settings.alpha.alpha)
@@ -414,9 +424,11 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
         .alphaDecay(settings.alpha.alphaDecay)
         .alphaTarget(settings.alpha.alphaTarget);
     }
+
     if (settings.links) {
       this._linkForce.distance(settings.links.distance).iterations(settings.links.iterations);
     }
+
     if (settings.collision) {
       const collision = forceCollide()
         .radius(settings.collision.radius)
@@ -424,9 +436,11 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
         .iterations(settings.collision.iterations);
       this._simulation.force('collide', collision);
     }
+
     if (settings.collision === null) {
       this._simulation.force('collide', null);
     }
+
     if (settings.manyBody) {
       const manyBody = forceManyBody()
         .strength(settings.manyBody.strength)
@@ -435,36 +449,36 @@ export class ForceLayoutEngine extends Emitter<SimulatorEvents> implements ILayo
         .distanceMax(settings.manyBody.distanceMax);
       this._simulation.force('charge', manyBody);
     }
+
     if (settings.manyBody === null) {
       this._simulation.force('charge', null);
     }
-    if (settings.positioning?.forceY) {
+
+    if (settings.positioning?.forceX) {
       const positioningForceX = forceX(settings.positioning.forceX.x).strength(settings.positioning.forceX.strength);
       this._simulation.force('x', positioningForceX);
     }
+
     if (settings.positioning?.forceX === null) {
       this._simulation.force('x', null);
     }
+
     if (settings.positioning?.forceY) {
       const positioningForceY = forceY(settings.positioning.forceY.y).strength(settings.positioning.forceY.strength);
       this._simulation.force('y', positioningForceY);
     }
+
     if (settings.positioning?.forceY === null) {
       this._simulation.force('y', null);
     }
+
     if (settings.centering) {
       const centering = forceCenter(settings.centering.x, settings.centering.y).strength(settings.centering.strength);
       this._simulation.force('center', centering);
     }
+
     if (settings.centering === null) {
       this._simulation.force('center', null);
-    }
-  }
-
-  private _setNodeIndexByNodeId() {
-    this._nodeIndexByNodeId = {};
-    for (let i = 0; i < this._nodes.length; i++) {
-      this._nodeIndexByNodeId[this._nodes[i].id] = i;
     }
   }
 }

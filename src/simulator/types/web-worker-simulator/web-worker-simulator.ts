@@ -11,12 +11,14 @@ import {
 import { IWorkerInputPayload, WorkerInputType } from './message/worker-input';
 import { IWorkerOutputPayload, WorkerOutputType } from './message/worker-output';
 import { Emitter } from '../../../utils/emitter.utils';
-import { ILayoutSettings, IEngineSettingsUpdate } from '../../engine/shared';
+import { ILayoutSettings } from '../../engine/shared';
+import { DeepPartial } from '../../../utils/type.utils';
 
 export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISimulator {
   protected readonly _worker: Worker;
+  private _isSimulationRunning = false;
 
-  constructor(settings: ILayoutSettings) {
+  constructor(settings: DeepPartial<ILayoutSettings>) {
     super();
     this._worker = new Worker(
       new URL(
@@ -27,12 +29,13 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
       { type: 'module' },
     );
 
-    this.emitToWorker({ type: WorkerInputType.SetLayoutEngine, data: settings });
+    this.emitToWorker({ type: WorkerInputType.SetSettings, data: settings });
 
     this._worker.onmessage = ({ data }: MessageEvent<IWorkerOutputPayload>) => {
       switch (data.type) {
         case WorkerOutputType.SIMULATION_START: {
           this.emit(SimulatorEventType.SIMULATION_START, undefined);
+          this._isSimulationRunning = true;
           break;
         }
         case WorkerOutputType.SIMULATION_PROGRESS: {
@@ -41,6 +44,7 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
         }
         case WorkerOutputType.SIMULATION_END: {
           this.emit(SimulatorEventType.SIMULATION_END, data.data);
+          this._isSimulationRunning = false;
           break;
         }
         case WorkerOutputType.SIMULATION_STEP: {
@@ -134,12 +138,15 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     this.emitToWorker({ type: WorkerInputType.ReleaseNodes, data: { nodes } });
   }
 
-  setSettings(settings: IEngineSettingsUpdate) {
-    this.emitToWorker({ type: WorkerInputType.SetSettings, data: settings } as IWorkerInputPayload);
+  setSettings(settings: ILayoutSettings) {
+    this.emitToWorker({
+      type: WorkerInputType.SetSettings,
+      data: settings,
+    } as IWorkerInputPayload);
   }
 
-  setLayoutEngine(settings: ILayoutSettings) {
-    this.emitToWorker({ type: WorkerInputType.SetLayoutEngine, data: settings });
+  getIsSimulationRunning(): boolean {
+    return this._isSimulationRunning;
   }
 
   terminate() {

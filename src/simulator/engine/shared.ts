@@ -17,15 +17,68 @@ export const DEFAULT_CIRCULAR_LAYOUT_OPTIONS: Required<ICircularLayoutOptions> =
 };
 
 export interface IForceLayoutOptions {
-  centerX?: number;
-  centerY?: number;
-  nodeDistance?: number;
+  isSimulatingOnDataUpdate: boolean;
+  isSimulatingOnSettingsUpdate: boolean;
+  isSimulatingOnUnstick: boolean;
+  isPhysicsEnabled: boolean;
+  alpha: IForceLayoutAlpha;
+  centering: IForceLayoutCentering | null;
+  collision: IForceLayoutCollision | null;
+  links: IForceLayoutLinks;
+  manyBody: IForceLayoutManyBody | null;
+  positioning: IForceLayoutPositioning | null;
 }
 
-export const DEFAULT_FORCE_LAYOUT_OPTIONS: Required<IForceLayoutOptions> = {
-  centerX: 0,
-  centerY: 0,
-  nodeDistance: 50,
+const MANY_BODY_MAX_DISTANCE_TO_LINK_DISTANCE_RATIO = 100;
+const DEFAULT_LINK_DISTANCE = 50;
+
+export const getManyBodyMaxDistance = (linkDistance: number) => {
+  const distance = linkDistance > 0 ? linkDistance : 1;
+  return distance * MANY_BODY_MAX_DISTANCE_TO_LINK_DISTANCE_RATIO;
+};
+
+export const DEFAULT_FORCE_LAYOUT_OPTIONS: IForceLayoutOptions = {
+  isSimulatingOnDataUpdate: true,
+  isSimulatingOnSettingsUpdate: true,
+  isSimulatingOnUnstick: true,
+  isPhysicsEnabled: false,
+  alpha: {
+    alpha: 1,
+    alphaMin: 0.05, // default alphaMin is 0.001, which results in 285 ticks to converge. Using 0.05 converges to similar stable results in 106 ticks
+    alphaDecay: 0.028,
+    alphaTarget: 0,
+  },
+  centering: {
+    x: 0,
+    y: 0,
+    strength: 1,
+  },
+  collision: {
+    radius: 15,
+    strength: 1,
+    iterations: 1,
+  },
+  links: {
+    distance: DEFAULT_LINK_DISTANCE,
+    strength: 1,
+    iterations: 1,
+  },
+  manyBody: {
+    strength: -100,
+    theta: 0.9,
+    distanceMin: 0,
+    distanceMax: getManyBodyMaxDistance(DEFAULT_LINK_DISTANCE),
+  },
+  positioning: {
+    forceX: {
+      x: 0,
+      strength: 0.1,
+    },
+    forceY: {
+      y: 0,
+      strength: 0.1,
+    },
+  },
 };
 
 export interface IGridLayoutOptions {
@@ -65,7 +118,7 @@ export type LayoutSettingsMap = {
 
 export interface ILayoutSettings {
   type: LayoutType;
-  options?: LayoutSettingsMap[LayoutType];
+  options?: Partial<LayoutSettingsMap[LayoutType]>;
 }
 
 export interface IForceLayoutAlpha {
@@ -111,78 +164,15 @@ export interface IForceLayoutPositioning {
   };
 }
 
-export interface IForceLayoutSettings {
-  isSimulatingOnDataUpdate: boolean;
-  isSimulatingOnSettingsUpdate: boolean;
-  isSimulatingOnUnstick: boolean;
-  isPhysicsEnabled: boolean;
-  alpha: IForceLayoutAlpha;
-  centering: IForceLayoutCentering | null;
-  collision: IForceLayoutCollision | null;
-  links: IForceLayoutLinks;
-  manyBody: IForceLayoutManyBody | null;
-  positioning: IForceLayoutPositioning | null;
-}
-
-const MANY_BODY_MAX_DISTANCE_TO_LINK_DISTANCE_RATIO = 100;
-const DEFAULT_LINK_DISTANCE = 50;
-
-export const getManyBodyMaxDistance = (linkDistance: number) => {
-  const distance = linkDistance > 0 ? linkDistance : 1;
-  return distance * MANY_BODY_MAX_DISTANCE_TO_LINK_DISTANCE_RATIO;
-};
-
-export const DEFAULT_FORCE_LAYOUT_SETTINGS: IForceLayoutSettings = {
-  isSimulatingOnDataUpdate: true,
-  isSimulatingOnSettingsUpdate: true,
-  isSimulatingOnUnstick: true,
-  isPhysicsEnabled: false,
-  alpha: {
-    alpha: 1,
-    alphaMin: 0.001,
-    alphaDecay: 0.0228,
-    alphaTarget: 0,
-  },
-  centering: {
-    x: 0,
-    y: 0,
-    strength: 1,
-  },
-  collision: {
-    radius: 15,
-    strength: 1,
-    iterations: 1,
-  },
-  links: {
-    distance: DEFAULT_LINK_DISTANCE,
-    strength: 1,
-    iterations: 1,
-  },
-  manyBody: {
-    strength: -100,
-    theta: 0.9,
-    distanceMin: 0,
-    distanceMax: getManyBodyMaxDistance(DEFAULT_LINK_DISTANCE),
-  },
-  positioning: {
-    forceX: {
-      x: 0,
-      strength: 0.1,
-    },
-    forceY: {
-      y: 0,
-      strength: 0.1,
-    },
-  },
-};
-
 export type IEngineSettingsUpdate =
-  | Partial<IForceLayoutSettings>
+  | Partial<IForceLayoutOptions>
   | Partial<ICircularLayoutOptions>
   | Partial<IGridLayoutOptions>
   | Partial<IHierarchicalLayoutOptions>;
 
 export interface ILayoutEngine extends IEmitter<SimulatorEvents> {
+  readonly type: LayoutType;
+
   setupData(data: ISimulationGraph): void;
   mergeData(data: ISimulationGraph): void;
   updateData(data: ISimulationGraph): void;

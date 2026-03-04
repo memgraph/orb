@@ -1,3 +1,4 @@
+import { DeepPartial } from '../utils/type.utils';
 import { ILayoutSettings } from './engine/shared';
 import { ISimulator } from './shared';
 import { MainThreadSimulator } from './types/main-thread-simulator';
@@ -5,8 +6,8 @@ import { WebWorkerSimulator } from './types/web-worker-simulator/web-worker-simu
 
 // TODO(dlozic & Alex): CORS handling
 export class SimulatorFactory {
-  static getSimulator(settings?: Partial<ILayoutSettings>): ISimulator {
-    const layoutSettings: ILayoutSettings = { type: 'force', ...settings };
+  static getSimulator(settings?: DeepPartial<ILayoutSettings>): ISimulator {
+    const layoutSettings: DeepPartial<ILayoutSettings> = { type: 'force', ...settings };
     try {
       if (typeof Worker !== 'undefined') {
         return new WebWorkerSimulator(layoutSettings);

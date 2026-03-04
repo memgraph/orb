@@ -10,6 +10,7 @@ import {
   DEFAULT_RENDERER_HEIGHT,
   DEFAULT_RENDERER_SETTINGS,
   DEFAULT_RENDERER_WIDTH,
+  IFitZoomTransformOptions,
   IRenderer,
   IRendererSettings,
   RendererEvents as RE,
@@ -285,12 +286,12 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
     this._context.save();
   }
 
-  getFitZoomTransform(graph: IGraph<N, E>): ZoomTransform {
+  getFitZoomTransform(graph: IGraph<N, E>, options?: IFitZoomTransformOptions): ZoomTransform {
     // Graph view is a bounding box of the graph nodes that takes into
     // account node positions (x, y) and node sizes (style: size + border width)
     const graphView = graph.getBoundingBox();
-    const graphMiddleX = graphView.x + graphView.width / 2;
-    const graphMiddleY = graphView.y + graphView.height / 2;
+    const graphMiddleX = options?.anchorX === 'center' ? graphView.x + graphView.width / 2 : 0;
+    const graphMiddleY = options?.anchorY === 'center' ? graphView.y + graphView.height / 2 : 0;
 
     // Simulation view is actually a renderer view (canvas) but in the coordinate system of
     // the simulator: node position (x, y). We want to fit a graph view into a simulation view.
