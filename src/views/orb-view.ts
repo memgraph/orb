@@ -293,15 +293,14 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
   recenter(onRendered?: () => void) {
     const layout = this._settings.layout;
+    const isHorizontal =
+      layout.type === 'hierarchical' && (layout.options as IHierarchicalLayoutOptions).orientation === 'horizontal';
+    const isVertical =
+      layout.type === 'hierarchical' && (layout.options as IHierarchicalLayoutOptions).orientation === 'vertical';
+    const reversed = (layout.options as IHierarchicalLayoutOptions).reversed;
     const recenterOptions: IFitZoomTransformOptions = {
-      anchorX:
-        layout.type === 'hierarchical' && (layout.options as IHierarchicalLayoutOptions).orientation === 'horizontal'
-          ? 'start'
-          : 'center',
-      anchorY:
-        layout.type === 'hierarchical' && (layout.options as IHierarchicalLayoutOptions).orientation === 'vertical'
-          ? 'start'
-          : 'center',
+      anchorX: isHorizontal ? (reversed ? 'end' : 'start') : 'center',
+      anchorY: isVertical ? (reversed ? 'end' : 'start') : 'center',
     };
     const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph, recenterOptions);
 

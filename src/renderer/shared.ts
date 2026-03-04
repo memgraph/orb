@@ -37,8 +37,8 @@ export interface IRendererSettingsInit extends IRendererSettings {
 }
 
 export interface IFitZoomTransformOptions {
-  anchorX?: 'center' | 'start';
-  anchorY?: 'center' | 'start';
+  anchorX?: 'start' | 'center' | 'end';
+  anchorY?: 'start' | 'center' | 'end';
 }
 
 export type RendererEvents = {
