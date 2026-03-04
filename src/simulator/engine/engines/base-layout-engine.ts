@@ -37,7 +37,7 @@ export abstract class BaseLayoutEngine extends Emitter<SimulatorEvents> implemen
     this.removeAllListeners();
   }
 
-  // TODO: Add comment
+  // use MessageChannel for microtask-like scheduling that avoids setTimeout's ~4ms minimum delay
   protected _scheduleNext(callback: () => void): void {
     if (typeof MessageChannel !== 'undefined') {
       const channel = new MessageChannel();

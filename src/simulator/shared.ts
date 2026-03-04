@@ -63,7 +63,6 @@ export interface ISimulator extends IEmitter<SimulatorEvents> {
   clearData(): void;
 
   // Simulation handlers
-  simulate(): void;
   activateSimulation(): void;
   stopSimulation(): void;
 

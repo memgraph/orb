@@ -17,7 +17,6 @@ export enum WorkerInputType {
   ClearData = 'Clear Data',
 
   // Simulation message types
-  Simulate = 'Simulate',
   ActivateSimulation = 'Activate Simulation',
   UpdateSimulation = 'Update Simulation',
   StopSimulation = 'Stop Simulation',
@@ -75,8 +74,6 @@ type IWorkerInputPatchDataPayload = IWorkerPayload<
 
 type IWorkerInputClearDataPayload = IWorkerPayload<WorkerInputType.ClearData>;
 
-type IWorkerInputSimulatePayload = IWorkerPayload<WorkerInputType.Simulate>;
-
 type IWorkerInputActivateSimulationPayload = IWorkerPayload<WorkerInputType.ActivateSimulation>;
 
 type IWorkerInputStopSimulationPayload = IWorkerPayload<WorkerInputType.StopSimulation>;
@@ -123,7 +120,6 @@ export type IWorkerInputPayload =
   | IWorkerInputDeleteDataPayload
   | IWorkerInputPatchDataPayload
   | IWorkerInputClearDataPayload
-  | IWorkerInputSimulatePayload
   | IWorkerInputActivateSimulationPayload
   | IWorkerInputStopSimulationPayload
   | IWorkerInputUpdateSimulationPayload

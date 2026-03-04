@@ -46,10 +46,6 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
     this._engine.clearData();
   }
 
-  simulate() {
-    // Not implemented
-  }
-
   activateSimulation() {
     this._engine.activateSimulation();
   }
