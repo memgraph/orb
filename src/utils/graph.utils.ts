@@ -2,6 +2,9 @@ import { IEdge, IEdgeBase } from '../models/edge';
 import { IGraph } from '../models/graph';
 import { INode, INodeBase } from '../models/node';
 import { GraphObjectState } from '../models/state';
+import { IFitZoomTransformOptions } from '../renderer/shared';
+import { ILayoutSettings } from '../simulator';
+import { IHierarchicalLayoutOptions } from '../simulator/engine/shared';
 
 export const selectNode = <N extends INodeBase, E extends IEdgeBase>(node: INode<N, E>) => {
   setNodeState(node, GraphObjectState.SELECTED, { isStateOverride: true });
@@ -125,4 +128,18 @@ export const isStateChangeable = <N extends INodeBase, E extends IEdgeBase>(
 ): boolean => {
   const isOverride = options?.isStateOverride;
   return isOverride || (!isOverride && !graphObject.getState());
+};
+
+export const getLayoutAnchors = (layout: ILayoutSettings): IFitZoomTransformOptions => {
+  if (layout.type === 'hierarchical') {
+    const opts = layout.options as IHierarchicalLayoutOptions;
+    return {
+      anchorX: opts.anchorX ?? (opts.orientation === 'horizontal' ? (opts.reversed ? 'end' : 'start') : 'center'),
+      anchorY: opts.anchorY ?? (opts.orientation === 'vertical' ? (opts.reversed ? 'end' : 'start') : 'center'),
+    };
+  }
+  return {
+    anchorX: layout.options?.anchorX ?? 'center',
+    anchorY: layout.options?.anchorY ?? 'center',
+  };
 };

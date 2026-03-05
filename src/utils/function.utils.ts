@@ -1,4 +1,4 @@
-export const throttle = (fn: Function, waitMs = 300) => {
+export const throttle = (fn: (...args: unknown[]) => unknown, waitMs = 300) => {
   let lastTime = 0;
   let timer: ReturnType<typeof setTimeout> | null = null;
 

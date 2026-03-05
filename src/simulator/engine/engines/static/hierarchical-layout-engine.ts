@@ -3,7 +3,7 @@ import { IHierarchicalLayoutOptions, DEFAULT_HIERARCHICAL_LAYOUT_OPTIONS, Layout
 import { StaticLayoutEngine } from './static-layout-engine';
 
 export class HierarchicalLayoutEngine extends StaticLayoutEngine {
-  protected _config: Required<IHierarchicalLayoutOptions>;
+  protected _config: IHierarchicalLayoutOptions;
 
   readonly type: LayoutType = 'hierarchical';
 
@@ -37,17 +37,16 @@ export class HierarchicalLayoutEngine extends StaticLayoutEngine {
         return;
       }
 
-      const i = componentIndex;
-      const levels = this._assignLevels(components[i], adjacency, inDegree);
+      const levels = this._assignLevels(components[componentIndex], adjacency, inDegree);
       const maxLevelSize = Math.max(...Array.from(levels.values()).map((level) => level.length));
 
       if (levels.size * this._config.levelGap > maxHeight) {
         maxHeight = levels.size * this._config.levelGap;
       }
 
-      let offsetX = i === 0 ? 0 : this._config.treeGap + maxX;
+      let offsetX = componentIndex === 0 ? 0 : this._config.treeGap + maxX;
 
-      if (i > 0) {
+      if (componentIndex > 0) {
         offsetX += ((maxLevelSize - 1) * this._config.nodeGap) / 2;
       }
 

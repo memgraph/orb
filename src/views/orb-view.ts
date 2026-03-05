@@ -13,7 +13,7 @@ import { INode, INodeBase, isNode } from '../models/node';
 import { IEdge, IEdgeBase, isEdge } from '../models/edge';
 import { IOrbView } from './shared';
 import { DefaultEventStrategy, IEventStrategy, IEventStrategySettings } from '../models/strategy';
-import { DEFAULT_FORCE_LAYOUT_OPTIONS, IHierarchicalLayoutOptions, ILayoutSettings } from '../simulator/engine/shared';
+import { DEFAULT_FORCE_LAYOUT_OPTIONS, ILayoutSettings } from '../simulator/engine/shared';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
 import {
@@ -26,9 +26,10 @@ import {
 import { RendererFactory } from '../renderer/factory';
 import { SimulatorEventType } from '../simulator/shared';
 import { getDefaultGraphStyle } from '../models/style';
-import { DeepPartial, isBoolean } from '../utils/type.utils';
+import { isBoolean } from '../utils/type.utils';
 import { IObserver, IObserverDataPayload } from '../utils/observer.utils';
 import { GraphInteraction, IGraphInteraction } from '../models/interaction';
+import { getLayoutAnchors } from '../utils/graph.utils';
 
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;
@@ -40,7 +41,7 @@ export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
   render: Partial<IRendererSettings>;
   strategy: Partial<IEventStrategySettings>;
   interaction: Partial<IGraphInteractionSettings>;
-  layout: DeepPartial<ILayoutSettings>;
+  layout: Partial<ILayoutSettings>;
   zoomFitTransitionMs: number;
   isOutOfBoundsDragEnabled: boolean;
   areCoordinatesRounded: boolean;
@@ -226,7 +227,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         }
       }
 
-      this._simulator.setSettings(this._settings.layout as ILayoutSettings);
+      this._simulator.setSettings(this._settings.layout);
       this._simulator.releaseNodes();
 
       if (shouldRecenter) {
@@ -279,7 +280,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
   render(onRendered?: () => void) {
     if (onRendered) {
-      if (this._simulator.getIsSimulationRunning()) {
+      if (this._simulator.isSimulationRunning()) {
         this._simulator.once(SimulatorEventType.SIMULATION_END, () => {
           this._renderer.once(RenderEventType.RENDER_END, () => onRendered());
         });
@@ -291,19 +292,21 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._renderer.render(this._graph);
   }
 
-  recenter(onRendered?: () => void) {
-    const layout = this._settings.layout;
-    const isHorizontal =
-      layout.type === 'hierarchical' && (layout.options as IHierarchicalLayoutOptions).orientation === 'horizontal';
-    const isVertical =
-      layout.type === 'hierarchical' && (layout.options as IHierarchicalLayoutOptions).orientation === 'vertical';
-    const reversed = (layout.options as IHierarchicalLayoutOptions).reversed;
-    const recenterOptions: IFitZoomTransformOptions = {
-      anchorX: isHorizontal ? (reversed ? 'end' : 'start') : 'center',
-      anchorY: isVertical ? (reversed ? 'end' : 'start') : 'center',
-    };
-    const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph, recenterOptions);
+  recenter(options?: Partial<IFitZoomTransformOptions>, onRendered?: () => void): void;
+  recenter(onRendered?: () => void): void;
+  recenter(optionsOrCallback?: Partial<IFitZoomTransformOptions> | (() => void), onRendered?: () => void) {
+    if (typeof optionsOrCallback === 'function') {
+      onRendered = optionsOrCallback;
+      optionsOrCallback = undefined;
+    }
 
+    const layoutAnchors = getLayoutAnchors(this._settings.layout as ILayoutSettings);
+    const recenterOptions: IFitZoomTransformOptions = {
+      ...layoutAnchors,
+      ...optionsOrCallback,
+    };
+
+    const fitZoomTransform = this._renderer.getFitZoomTransform(this._graph, recenterOptions);
     select(this._renderer.canvas)
       .transition()
       .duration(this._settings.zoomFitTransitionMs)

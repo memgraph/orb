@@ -138,10 +138,10 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     this.emitToWorker({
       type: WorkerInputType.SetSettings,
       data: settings,
-    } as IWorkerInputPayload);
+    } satisfies IWorkerInputPayload);
   }
 
-  getIsSimulationRunning(): boolean {
+  isSimulationRunning(): boolean {
     return this._isSimulationRunning;
   }
 

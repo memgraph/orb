@@ -3,7 +3,7 @@ import { ICircularLayoutOptions, DEFAULT_CIRCULAR_LAYOUT_OPTIONS, LayoutType } f
 import { CHUNK_SIZE, StaticLayoutEngine } from './static-layout-engine';
 
 export class CircularLayoutEngine extends StaticLayoutEngine {
-  protected _config: Required<ICircularLayoutOptions>;
+  protected _config: ICircularLayoutOptions;
 
   readonly type: LayoutType = 'circular';
 
@@ -21,7 +21,7 @@ export class CircularLayoutEngine extends StaticLayoutEngine {
   ) {
     const angleStep = (2 * Math.PI) / nodes.length;
     let lastProgress = -1;
-    let i = 0;
+    let step = 0;
 
     const runChunk = () => {
       if (isCancelled()) {
@@ -29,15 +29,15 @@ export class CircularLayoutEngine extends StaticLayoutEngine {
         return;
       }
 
-      const end = Math.min(i + CHUNK_SIZE, nodes.length);
+      const end = Math.min(step + CHUNK_SIZE, nodes.length);
 
-      for (; i < end; i++) {
-        nodes[i].x = this._config.centerX + this._config.radius * Math.cos(angleStep * i);
-        nodes[i].y = this._config.centerY + this._config.radius * Math.sin(angleStep * i);
+      for (; step < end; step++) {
+        nodes[step].x = this._config.centerX + this._config.radius * Math.cos(angleStep * step);
+        nodes[step].y = this._config.centerY + this._config.radius * Math.sin(angleStep * step);
       }
 
-      if (i < nodes.length && !this._cancelSimulation) {
-        lastProgress = this._emitProgress(i + 1, nodes.length, lastProgress, onProgress);
+      if (step < nodes.length && !this._cancelSimulation) {
+        lastProgress = this._emitProgress(step + 1, nodes.length, lastProgress, onProgress);
         this._scheduleNext(runChunk);
       } else {
         onComplete();

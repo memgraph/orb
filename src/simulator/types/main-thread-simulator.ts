@@ -86,7 +86,7 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
     this._wireEngineEvents();
   }
 
-  getIsSimulationRunning(): boolean {
+  isSimulationRunning(): boolean {
     return this._isSimulationRunning;
   }
 

@@ -149,7 +149,18 @@ export class ForceLayoutEngine extends BaseLayoutEngine {
     }
 
     if (data.edges) {
-      this._edges = this._edges.concat(data.edges);
+      const edgeIds: { [id: number]: number } = {};
+      for (let i = 0; i < this._edges.length; i++) {
+        edgeIds[this._edges[i].id] = i;
+      }
+      for (let i = 0; i < data.edges.length; i++) {
+        const edgeId = data.edges[i].id;
+        if (edgeId in edgeIds) {
+          this._edges[edgeIds[edgeId]] = data.edges[i];
+        } else {
+          this._edges.push(data.edges[i]);
+        }
+      }
     }
   }
 
@@ -290,7 +301,7 @@ export class ForceLayoutEngine extends BaseLayoutEngine {
     );
 
     let lastProgress = -1;
-    let i = 0;
+    let step = 0;
 
     const runChunk = () => {
       if (this._cancelSimulation) {
@@ -299,12 +310,12 @@ export class ForceLayoutEngine extends BaseLayoutEngine {
         return;
       }
 
-      const end = Math.min(i + CHUNK_SIZE, totalSimulationSteps);
+      const end = Math.min(step + CHUNK_SIZE, totalSimulationSteps);
 
-      for (; i < end; i++) {
+      for (; step < end; step++) {
         this._simulation.tick();
 
-        const currentProgress = Math.round((i * 100) / totalSimulationSteps);
+        const currentProgress = Math.round((step * 100) / totalSimulationSteps);
         if (currentProgress > lastProgress) {
           lastProgress = currentProgress;
           this.emit(SimulatorEventType.SIMULATION_PROGRESS, {
@@ -315,7 +326,7 @@ export class ForceLayoutEngine extends BaseLayoutEngine {
         }
       }
 
-      if (i < totalSimulationSteps && !this._cancelSimulation) {
+      if (step < totalSimulationSteps && !this._cancelSimulation) {
         this._scheduleNext(runChunk);
       } else {
         if (!this._settings.isPhysicsEnabled) {
@@ -352,7 +363,18 @@ export class ForceLayoutEngine extends BaseLayoutEngine {
     }
 
     if (data.edges) {
-      this._edges = this._edges.concat(data.edges);
+      const edgeIds: { [id: number]: number } = {};
+      for (let i = 0; i < this._edges.length; i++) {
+        edgeIds[this._edges[i].id] = i;
+      }
+      for (let i = 0; i < data.edges.length; i++) {
+        const edgeId = data.edges[i].id;
+        if (edgeId in edgeIds) {
+          this._edges[edgeIds[edgeId]] = data.edges[i];
+        } else {
+          this._edges.push(data.edges[i]);
+        }
+      }
     } else {
       this._edges = [];
     }

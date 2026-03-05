@@ -294,15 +294,15 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
       options?.anchorX === 'center'
         ? graphView.x + graphView.width / 2
         : options?.anchorX === 'end'
-        ? graphView.x + graphView.width
-        : 0;
+          ? graphView.x + graphView.width
+          : 0;
 
     const graphMiddleY =
       options?.anchorY === 'center'
         ? graphView.y + graphView.height / 2
         : options?.anchorY === 'end'
-        ? graphView.y + graphView.height
-        : 0;
+          ? graphView.y + graphView.height
+          : 0;
 
     // Simulation view is actually a renderer view (canvas) but in the coordinate system of
     // the simulator: node position (x, y). We want to fit a graph view into a simulation view.

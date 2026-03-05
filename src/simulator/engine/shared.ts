@@ -1,22 +1,28 @@
 import { IPosition } from '../../common';
 import { IEmitter } from '../../utils/emitter.utils';
+import { DeepPartial } from '../../utils/type.utils';
 import { ISimulationNode, ISimulationGraph, ISimulationIds, SimulatorEvents } from '../shared';
 
 export type LayoutType = 'circular' | 'force' | 'grid' | 'hierarchical';
 
-export interface ICircularLayoutOptions {
-  radius?: number;
-  centerX?: number;
-  centerY?: number;
+export interface ILayoutOptionsBase {
+  anchorX?: 'start' | 'center' | 'end';
+  anchorY?: 'start' | 'center' | 'end';
 }
 
-export const DEFAULT_CIRCULAR_LAYOUT_OPTIONS: Required<ICircularLayoutOptions> = {
+export interface ICircularLayoutOptions extends ILayoutOptionsBase {
+  radius: number;
+  centerX: number;
+  centerY: number;
+}
+
+export const DEFAULT_CIRCULAR_LAYOUT_OPTIONS: ICircularLayoutOptions = {
   radius: 100,
   centerX: 0,
   centerY: 0,
 };
 
-export interface IForceLayoutOptions {
+export interface IForceLayoutOptions extends ILayoutOptionsBase {
   isSimulatingOnDataUpdate: boolean;
   isSimulatingOnSettingsUpdate: boolean;
   isSimulatingOnUnstick: boolean;
@@ -79,29 +85,31 @@ export const DEFAULT_FORCE_LAYOUT_OPTIONS: IForceLayoutOptions = {
       strength: 0.1,
     },
   },
+  anchorX: 'center',
+  anchorY: 'center',
 };
 
-export interface IGridLayoutOptions {
-  rowGap?: number;
-  colGap?: number;
+export interface IGridLayoutOptions extends ILayoutOptionsBase {
+  rowGap: number;
+  colGap: number;
 }
 
-export const DEFAULT_GRID_LAYOUT_OPTIONS: Required<IGridLayoutOptions> = {
+export const DEFAULT_GRID_LAYOUT_OPTIONS: IGridLayoutOptions = {
   rowGap: 50,
   colGap: 50,
 };
 
 export type HierarchicalLayoutOrientation = 'horizontal' | 'vertical';
 
-export interface IHierarchicalLayoutOptions {
-  nodeGap?: number;
-  levelGap?: number;
-  treeGap?: number;
-  orientation?: HierarchicalLayoutOrientation;
-  reversed?: boolean;
+export interface IHierarchicalLayoutOptions extends ILayoutOptionsBase {
+  nodeGap: number;
+  levelGap: number;
+  treeGap: number;
+  orientation: HierarchicalLayoutOrientation;
+  reversed: boolean;
 }
 
-export const DEFAULT_HIERARCHICAL_LAYOUT_OPTIONS: Required<IHierarchicalLayoutOptions> = {
+export const DEFAULT_HIERARCHICAL_LAYOUT_OPTIONS: IHierarchicalLayoutOptions = {
   nodeGap: 50,
   levelGap: 50,
   treeGap: 100,
@@ -118,7 +126,7 @@ export type LayoutSettingsMap = {
 
 export interface ILayoutSettings {
   type: LayoutType;
-  options?: Partial<LayoutSettingsMap[LayoutType]>;
+  options?: DeepPartial<LayoutSettingsMap[LayoutType]>;
 }
 
 export interface IForceLayoutAlpha {

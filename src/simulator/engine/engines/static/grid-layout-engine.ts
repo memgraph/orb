@@ -3,7 +3,7 @@ import { IGridLayoutOptions, DEFAULT_GRID_LAYOUT_OPTIONS, LayoutType } from '../
 import { CHUNK_SIZE, StaticLayoutEngine } from './static-layout-engine';
 
 export class GridLayoutEngine extends StaticLayoutEngine {
-  protected _config: Required<IGridLayoutOptions>;
+  protected _config: IGridLayoutOptions;
 
   readonly type: LayoutType = 'grid';
 
@@ -22,7 +22,7 @@ export class GridLayoutEngine extends StaticLayoutEngine {
     const rows = Math.ceil(Math.sqrt(nodes.length));
     const cols = Math.ceil(nodes.length / rows);
     let lastProgress = -1;
-    let i = 0;
+    let step = 0;
 
     const runChunk = () => {
       if (isCancelled()) {
@@ -30,18 +30,18 @@ export class GridLayoutEngine extends StaticLayoutEngine {
         return;
       }
 
-      const end = Math.min(i + CHUNK_SIZE, nodes.length);
+      const end = Math.min(step + CHUNK_SIZE, nodes.length);
 
-      for (; i < end; i++) {
-        const row = Math.floor(i / cols);
-        const col = i % cols;
-        nodes[i].x = col * this._config.colGap;
-        nodes[i].y = row * this._config.rowGap;
+      for (; step < end; step++) {
+        const row = Math.floor(step / cols);
+        const col = step % cols;
+        nodes[step].x = col * this._config.colGap;
+        nodes[step].y = row * this._config.rowGap;
       }
 
-      if (i < nodes.length && !this._cancelSimulation) {
-        console.log(i);
-        lastProgress = this._emitProgress(i + 1, nodes.length, lastProgress, onProgress);
+      if (step < nodes.length && !this._cancelSimulation) {
+        console.log(step);
+        lastProgress = this._emitProgress(step + 1, nodes.length, lastProgress, onProgress);
         this._scheduleNext(runChunk);
       } else {
         onComplete();

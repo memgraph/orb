@@ -76,7 +76,7 @@ export interface ISimulator extends IEmitter<SimulatorEvents> {
   // Settings handlers
   setSettings(settings: DeepPartial<ILayoutSettings>): void;
 
-  getIsSimulationRunning(): boolean;
+  isSimulationRunning(): boolean;
   terminate(): void;
 }
 

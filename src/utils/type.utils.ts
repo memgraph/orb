@@ -84,7 +84,7 @@ export const isNull = (value: any): value is null => {
  * @param {any} value Any value
  * @return {boolean} True if it is a Function, false otherwise
  */
-export const isFunction = (value: any): value is Function => {
+export const isFunction = (value: any): value is (...args: unknown[]) => unknown => {
   return typeof value === 'function';
 };
 

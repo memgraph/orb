@@ -7,13 +7,13 @@ import {
   ISimulationIds,
   SimulatorEventType,
 } from '../../../shared';
-import { IEngineSettingsUpdate, LayoutType } from '../../shared';
+import { IEngineSettingsUpdate, ILayoutOptionsBase, LayoutType } from '../../shared';
 import { BaseLayoutEngine } from '../base-layout-engine';
 
 export const CHUNK_SIZE = 5000;
 
-export abstract class StaticLayoutEngine extends BaseLayoutEngine {
-  protected abstract _config: Record<string, unknown>;
+export abstract class StaticLayoutEngine<T extends ILayoutOptionsBase = ILayoutOptionsBase> extends BaseLayoutEngine {
+  protected abstract _config: T;
 
   private _isCalculating = false;
   private _pendingRecalculation = false;
@@ -40,7 +40,18 @@ export abstract class StaticLayoutEngine extends BaseLayoutEngine {
     }
 
     if (data.edges) {
-      this._edges = this._edges.concat(data.edges);
+      const edgeIds: { [id: number]: number } = {};
+      for (let i = 0; i < this._edges.length; i++) {
+        edgeIds[this._edges[i].id] = i;
+      }
+      for (let i = 0; i < data.edges.length; i++) {
+        const edgeId = data.edges[i].id;
+        if (edgeId in edgeIds) {
+          this._edges[edgeIds[edgeId]] = data.edges[i];
+        } else {
+          this._edges.push(data.edges[i]);
+        }
+      }
     }
 
     this._rebuildNodeIndex();
@@ -88,7 +99,18 @@ export abstract class StaticLayoutEngine extends BaseLayoutEngine {
     }
 
     if (data.edges) {
-      this._edges = this._edges.concat(data.edges);
+      const edgeIds: { [id: number]: number } = {};
+      for (let i = 0; i < this._edges.length; i++) {
+        edgeIds[this._edges[i].id] = i;
+      }
+      for (let i = 0; i < data.edges.length; i++) {
+        const edgeId = data.edges[i].id;
+        if (edgeId in edgeIds) {
+          this._edges[edgeIds[edgeId]] = data.edges[i];
+        } else {
+          this._edges.push(data.edges[i]);
+        }
+      }
     }
   }
 
