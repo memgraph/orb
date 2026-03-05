@@ -1,7 +1,8 @@
 import { IPosition } from '../../../../common';
 import { ISimulationNode, ISimulationEdge } from '../../../shared';
-import { ID3SimulatorEngineSettingsUpdate } from '../../../engine/d3-simulator-engine';
 import { IWorkerPayload } from './worker-payload';
+import { ILayoutSettings } from '../../../engine/shared';
+import { DeepPartial } from '../../../../utils/type.utils';
 
 // Messages are objects going into the simulation worker.
 // They can be thought of similar to requests.
@@ -16,7 +17,6 @@ export enum WorkerInputType {
   ClearData = 'Clear Data',
 
   // Simulation message types
-  Simulate = 'Simulate',
   ActivateSimulation = 'Activate Simulation',
   UpdateSimulation = 'Update Simulation',
   StopSimulation = 'Stop Simulation',
@@ -74,8 +74,6 @@ type IWorkerInputPatchDataPayload = IWorkerPayload<
 
 type IWorkerInputClearDataPayload = IWorkerPayload<WorkerInputType.ClearData>;
 
-type IWorkerInputSimulatePayload = IWorkerPayload<WorkerInputType.Simulate>;
-
 type IWorkerInputActivateSimulationPayload = IWorkerPayload<WorkerInputType.ActivateSimulation>;
 
 type IWorkerInputStopSimulationPayload = IWorkerPayload<WorkerInputType.StopSimulation>;
@@ -113,7 +111,7 @@ type IWorkerInputReleaseNodesPayload = IWorkerPayload<
   }
 >;
 
-type IWorkerInputSetSettingsPayload = IWorkerPayload<WorkerInputType.SetSettings, ID3SimulatorEngineSettingsUpdate>;
+type IWorkerInputSetSettingsPayload = IWorkerPayload<WorkerInputType.SetSettings, DeepPartial<ILayoutSettings>>;
 
 export type IWorkerInputPayload =
   | IWorkerInputSetupDataPayload
@@ -122,7 +120,6 @@ export type IWorkerInputPayload =
   | IWorkerInputDeleteDataPayload
   | IWorkerInputPatchDataPayload
   | IWorkerInputClearDataPayload
-  | IWorkerInputSimulatePayload
   | IWorkerInputActivateSimulationPayload
   | IWorkerInputStopSimulationPayload
   | IWorkerInputUpdateSimulationPayload

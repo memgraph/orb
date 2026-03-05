@@ -12,6 +12,7 @@ import { RendererFactory } from '../renderer/factory';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
 import { IObserver } from '../utils/observer.utils';
+import { GraphInteraction, IGraphInteraction } from '../models/interaction';
 
 export interface ILeafletMapTile {
   instance: L.TileLayer;
@@ -70,6 +71,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
   private _graph: IGraph<N, E>;
   private _events: OrbEmitter<N, E>;
   private _strategy: IEventStrategy<N, E>;
+  private _interaction: IGraphInteraction;
 
   private _settings: IOrbMapViewSettings<N, E>;
   private _map: HTMLDivElement;
@@ -90,6 +92,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     });
     this._graph.setDefaultStyle(getDefaultGraphStyle());
     this._events = new OrbEmitter<N, E>();
+    this._interaction = new GraphInteraction(this._graph);
 
     this._settings = {
       areCollapsedContainerDimensionsAllowed: false,
@@ -153,6 +156,10 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     return this._events;
   }
 
+  get interaction(): IGraphInteraction {
+    return this._interaction;
+  }
+
   get leaflet(): L.Map {
     return this._leaflet;
   }
@@ -198,9 +205,12 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
   }
 
   render(onRendered?: () => void) {
+    if (onRendered) {
+      this._renderer.once(RenderEventType.RENDER_END, () => onRendered());
+    }
+
     this._updateGraphPositions();
     this._renderer.render(this._graph);
-    onRendered?.();
   }
 
   zoomIn(onRendered?: () => void) {

@@ -8,101 +8,114 @@ import {
 } from '../shared';
 import { IPosition } from '../../common';
 import { Emitter } from '../../utils/emitter.utils';
-import {
-  D3SimulatorEngine,
-  D3SimulatorEngineEventType,
-  ID3SimulatorEngineSettingsUpdate,
-} from '../engine/d3-simulator-engine';
+import { ILayoutEngine, ILayoutSettings } from '../engine/shared';
+import { LayoutEngineFactory } from '../engine/factory';
+import { DeepPartial } from '../../utils/type.utils';
 
 export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISimulator {
-  protected readonly _simulator: D3SimulatorEngine;
+  private _engine: ILayoutEngine;
+  private _isSimulationRunning = false;
 
-  constructor() {
+  constructor(settings: DeepPartial<ILayoutSettings>) {
     super();
-    this._simulator = new D3SimulatorEngine();
-    this._simulator.on(D3SimulatorEngineEventType.SIMULATION_START, () => {
-      this.emit(SimulatorEventType.SIMULATION_START, undefined);
-    });
-    this._simulator.on(D3SimulatorEngineEventType.SIMULATION_PROGRESS, (data) => {
-      this.emit(SimulatorEventType.SIMULATION_PROGRESS, data);
-    });
-    this._simulator.on(D3SimulatorEngineEventType.SIMULATION_END, (data) => {
-      this.emit(SimulatorEventType.SIMULATION_END, data);
-    });
-    this._simulator.on(D3SimulatorEngineEventType.NODE_DRAG, (data) => {
-      this.emit(SimulatorEventType.NODE_DRAG, data);
-    });
-    this._simulator.on(D3SimulatorEngineEventType.SIMULATION_TICK, (data) => {
-      this.emit(SimulatorEventType.SIMULATION_STEP, data);
-    });
-    this._simulator.on(D3SimulatorEngineEventType.SETTINGS_UPDATE, (data) => {
-      this.emit(SimulatorEventType.SETTINGS_UPDATE, data);
-    });
+    this._engine = LayoutEngineFactory.create(settings);
+    this._wireEngineEvents();
   }
 
   setupData(data: ISimulationGraph) {
-    this._simulator.setupData(data);
+    this._engine.setupData(data);
   }
 
   mergeData(data: ISimulationGraph) {
-    this._simulator.mergeData(data);
+    this._engine.mergeData(data);
   }
 
   updateData(data: ISimulationGraph) {
-    this._simulator.updateData(data);
+    this._engine.updateData(data);
   }
 
   deleteData(data: ISimulationIds) {
-    this._simulator.deleteData(data);
+    this._engine.deleteData(data);
   }
 
   patchData(data: Partial<ISimulationGraph>): void {
-    this._simulator.patchData(data);
+    this._engine.patchData(data);
   }
 
   clearData() {
-    this._simulator.clearData();
-  }
-
-  simulate() {
-    console.log('not implemented');
-    // this.simulator.runSimulation();
+    this._engine.clearData();
   }
 
   activateSimulation() {
-    this._simulator.activateSimulation();
+    this._engine.activateSimulation();
   }
 
   stopSimulation() {
-    this._simulator.stopSimulation();
+    this._engine.stopSimulation();
   }
 
   startDragNode() {
-    this._simulator.startDragNode();
+    this._engine.startDragNode();
   }
 
   dragNode(nodeId: number, position: IPosition) {
-    this._simulator.dragNode({ id: nodeId, ...position });
+    this._engine.dragNode(nodeId, position);
   }
 
   endDragNode(nodeId: number) {
-    this._simulator.endDragNode({ id: nodeId });
+    this._engine.endDragNode(nodeId);
   }
 
   fixNodes(nodes: ISimulationNode[]) {
-    this._simulator.stickNodes(nodes);
+    this._engine.fixNodes(nodes);
   }
 
   releaseNodes(nodes?: ISimulationNode[] | undefined): void {
-    this._simulator.unstickNodes(nodes);
+    this._engine.releaseNodes(nodes);
   }
 
-  setSettings(settings: ID3SimulatorEngineSettingsUpdate) {
-    this._simulator.setSettings(settings);
+  setSettings(settings: ILayoutSettings) {
+    if (settings.type === this._engine.type && settings.options) {
+      this._engine.setSettings(settings.options);
+      return;
+    }
+
+    this._engine.removeAllListeners();
+    this._engine.terminate();
+    this._engine = LayoutEngineFactory.create(settings);
+    this._wireEngineEvents();
+  }
+
+  isSimulationRunning(): boolean {
+    return this._isSimulationRunning;
   }
 
   terminate() {
-    this._simulator.removeAllListeners();
+    this._engine.removeAllListeners();
+    this._engine.terminate();
     this.removeAllListeners();
+  }
+
+  private _wireEngineEvents() {
+    this._engine.on(SimulatorEventType.SIMULATION_START, () => {
+      this.emit(SimulatorEventType.SIMULATION_START, undefined);
+      this._isSimulationRunning = true;
+    });
+    this._engine.on(SimulatorEventType.SIMULATION_PROGRESS, (data) => {
+      this.emit(SimulatorEventType.SIMULATION_PROGRESS, data);
+    });
+    this._engine.on(SimulatorEventType.SIMULATION_END, (data) => {
+      this.emit(SimulatorEventType.SIMULATION_END, data);
+      this._isSimulationRunning = false;
+    });
+    this._engine.on(SimulatorEventType.SIMULATION_STEP, (data) => {
+      this.emit(SimulatorEventType.SIMULATION_STEP, data);
+    });
+    this._engine.on(SimulatorEventType.NODE_DRAG, (data) => {
+      this.emit(SimulatorEventType.NODE_DRAG, data);
+    });
+    this._engine.on(SimulatorEventType.SETTINGS_UPDATE, (data) => {
+      this.emit(SimulatorEventType.SETTINGS_UPDATE, data);
+    });
   }
 }

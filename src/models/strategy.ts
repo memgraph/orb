@@ -2,7 +2,7 @@ import { INode, INodeBase } from './node';
 import { IEdge, IEdgeBase } from './edge';
 import { IGraph } from './graph';
 import { IPosition } from '../common';
-import { GraphObjectState } from './state';
+import { hoverOnlyNode, selectOnlyEdge, selectOnlyNode, unhoverAll, unselectAll } from '../utils/graph.utils';
 
 export interface IEventStrategySettings {
   isDefaultSelectEnabled: boolean;
@@ -37,7 +37,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
     const node = graph.getNearestNode(point);
     if (node) {
       if (this.isSelectEnabled) {
-        selectNode(graph, node);
+        selectOnlyNode(graph, node);
       }
 
       return {
@@ -49,7 +49,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
     const edge = graph.getNearestEdge(point);
     if (edge) {
       if (this.isSelectEnabled) {
-        selectEdge(graph, edge);
+        selectOnlyEdge(graph, edge);
       }
 
       return {
@@ -79,7 +79,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
       }
 
       if (this.isHoverEnabled) {
-        hoverNode(graph, node);
+        hoverOnlyNode(graph, node);
       }
 
       this._lastHoveredNode = node;
@@ -104,7 +104,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
     const node = graph.getNearestNode(point);
     if (node) {
       if (this.isSelectEnabled) {
-        selectNode(graph, node);
+        selectOnlyNode(graph, node);
       }
 
       return {
@@ -116,7 +116,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
     const edge = graph.getNearestEdge(point);
     if (edge) {
       if (this.isSelectEnabled) {
-        selectEdge(graph, edge);
+        selectOnlyEdge(graph, edge);
       }
 
       return {
@@ -139,7 +139,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
     const node = graph.getNearestNode(point);
     if (node) {
       if (this.isSelectEnabled) {
-        selectNode(graph, node);
+        selectOnlyNode(graph, node);
       }
 
       return {
@@ -151,7 +151,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
     const edge = graph.getNearestEdge(point);
     if (edge) {
       if (this.isSelectEnabled) {
-        selectEdge(graph, edge);
+        selectOnlyEdge(graph, edge);
       }
 
       return {
@@ -170,109 +170,3 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
     };
   }
 }
-
-const selectNode = <N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>, node: INode<N, E>) => {
-  unselectAll(graph);
-  setNodeState(node, GraphObjectState.SELECTED, { isStateOverride: true });
-};
-
-const selectEdge = <N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>, edge: IEdge<N, E>) => {
-  unselectAll(graph);
-  setEdgeState(edge, GraphObjectState.SELECTED, { isStateOverride: true });
-};
-
-const unselectAll = <N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>): { changedCount: number } => {
-  const selectedNodes = graph.getNodes((node) => node.isSelected());
-  for (let i = 0; i < selectedNodes.length; i++) {
-    selectedNodes[i].clearState();
-  }
-
-  const selectedEdges = graph.getEdges((edge) => edge.isSelected());
-  for (let i = 0; i < selectedEdges.length; i++) {
-    selectedEdges[i].clearState();
-  }
-
-  return { changedCount: selectedNodes.length + selectedEdges.length };
-};
-
-const hoverNode = <N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>, node: INode<N, E>) => {
-  unhoverAll(graph);
-  setNodeState(node, GraphObjectState.HOVERED);
-};
-
-// const hoverEdge = <N extends INodeBase, E extends IEdgeBase>(graph: Graph<N, E>, edge: Edge<N, E>) => {
-//   unhoverAll(graph);
-//   setEdgeState(edge, GraphObjectState.HOVERED);
-// };
-
-const unhoverAll = <N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>): { changedCount: number } => {
-  const hoveredNodes = graph.getNodes((node) => node.isHovered());
-  for (let i = 0; i < hoveredNodes.length; i++) {
-    hoveredNodes[i].clearState();
-  }
-
-  const hoveredEdges = graph.getEdges((edge) => edge.isHovered());
-  for (let i = 0; i < hoveredEdges.length; i++) {
-    hoveredEdges[i].clearState();
-  }
-
-  return { changedCount: hoveredNodes.length + hoveredEdges.length };
-};
-
-interface ISetShapeStateOptions {
-  isStateOverride: boolean;
-}
-
-const setNodeState = <N extends INodeBase, E extends IEdgeBase>(
-  node: INode<N, E>,
-  state: number,
-  options?: ISetShapeStateOptions,
-): void => {
-  if (isStateChangeable(node, options)) {
-    node.setState(state, { isNotifySkipped: true });
-  }
-
-  node.getInEdges().forEach((edge) => {
-    if (edge && isStateChangeable(edge, options)) {
-      edge.setState(state, { isNotifySkipped: true });
-    }
-    if (edge.startNode && isStateChangeable(edge.startNode, options)) {
-      edge.startNode.setState(state, { isNotifySkipped: true });
-    }
-  });
-
-  node.getOutEdges().forEach((edge) => {
-    if (edge && isStateChangeable(edge, options)) {
-      edge.setState(state, { isNotifySkipped: true });
-    }
-    if (edge.endNode && isStateChangeable(edge.endNode, options)) {
-      edge.endNode.setState(state, { isNotifySkipped: true });
-    }
-  });
-};
-
-const setEdgeState = <N extends INodeBase, E extends IEdgeBase>(
-  edge: IEdge<N, E>,
-  state: number,
-  options?: ISetShapeStateOptions,
-): void => {
-  if (isStateChangeable(edge, options)) {
-    edge.setState(state, { isNotifySkipped: true });
-  }
-
-  if (edge.startNode && isStateChangeable(edge.startNode, options)) {
-    edge.startNode.setState(state, { isNotifySkipped: true });
-  }
-
-  if (edge.endNode && isStateChangeable(edge.endNode, options)) {
-    edge.endNode.setState(state, { isNotifySkipped: true });
-  }
-};
-
-const isStateChangeable = <N extends INodeBase, E extends IEdgeBase>(
-  graphObject: INode<N, E> | IEdge<N, E>,
-  options?: ISetShapeStateOptions,
-): boolean => {
-  const isOverride = options?.isStateOverride;
-  return isOverride || (!isOverride && !graphObject.getState());
-};

@@ -8,15 +8,17 @@ import {
   ISimulationGraph,
   ISimulationIds,
 } from '../../shared';
-import { ID3SimulatorEngineSettingsUpdate } from '../../engine/d3-simulator-engine';
 import { IWorkerInputPayload, WorkerInputType } from './message/worker-input';
 import { IWorkerOutputPayload, WorkerOutputType } from './message/worker-output';
 import { Emitter } from '../../../utils/emitter.utils';
+import { ILayoutSettings } from '../../engine/shared';
+import { DeepPartial } from '../../../utils/type.utils';
 
 export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISimulator {
   protected readonly _worker: Worker;
+  private _isSimulationRunning = false;
 
-  constructor() {
+  constructor(settings: DeepPartial<ILayoutSettings>) {
     super();
     this._worker = new Worker(
       new URL(
@@ -27,10 +29,13 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
       { type: 'module' },
     );
 
+    this.emitToWorker({ type: WorkerInputType.SetSettings, data: settings });
+
     this._worker.onmessage = ({ data }: MessageEvent<IWorkerOutputPayload>) => {
       switch (data.type) {
         case WorkerOutputType.SIMULATION_START: {
           this.emit(SimulatorEventType.SIMULATION_START, undefined);
+          this._isSimulationRunning = true;
           break;
         }
         case WorkerOutputType.SIMULATION_PROGRESS: {
@@ -39,6 +44,7 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
         }
         case WorkerOutputType.SIMULATION_END: {
           this.emit(SimulatorEventType.SIMULATION_END, data.data);
+          this._isSimulationRunning = false;
           break;
         }
         case WorkerOutputType.SIMULATION_STEP: {
@@ -96,10 +102,6 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     this.emitToWorker({ type: WorkerInputType.ClearData });
   }
 
-  simulate() {
-    this.emitToWorker({ type: WorkerInputType.Simulate });
-  }
-
   activateSimulation() {
     this.emitToWorker({ type: WorkerInputType.ActivateSimulation });
   }
@@ -132,8 +134,15 @@ export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISim
     this.emitToWorker({ type: WorkerInputType.ReleaseNodes, data: { nodes } });
   }
 
-  setSettings(settings: ID3SimulatorEngineSettingsUpdate) {
-    this.emitToWorker({ type: WorkerInputType.SetSettings, data: settings });
+  setSettings(settings: ILayoutSettings) {
+    this.emitToWorker({
+      type: WorkerInputType.SetSettings,
+      data: settings,
+    } satisfies IWorkerInputPayload);
+  }
+
+  isSimulationRunning(): boolean {
+    return this._isSimulationRunning;
   }
 
   terminate() {

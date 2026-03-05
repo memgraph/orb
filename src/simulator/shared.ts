@@ -1,7 +1,8 @@
 import { IPosition } from '../common';
 import { SimulationLinkDatum, SimulationNodeDatum } from 'd3-force';
-import { ID3SimulatorEngineSettings, ID3SimulatorEngineSettingsUpdate } from './engine/d3-simulator-engine';
 import { IEmitter } from '../utils/emitter.utils';
+import { ILayoutSettings } from './engine/shared';
+import { DeepPartial } from '../utils/type.utils';
 
 /**
  * Node with sticky coordinates.
@@ -62,7 +63,6 @@ export interface ISimulator extends IEmitter<SimulatorEvents> {
   clearData(): void;
 
   // Simulation handlers
-  simulate(): void;
   activateSimulation(): void;
   stopSimulation(): void;
 
@@ -74,8 +74,9 @@ export interface ISimulator extends IEmitter<SimulatorEvents> {
   releaseNodes(nodes?: ISimulationNode[]): void;
 
   // Settings handlers
-  setSettings(settings: ID3SimulatorEngineSettingsUpdate): void;
+  setSettings(settings: DeepPartial<ILayoutSettings>): void;
 
+  isSimulationRunning(): boolean;
   terminate(): void;
 }
 
@@ -89,7 +90,7 @@ export interface ISimulatorEventProgress {
 }
 
 export interface ISimulatorEventSettings {
-  settings: ID3SimulatorEngineSettings;
+  settings: ILayoutSettings;
 }
 
 export interface ISimulatorEvents {
