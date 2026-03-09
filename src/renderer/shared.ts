@@ -36,6 +36,11 @@ export interface IRendererSettingsInit extends IRendererSettings {
   type: RendererType;
 }
 
+export interface IFitZoomTransformOptions {
+  anchorX?: 'start' | 'center' | 'end';
+  anchorY?: 'start' | 'center' | 'end';
+}
+
 export type RendererEvents = {
   [RenderEventType.RESIZE]: undefined;
   [RenderEventType.RENDER_START]: undefined;
@@ -60,7 +65,7 @@ export interface IRenderer<N extends INodeBase, E extends IEdgeBase> extends IEm
   render(graph: IGraph<N, E>): void;
   reset(): void;
 
-  getFitZoomTransform(graph: IGraph<N, E>): ZoomTransform;
+  getFitZoomTransform(graph: IGraph<N, E>, options?: IFitZoomTransformOptions): ZoomTransform;
   getSimulationPosition(canvasPoint: IPosition): IPosition;
 
   /**

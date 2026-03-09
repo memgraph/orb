@@ -1,6 +1,6 @@
 import { ISimulationNode, ISimulationEdge } from '../../../shared';
 import { IWorkerPayload } from './worker-payload';
-import { ID3SimulatorEngineSettings } from '../../../engine/types/d3-simulator-engine';
+import { ILayoutSettings } from '../../../engine/shared';
 
 export enum WorkerOutputType {
   SIMULATION_START = 'simulation-start',
@@ -59,7 +59,7 @@ type IWorkerOutputNodeDragEndPayload = IWorkerPayload<
 type IWorkerOutputSettingsUpdatePayload = IWorkerPayload<
   WorkerOutputType.SETTINGS_UPDATE,
   {
-    settings: ID3SimulatorEngineSettings;
+    settings: ILayoutSettings;
   }
 >;
 

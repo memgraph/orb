@@ -81,8 +81,6 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     this._initShaders();
     this._initNodeBuffers();
     this._initEdgeBuffers();
-
-    console.log('context', this._gl);
   }
 
   private _initShaders(): void {

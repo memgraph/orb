@@ -1,42 +1,35 @@
-import { IPosition } from '../../../common';
-import { ISimulationGraph, ISimulationIds, ISimulationNode } from '../../shared';
-import { Emitter } from '../../../utils/emitter.utils';
-import { copyObject } from '../../../utils/object.utils';
-import {
-  ISimulatorEngine,
-  ISimulatorEngineSettingsConfig,
-  ISimulatorEngineSettingsUpdate,
-  SimulatorEngineEventType,
-  SimulatorEngineEvents,
-} from '../shared';
-import { DEFAULT_SETTINGS } from './d3-simulator-engine';
-import { compileShader, ShaderType } from '../../../utils/shaders.utils';
-import forceVertSource from '../shaders/force/force.vert';
-import forceFragSource from '../shaders/force/force.frag';
-import copyVertSource from '../shaders/copy/copy.vert';
-import copyFragSource from '../shaders/copy/copy.frag';
-import { OrbError } from '../../../exceptions';
+import { IPosition } from '../../../../common';
+import { ISimulationNode, ISimulationGraph, ISimulationIds, SimulatorEventType } from '../../../shared';
+import { copyObject, isObjectEqual } from '../../../../utils/object.utils';
+import { IEngineSettingsUpdate, IForceLayoutOptions, DEFAULT_FORCE_LAYOUT_OPTIONS, LayoutType } from '../../shared';
+import { BaseLayoutEngine } from '../base-layout-engine';
+import { compileShader, ShaderType } from '../../../../utils/shaders.utils';
+import forceVertSource from '../../shaders/force/force.vert';
+import forceFragSource from '../../shaders/force/force.frag';
+import copyVertSource from '../../shaders/copy/copy.vert';
+import copyFragSource from '../../shaders/copy/copy.frag';
+import { OrbError } from '../../../../exceptions';
+
+const MAX_SIMULATION_STEPS = 500;
+const CHUNK_SIZE = 500;
 
 /**
- * GPU-accelerated simulator engine using WebGL2 transform feedback.
+ * GPU-accelerated force layout engine using WebGL2 transform feedback.
  *
  * Phase 1: Skeleton that falls back to CPU-based Euler integration.
  * Phase 2: N-body repulsion via transform feedback (O(n^2) pairwise on GPU).
  * Phase 3: Full GPU simulation with link forces via adjacency textures.
  */
-export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implements ISimulatorEngine {
+export class GPUForceLayoutEngine extends BaseLayoutEngine {
   private readonly _gl: WebGL2RenderingContext;
 
-  private _settings: ISimulatorEngineSettingsConfig;
-  private _initialSettings: ISimulatorEngineSettingsConfig | undefined;
-
-  private _nodes: ISimulationNode[] = [];
-  private _edges: { id: number; source: number | ISimulationNode; target: number | ISimulationNode }[] = [];
-  private _nodeIndexByNodeId: Record<number, number> = {};
+  private _settings: IForceLayoutOptions;
+  private _initialSettings: IForceLayoutOptions | undefined;
 
   private _isStabilizing = false;
   private _isDragging = false;
 
+  // WebGL resources
   private _bufferA: WebGLBuffer | null = null;
   private _bufferB: WebGLBuffer | null = null;
   private _transformFeedback: WebGLTransformFeedback | null = null;
@@ -55,146 +48,169 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
 
   private static readonly FLOATS_PER_NODE = 7;
 
-  constructor(settings?: ISimulatorEngineSettingsConfig) {
+  readonly type: LayoutType = 'force';
+
+  constructor(options?: IForceLayoutOptions) {
     super();
-
-    if (settings !== undefined) {
-      this._initialSettings = Object.assign(copyObject(DEFAULT_SETTINGS), settings);
-    }
-
-    this._settings = this.resetSettings();
+    this._settings = {
+      ...DEFAULT_FORCE_LAYOUT_OPTIONS,
+      ...options,
+    };
 
     const gl = document.createElement('canvas').getContext('webgl2');
     if (!gl) {
-      throw new OrbError('Failed to create WebGL context.');
+      throw new OrbError('Failed to create WebGL2 context for GPU force layout engine.');
     }
     this._gl = gl;
 
     this._initGPU();
+    this.clearData();
   }
 
-  getSettings(): ISimulatorEngineSettingsConfig {
-    return copyObject(this._settings);
-  }
-
-  setSettings(settings: ISimulatorEngineSettingsUpdate): void {
-    const previousSettings = this.getSettings();
+  setSettings(settings: IEngineSettingsUpdate) {
+    const forceSettings = settings as Partial<IForceLayoutOptions>;
 
     if (!this._initialSettings) {
-      this._initialSettings = Object.assign(copyObject(DEFAULT_SETTINGS), settings);
+      this._initialSettings = Object.assign(copyObject(DEFAULT_FORCE_LAYOUT_OPTIONS), forceSettings);
     }
 
-    Object.assign(this._settings, settings);
-    this.emit(SimulatorEngineEventType.SETTINGS_UPDATE, { settings: this._settings });
+    const previousSettings = copyObject(this._settings);
+    Object.assign(this._settings, forceSettings);
 
-    const hasPhysicsBeenDisabled = previousSettings.isPhysicsEnabled && !settings.isPhysicsEnabled;
+    if (isObjectEqual(this._settings, previousSettings)) {
+      return;
+    }
+
+    this.emit(SimulatorEventType.SETTINGS_UPDATE, {
+      settings: { type: 'force', options: this._settings },
+    });
+
+    const hasPhysicsBeenDisabled = previousSettings.isPhysicsEnabled && !forceSettings.isPhysicsEnabled;
+
     if (hasPhysicsBeenDisabled) {
       this.stopSimulation();
-    } else if (this._settings.isSimulatingOnSettingsUpdate) {
+    } else if (this._settings.isSimulatingOnSettingsUpdate && this._nodes.length > 0) {
       this.activateSimulation();
     }
   }
 
-  resetSettings(): ISimulatorEngineSettingsConfig {
-    return Object.assign(copyObject(DEFAULT_SETTINGS), this._initialSettings);
-  }
-
-  setupData(data: ISimulationGraph): void {
+  setupData(data: ISimulationGraph) {
     this.clearData();
-    this._ingestData(data);
+    this._initializeNewData(data);
 
     if (this._settings.isSimulatingOnDataUpdate) {
       this._runSimulation();
     }
   }
 
-  mergeData(data: Partial<ISimulationGraph>): void {
-    this._ingestData(data);
+  mergeData(data: ISimulationGraph) {
+    this._initializeNewData(data);
+
+    if (!this._settings.isPhysicsEnabled) {
+      this._pinNodes();
+    }
 
     if (this._settings.isSimulatingOnDataUpdate) {
       this.activateSimulation();
     }
   }
 
-  updateData(data: ISimulationGraph): void {
-    const newNodeIds = new Set(data.nodes.map((n) => n.id));
-    const oldNodes = this._nodes.filter((n) => newNodeIds.has(n.id));
-    const newNodes = data.nodes.filter((n) => this._nodeIndexByNodeId[n.id] === undefined);
+  updateData(data: ISimulationGraph) {
+    const newNodeIds = new Set(data.nodes.map((node) => node.id));
+    const oldNodes = this._nodes.filter((node) => newNodeIds.has(node.id));
+    const newNodes = data.nodes.filter((node) => this._nodeIndexByNodeId[node.id] === undefined);
 
     this._nodes = [...oldNodes, ...newNodes];
-    this._edges = data.edges as any;
-    this._rebuildIndex();
+    this._rebuildNodeIndex();
+    this._edges = data.edges;
 
     if (this._settings.isSimulatingOnSettingsUpdate) {
       this.activateSimulation();
     }
   }
 
-  deleteData(data: Partial<ISimulationIds>): void {
-    const nodeIds = new Set(data.nodeIds);
-    const edgeIds = new Set(data.edgeIds);
-    this._nodes = this._nodes.filter((n) => !nodeIds.has(n.id));
-    this._edges = this._edges.filter((e) => !edgeIds.has(e.id));
-    this._rebuildIndex();
+  deleteData(data: Partial<ISimulationIds>) {
+    if (data.nodeIds) {
+      const nodeIds = new Set(data.nodeIds);
+      this._nodes = this._nodes.filter((node) => !nodeIds.has(node.id));
+    }
+    if (data.edgeIds) {
+      const edgeIds = new Set(data.edgeIds);
+      this._edges = this._edges.filter((edge) => !edgeIds.has(edge.id));
+    }
+    this._rebuildNodeIndex();
 
     if (this._settings.isSimulatingOnDataUpdate) {
       this.activateSimulation();
     }
   }
 
-  patchData(data: Partial<ISimulationGraph>): void {
+  patchData(data: Partial<ISimulationGraph>) {
     if (data.nodes) {
-      for (const node of data.nodes) {
-        const idx = this._nodeIndexByNodeId[node.id];
-        if (idx !== undefined) {
-          this._nodes[idx] = node;
+      const nodeIds: { [id: number]: number } = {};
+
+      for (let i = 0; i < this._nodes.length; i++) {
+        nodeIds[this._nodes[i].id] = i;
+      }
+
+      for (let i = 0; i < data.nodes.length; i += 1) {
+        const nodeId: number = data.nodes[i].id;
+
+        if (nodeId in nodeIds) {
+          const index = nodeIds[nodeId];
+          this._nodeIndexByNodeId[nodeId] = index;
+          this._nodes[index] = data.nodes[i];
         } else {
-          this._nodes.push(node);
+          this._nodes.push(data.nodes[i]);
         }
       }
-      this._rebuildIndex();
     }
+
     if (data.edges) {
-      this._edges = this._edges.concat(data.edges as any);
+      const edgeIds: { [id: number]: number } = {};
+      for (let i = 0; i < this._edges.length; i++) {
+        edgeIds[this._edges[i].id] = i;
+      }
+      for (let i = 0; i < data.edges.length; i++) {
+        const edgeId = data.edges[i].id;
+        if (edgeId in edgeIds) {
+          this._edges[edgeIds[edgeId]] = data.edges[i];
+        } else {
+          this._edges.push(data.edges[i]);
+        }
+      }
     }
   }
 
-  clearData(): void {
-    const nodes = this._nodes;
-    const edges = this._edges;
+  clearData() {
     this._nodes = [];
     this._edges = [];
-    this._nodeIndexByNodeId = {};
-    this.emit(SimulatorEngineEventType.DATA_CLEARED, {
-      nodes,
-      edges: edges as any,
-    });
+    this._rebuildNodeIndex();
   }
 
-  activateSimulation(): void {
-    if (!this._settings.isPhysicsEnabled) {
-      this.fixNodes();
+  activateSimulation() {
+    if (this._settings.isPhysicsEnabled) {
+      this._unpinNodes();
+    } else {
+      this._pinNodes();
     }
     this._runSimulation();
   }
 
-  stopSimulation(): void {
-    this._isStabilizing = false;
+  stopSimulation() {
+    this._cancelSimulation = true;
   }
 
-  resetSimulation(): void {
-    this.emit(SimulatorEngineEventType.SIMULATION_RESET, {
-      nodes: this._nodes,
-      edges: this._edges as any,
-    });
-  }
-
-  startDragNode(): void {
+  startDragNode() {
     this._isDragging = true;
+
+    if (!this._isStabilizing && this._settings.isPhysicsEnabled) {
+      this.activateSimulation();
+    }
   }
 
-  dragNode(data: { id: number } & IPosition): void {
-    const node = this._nodes[this._nodeIndexByNodeId[data.id]];
+  dragNode(nodeId: number, position: IPosition) {
+    const node = this._nodes[this._nodeIndexByNodeId[nodeId]];
     if (!node) {
       return;
     }
@@ -203,76 +219,75 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
       this.startDragNode();
     }
 
-    node.fx = data.x;
-    node.fy = data.y;
+    node.fx = position.x;
+    node.fy = position.y;
 
     if (!this._settings.isPhysicsEnabled) {
-      node.x = data.x;
-      node.y = data.y;
+      node.x = position.x;
+      node.y = position.y;
     }
 
-    this.emit(SimulatorEngineEventType.NODE_DRAG, {
-      nodes: this._nodes,
-      edges: this._edges as any,
-    });
+    this.emit(SimulatorEventType.NODE_DRAG, { nodes: this._nodes, edges: this._edges });
   }
 
-  endDragNode(data: { id: number }): void {
+  endDragNode(nodeId: number) {
     this._isDragging = false;
-    const node = this._nodes[this._nodeIndexByNodeId[data.id]];
+
+    const node = this._nodes[this._nodeIndexByNodeId[nodeId]];
     if (node && this._settings.isPhysicsEnabled) {
-      this.unfixNode(node);
+      this._unpinNode(node);
     }
   }
 
-  fixNodes(nodes?: ISimulationNode[]): void {
-    const targets = nodes ?? this._nodes;
-    for (const node of targets) {
-      this.fixNode(node);
+  fixNodes(nodes?: ISimulationNode[]) {
+    if (!nodes) {
+      nodes = this._nodes;
+    }
+    for (let i = 0; i < nodes.length; i++) {
+      this._stickNode(nodes[i]);
     }
   }
 
-  unfixNodes(nodes?: ISimulationNode[]): void {
-    const targets = nodes ?? this._nodes;
-    for (const node of targets) {
-      this.unfixNode(node);
+  releaseNodes(nodes?: ISimulationNode[]) {
+    if (!nodes) {
+      nodes = this._nodes;
     }
-  }
+    for (let i = 0; i < nodes.length; i++) {
+      this._unstickNode(nodes[i]);
+    }
 
-  stickNodes(nodes?: ISimulationNode[]): void {
-    const targets = nodes ?? this._nodes;
-    for (const node of targets) {
-      node.sx = node.x;
-      node.fx = node.x;
-      node.sy = node.y;
-      node.fy = node.y;
-    }
-  }
-
-  unstickNodes(nodes?: ISimulationNode[]): void {
-    const targets = nodes ?? this._nodes;
-    for (const node of targets) {
-      node.sx = null;
-      node.sy = null;
-      if (this._settings.isPhysicsEnabled) {
-        node.fx = null;
-        node.fy = null;
-      }
-    }
-    if (this._settings.isSimulatingOnUnstick) {
+    if (this._settings.isSimulatingOnUnstick && this._nodes.length > 0) {
       this.activateSimulation();
     }
   }
 
-  // --- GPU simulation via WebGL2 transform feedback ---
+  terminate(): void {
+    super.terminate();
+
+    const gl = this._gl;
+    if (gl) {
+      gl.deleteBuffer(this._bufferA);
+      gl.deleteBuffer(this._bufferB);
+      gl.deleteTransformFeedback(this._transformFeedback);
+      gl.deleteVertexArray(this._vaoAtoB);
+      gl.deleteVertexArray(this._vaoBtoA);
+      gl.deleteProgram(this._forceProgram);
+      gl.deleteProgram(this._copyProgram);
+      gl.deleteTexture(this._positionTexture);
+      gl.deleteFramebuffer(this._copyFBO);
+      gl.deleteVertexArray(this._copyVaoA);
+      gl.deleteVertexArray(this._copyVaoB);
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
+    }
+  }
 
   private _runSimulation(): void {
-    if (this._isStabilizing) {
+    if (this._isStabilizing || this._cancelSimulation) {
       return;
     }
 
+    this.emit(SimulatorEventType.SIMULATION_START, undefined);
     this._isStabilizing = true;
-    this.emit(SimulatorEngineEventType.SIMULATION_START, undefined);
 
     // Assign random initial positions to nodes that don't have one
     for (const node of this._nodes) {
@@ -284,7 +299,6 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
       }
     }
 
-    // Upload current node data to GPU buffers + position texture
     this._uploadDataToGPU();
 
     const alphaSettings = this._settings.alpha;
@@ -292,45 +306,77 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
     const alphaMin = alphaSettings.alphaMin;
     const alphaDecay = alphaSettings.alphaDecay;
 
-    const totalSteps = Math.ceil(Math.log(alphaMin) / Math.log(1 - alphaDecay));
+    const totalSteps = Math.min(MAX_SIMULATION_STEPS, Math.ceil(Math.log(alphaMin) / Math.log(1 - alphaDecay)));
 
-    let lastProgressBucket = -1;
-    for (let step = 0; step < totalSteps; step++) {
-      alpha += (alphaSettings.alphaTarget - alpha) * alphaDecay;
-      if (alpha < alphaMin) {
-        break;
+    let lastProgress = -1;
+    let step = 0;
+
+    const runChunk = () => {
+      if (this._cancelSimulation) {
+        this._isStabilizing = false;
+        this._cancelSimulation = false;
+        return;
       }
 
-      this._simulateGPUStep(alpha);
+      const end = Math.min(step + CHUNK_SIZE, totalSteps);
 
-      const progressBucket = Math.floor((step * 100) / totalSteps);
-      if (progressBucket > lastProgressBucket) {
-        lastProgressBucket = progressBucket;
+      for (; step < end; step++) {
+        alpha += (alphaSettings.alphaTarget - alpha) * alphaDecay;
+        if (alpha < alphaMin) {
+          step = totalSteps;
+          break;
+        }
+        this._simulateGPUStep(alpha);
+      }
 
-        this._readbackFromGPU();
+      // Readback once per chunk (minimizes expensive GPU→CPU transfer)
+      this._readbackFromGPU();
 
-        this.emit(SimulatorEngineEventType.SIMULATION_PROGRESS, {
+      const currentProgress = Math.round((step * 100) / totalSteps);
+      if (currentProgress > lastProgress) {
+        lastProgress = currentProgress;
+        this.emit(SimulatorEventType.SIMULATION_PROGRESS, {
           nodes: this._nodes,
-          edges: this._edges as any,
-          progress: progressBucket / 10,
+          edges: this._edges,
+          progress: currentProgress / 100,
         });
       }
-    }
 
-    this._readbackFromGPU();
+      if (step < totalSteps && !this._cancelSimulation) {
+        this._scheduleNext(runChunk);
+      } else {
+        if (!this._settings.isPhysicsEnabled) {
+          this._pinNodes();
+        }
 
-    if (!this._settings.isPhysicsEnabled) {
-      this.fixNodes();
-    }
+        this._isStabilizing = false;
+        this._cancelSimulation = false;
+        this.emit(SimulatorEventType.SIMULATION_END, { nodes: this._nodes, edges: this._edges });
+      }
+    };
 
-    this._isStabilizing = false;
-    this.emit(SimulatorEngineEventType.SIMULATION_END, {
-      nodes: this._nodes,
-      edges: this._edges as any,
-    });
+    runChunk();
   }
 
-  private fixNode(node: ISimulationNode): void {
+  private _pinNodes(nodes?: ISimulationNode[]) {
+    if (!nodes) {
+      nodes = this._nodes;
+    }
+    for (let i = 0; i < nodes.length; i++) {
+      this._pinNode(this._nodes[i]);
+    }
+  }
+
+  private _unpinNodes(nodes?: ISimulationNode[]) {
+    if (!nodes) {
+      nodes = this._nodes;
+    }
+    for (let i = 0; i < nodes.length; i++) {
+      this._unpinNode(this._nodes[i]);
+    }
+  }
+
+  private _pinNode(node: ISimulationNode) {
     if (node.sx === null || node.sx === undefined) {
       node.fx = node.x;
     }
@@ -339,7 +385,7 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
     }
   }
 
-  private unfixNode(node: ISimulationNode): void {
+  private _unpinNode(node: ISimulationNode) {
     if (node.sx === null || node.sx === undefined) {
       node.fx = null;
     }
@@ -348,31 +394,56 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
     }
   }
 
-  private _ingestData(data: Partial<ISimulationGraph>): void {
-    if (data.nodes) {
-      for (const node of data.nodes) {
-        if (node.x !== null && node.x !== undefined) {
-          node.fx = node.x;
-          node.sx = node.x;
-        }
-        if (node.y !== null && node.y !== undefined) {
-          node.fy = node.y;
-          node.sy = node.y;
-        }
-        this._nodes.push(node);
-      }
-    }
-    if (data.edges) {
-      this._edges = this._edges.concat(data.edges as any);
-    }
-    this._rebuildIndex();
+  private _stickNode(node: ISimulationNode) {
+    node.sx = node.x;
+    node.fx = node.x;
+    node.sy = node.y;
+    node.fy = node.y;
   }
 
-  private _rebuildIndex(): void {
-    this._nodeIndexByNodeId = {};
-    for (let i = 0; i < this._nodes.length; i++) {
-      this._nodeIndexByNodeId[this._nodes[i].id] = i;
+  private _unstickNode(node: ISimulationNode) {
+    node.sx = null;
+    node.sy = null;
+
+    if (this._settings.isPhysicsEnabled) {
+      node.fx = null;
+      node.fy = null;
     }
+  }
+
+  private _initializeNewData(data: Partial<ISimulationGraph>) {
+    if (data.nodes) {
+      for (let i = 0; i < data.nodes.length; i += 1) {
+        const nodeId = data.nodes[i].id;
+
+        if (this._nodeIndexByNodeId[nodeId] !== undefined) {
+          this._nodeIndexByNodeId[nodeId] = i;
+        } else {
+          this._nodes.push(data.nodes[i]);
+        }
+      }
+    } else {
+      this._nodes = [];
+    }
+
+    if (data.edges) {
+      const edgeIds: { [id: number]: number } = {};
+      for (let i = 0; i < this._edges.length; i++) {
+        edgeIds[this._edges[i].id] = i;
+      }
+      for (let i = 0; i < data.edges.length; i++) {
+        const edgeId = data.edges[i].id;
+        if (edgeId in edgeIds) {
+          this._edges[edgeIds[edgeId]] = data.edges[i];
+        } else {
+          this._edges.push(data.edges[i]);
+        }
+      }
+    } else {
+      this._edges = [];
+    }
+
+    this._rebuildNodeIndex();
   }
 
   private _initGPU(): void {
@@ -422,27 +493,23 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
       throw new OrbError('Failed to create vertex array object.');
     }
 
-    const STRIDE = GPUSimulatorEngine.FLOATS_PER_NODE * 4;
+    const STRIDE = GPUForceLayoutEngine.FLOATS_PER_NODE * 4;
 
     gl.bindVertexArray(vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 
-    // aPosition (vec2) — offset 0
     const posLoc = gl.getAttribLocation(program, 'aPosition');
     gl.enableVertexAttribArray(posLoc);
     gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, STRIDE, 0);
 
-    // aVelocity (vec2) — offset 2*4 = 8
     const velLoc = gl.getAttribLocation(program, 'aVelocity');
     gl.enableVertexAttribArray(velLoc);
     gl.vertexAttribPointer(velLoc, 2, gl.FLOAT, false, STRIDE, 2 * 4);
 
-    // aFixed (float) — offset 4*4 = 16
     const fixedLoc = gl.getAttribLocation(program, 'aFixed');
     gl.enableVertexAttribArray(fixedLoc);
     gl.vertexAttribPointer(fixedLoc, 1, gl.FLOAT, false, STRIDE, 4 * 4);
 
-    // aFixedPos (vec2) — offset 5*4 = 20
     const fixedPosLoc = gl.getAttribLocation(program, 'aFixedPos');
     gl.enableVertexAttribArray(fixedPosLoc);
     gl.vertexAttribPointer(fixedPosLoc, 2, gl.FLOAT, false, STRIDE, 5 * 4);
@@ -489,7 +556,7 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
       throw new OrbError('Failed to create copy VAO.');
     }
 
-    const STRIDE = GPUSimulatorEngine.FLOATS_PER_NODE * 4;
+    const STRIDE = GPUForceLayoutEngine.FLOATS_PER_NODE * 4;
 
     gl.bindVertexArray(vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -505,7 +572,7 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
   private _uploadDataToGPU(): void {
     const gl = this._gl;
     const N = this._nodes.length;
-    const FPN = GPUSimulatorEngine.FLOATS_PER_NODE;
+    const FPN = GPUForceLayoutEngine.FLOATS_PER_NODE;
 
     const data = new Float32Array(N * FPN);
 
@@ -526,7 +593,6 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
     gl.bindBuffer(gl.ARRAY_BUFFER, this._bufferB);
     gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_COPY);
 
-    // Reset ping-pong state so the first tick reads from bufferA
     this._pingPong = true;
 
     this._updatePositionTexture();
@@ -569,7 +635,6 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
 
     gl.useProgram(program);
 
-    // Set uniforms
     gl.uniform1i(gl.getUniformLocation(program, 'uNodeCount'), N);
     gl.uniform1i(gl.getUniformLocation(program, 'uTexWidth'), this._texWidth);
     gl.uniform1f(gl.getUniformLocation(program, 'uAlpha'), alpha);
@@ -582,22 +647,18 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
     gl.uniform1f(gl.getUniformLocation(program, 'uCenterStrength'), this._settings.centering?.strength ?? 1);
     gl.uniform1f(gl.getUniformLocation(program, 'uDamping'), 0.6);
 
-    // Bind position texture to unit 0
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this._positionTexture);
     gl.uniform1i(gl.getUniformLocation(program, 'uPositions'), 0);
 
-    // Ping-pong: read from one buffer, write to the other
     const readVAO = this._pingPong ? this._vaoAtoB : this._vaoBtoA;
     const writeBuffer = this._pingPong ? this._bufferB : this._bufferA;
 
     gl.bindVertexArray(readVAO);
 
-    // Bind transform feedback to the write buffer
     gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, this._transformFeedback);
     gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, writeBuffer);
 
-    // Disable rasterization — we only want the transform feedback output
     gl.enable(gl.RASTERIZER_DISCARD);
 
     gl.beginTransformFeedback(gl.POINTS);
@@ -609,10 +670,8 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
     gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
     gl.bindVertexArray(null);
 
-    // Swap for next tick
     this._pingPong = !this._pingPong;
 
-    // Sync position texture from the output buffer for the next tick
     this._updatePositionTextureFromBuffer();
   }
 
@@ -632,7 +691,6 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
       return;
     }
 
-    // After the swap, the "read" side holds the latest data
     const copyVao = this._pingPong ? this._copyVaoA : this._copyVaoB;
 
     gl.useProgram(program);
@@ -652,15 +710,14 @@ export class GPUSimulatorEngine extends Emitter<SimulatorEngineEvents> implement
 
   /**
    * Reads final positions/velocities from the latest GPU buffer back to CPU nodes.
-   * Called once after the simulation loop completes.
+   * Called once per chunk boundary to minimize expensive GPU→CPU transfers.
    */
   private _readbackFromGPU(): void {
     const gl = this._gl;
     const N = this._nodes.length;
-    const FPN = GPUSimulatorEngine.FLOATS_PER_NODE;
+    const FPN = GPUForceLayoutEngine.FLOATS_PER_NODE;
     const data = new Float32Array(N * FPN);
 
-    // After the loop, _pingPong points to the next "read" buffer = latest data
     const latestBuffer = this._pingPong ? this._bufferA : this._bufferB;
     gl.bindBuffer(gl.ARRAY_BUFFER, latestBuffer);
     gl.getBufferSubData(gl.ARRAY_BUFFER, 0, data);
