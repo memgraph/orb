@@ -13,6 +13,7 @@ in vec4 aShadowColor;
 in float aShadowSize;
 in float aShadowOffsetX;
 in float aShadowOffsetY;
+in float aShapeType;
 
 uniform vec2 uResolution;
 uniform vec2 uTranslation;
@@ -27,8 +28,10 @@ out vec4 vShadowColor;
 out float vNodeRadius;
 out vec2 vShadowOffset;
 out float vShadowBlur;
+flat out int vShapeType;
 
 void main() {
+  vShapeType = int(aShapeType + 0.5);
   vColor = aColor;
   vBorderColor = aBorderColor;
   vShadowColor = aShadowColor;
