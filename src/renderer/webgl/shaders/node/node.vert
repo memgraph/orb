@@ -14,6 +14,9 @@ in float aShadowSize;
 in float aShadowOffsetX;
 in float aShadowOffsetY;
 in float aShapeType;
+in vec2 aImageUV0;
+in vec2 aImageUV1;
+in float aImageAspect;
 
 uniform vec2 uResolution;
 uniform vec2 uTranslation;
@@ -29,12 +32,18 @@ out float vNodeRadius;
 out vec2 vShadowOffset;
 out float vShadowBlur;
 flat out int vShapeType;
+out vec2 vImageUV0;
+out vec2 vImageUV1;
+out float vImageAspect;
 
 void main() {
   vShapeType = int(aShapeType + 0.5);
   vColor = aColor;
   vBorderColor = aBorderColor;
   vShadowColor = aShadowColor;
+  vImageUV0 = aImageUV0;
+  vImageUV1 = aImageUV1;
+  vImageAspect = aImageAspect;
 
   float totalRadius = aRadius + aShadowSize + abs(aShadowOffsetX) + abs(aShadowOffsetY);
 

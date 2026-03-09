@@ -11,6 +11,11 @@ in float vNodeRadius;
 in vec2 vShadowOffset;
 in float vShadowBlur;
 flat in int vShapeType;
+in vec2 vImageUV0;
+in vec2 vImageUV1;
+in float vImageAspect;
+
+uniform sampler2D uImageAtlas;
 
 out vec4 fragColor;
 
@@ -114,9 +119,24 @@ void main() {
   float aa = 0.02 * vNodeRadius;
   float nodeAlpha = 1.0 - smoothstep(-aa, 0.0, dist);
 
+  vec4 fillColor = vColor;
+  if (vImageAspect > 0.0 && dist < 0.0) {
+    vec2 uv01 = (vUV / vNodeRadius) * 0.5 + 0.5;
+    if (vImageAspect > 1.0) {
+      uv01.x = (uv01.x - 0.5) / vImageAspect + 0.5;
+    } else {
+      uv01.y = (uv01.y - 0.5) * vImageAspect + 0.5;
+    }
+    if (uv01.x >= 0.0 && uv01.x <= 1.0 && uv01.y >= 0.0 && uv01.y <= 1.0) {
+      vec2 atlasUV = mix(vImageUV0, vImageUV1, uv01);
+      vec4 imgTexel = texture(uImageAtlas, atlasUV);
+      fillColor = mix(fillColor, vec4(imgTexel.rgb, 1.0), imgTexel.a);
+    }
+  }
+
   float borderDist = shapeSDF(vUV, vBorderThreshold, vShapeType);
   float borderMix = smoothstep(-aa, aa, borderDist);
-  vec4 nodeColor = mix(vColor, vBorderColor, borderMix);
+  vec4 nodeColor = mix(fillColor, vBorderColor, borderMix);
   nodeColor.a *= nodeAlpha;
 
   float finalAlpha = nodeColor.a + shadowAlpha * (1.0 - nodeColor.a);

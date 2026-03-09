@@ -21,6 +21,10 @@ import nodeVertexSource from './shaders/node/node.vert';
 import nodeFragmentSource from './shaders/node/node.frag';
 import edgeVertexSource from './shaders/edge/edge.vert';
 import edgeFragmentSource from './shaders/edge/edge.frag';
+import labelVertexSource from './shaders/label/label.vert';
+import labelFragmentSource from './shaders/label/label.frag';
+import { LabelCache } from './utils/label-cache';
+import { ImageAtlas } from './utils/image-atlas';
 
 const EDGE_TYPE_STRAIGHT = 0;
 const EDGE_TYPE_CURVED = 1;
@@ -36,6 +40,14 @@ const SHAPE_TYPE_MAP: Record<string, number> = {
   [NodeShapeType.STAR]: 6,
   [NodeShapeType.HEXAGON]: 7,
 };
+
+const DEFAULT_FONT_SIZE = 4;
+const DEFAULT_FONT_FAMILY = 'Roboto, sans-serif';
+const DEFAULT_FONT_COLOR = '#000000';
+const LABEL_LOD_MIN_SCREEN_PX = 6;
+const IMAGE_LOD_MIN_SCREEN_PX = 4;
+const LABEL_DISTANCE_FROM_NODE = 0.2;
+const FLOATS_PER_LABEL = 8;
 
 type RGBAFloats = [number, number, number, number];
 
@@ -56,12 +68,18 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
 
   private _nodeProgram: WebGLProgram | null = null;
   private _edgeProgram: WebGLProgram | null = null;
+  private _labelProgram: WebGLProgram | null = null;
 
   private _nodeVao: WebGLVertexArrayObject | null = null;
   private _edgeVao: WebGLVertexArrayObject | null = null;
+  private _labelVao: WebGLVertexArrayObject | null = null;
 
   private _nodeInstanceBuffer: WebGLBuffer | null = null;
   private _edgeInstanceBuffer: WebGLBuffer | null = null;
+  private _labelInstanceBuffer: WebGLBuffer | null = null;
+
+  private _labelCache: LabelCache | null = null;
+  private _imageAtlas: ImageAtlas | null = null;
 
   private _isColorCacheDirty = true;
   private _nodeColorCache = new Map<number, RGBAFloats>();
@@ -97,11 +115,15 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     this._initShaders();
     this._initNodeBuffers();
     this._initEdgeBuffers();
+    this._initLabelBuffers();
+    this._labelCache = new LabelCache(this._gl);
+    this._imageAtlas = new ImageAtlas(this._gl);
   }
 
   private _initShaders(): void {
     this._nodeProgram = createProgram(this._gl, nodeVertexSource, nodeFragmentSource);
     this._edgeProgram = createProgram(this._gl, edgeVertexSource, edgeFragmentSource);
+    this._labelProgram = createProgram(this._gl, labelVertexSource, labelFragmentSource);
   }
 
   private _initNodeBuffers(): void {
@@ -126,57 +148,27 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     this._nodeInstanceBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, this._nodeInstanceBuffer);
 
-    const INSTANCE_STRIDE = 20 * Float32Array.BYTES_PER_ELEMENT;
+    const INSTANCE_STRIDE = 25 * Float32Array.BYTES_PER_ELEMENT;
+    const attr = (name: string, size: number, offset: number) => {
+      const loc = gl.getAttribLocation(this._nodeProgram!, name);
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, size, gl.FLOAT, false, INSTANCE_STRIDE, offset * 4);
+      gl.vertexAttribDivisor(loc, 1);
+    };
 
-    const centerLoc = gl.getAttribLocation(this._nodeProgram, 'aCenter');
-    gl.enableVertexAttribArray(centerLoc);
-    gl.vertexAttribPointer(centerLoc, 2, gl.FLOAT, false, INSTANCE_STRIDE, 0);
-    gl.vertexAttribDivisor(centerLoc, 1);
-
-    const radiusLoc = gl.getAttribLocation(this._nodeProgram, 'aRadius');
-    gl.enableVertexAttribArray(radiusLoc);
-    gl.vertexAttribPointer(radiusLoc, 1, gl.FLOAT, false, INSTANCE_STRIDE, 2 * 4);
-    gl.vertexAttribDivisor(radiusLoc, 1);
-
-    const colorLoc = gl.getAttribLocation(this._nodeProgram, 'aColor');
-    gl.enableVertexAttribArray(colorLoc);
-    gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, INSTANCE_STRIDE, 3 * 4);
-    gl.vertexAttribDivisor(colorLoc, 1);
-
-    const borderColorLoc = gl.getAttribLocation(this._nodeProgram, 'aBorderColor');
-    gl.enableVertexAttribArray(borderColorLoc);
-    gl.vertexAttribPointer(borderColorLoc, 4, gl.FLOAT, false, INSTANCE_STRIDE, 7 * 4);
-    gl.vertexAttribDivisor(borderColorLoc, 1);
-
-    const borderWidthLoc = gl.getAttribLocation(this._nodeProgram, 'aBorderWidth');
-    gl.enableVertexAttribArray(borderWidthLoc);
-    gl.vertexAttribPointer(borderWidthLoc, 1, gl.FLOAT, false, INSTANCE_STRIDE, 11 * 4);
-    gl.vertexAttribDivisor(borderWidthLoc, 1);
-
-    const shadowColorLoc = gl.getAttribLocation(this._nodeProgram, 'aShadowColor');
-    gl.enableVertexAttribArray(shadowColorLoc);
-    gl.vertexAttribPointer(shadowColorLoc, 4, gl.FLOAT, false, INSTANCE_STRIDE, 12 * 4);
-    gl.vertexAttribDivisor(shadowColorLoc, 1);
-
-    const shadowSizeLoc = gl.getAttribLocation(this._nodeProgram, 'aShadowSize');
-    gl.enableVertexAttribArray(shadowSizeLoc);
-    gl.vertexAttribPointer(shadowSizeLoc, 1, gl.FLOAT, false, INSTANCE_STRIDE, 16 * 4);
-    gl.vertexAttribDivisor(shadowSizeLoc, 1);
-
-    const shadowOffsetXLoc = gl.getAttribLocation(this._nodeProgram, 'aShadowOffsetX');
-    gl.enableVertexAttribArray(shadowOffsetXLoc);
-    gl.vertexAttribPointer(shadowOffsetXLoc, 1, gl.FLOAT, false, INSTANCE_STRIDE, 17 * 4);
-    gl.vertexAttribDivisor(shadowOffsetXLoc, 1);
-
-    const shadowOffsetYLoc = gl.getAttribLocation(this._nodeProgram, 'aShadowOffsetY');
-    gl.enableVertexAttribArray(shadowOffsetYLoc);
-    gl.vertexAttribPointer(shadowOffsetYLoc, 1, gl.FLOAT, false, INSTANCE_STRIDE, 18 * 4);
-    gl.vertexAttribDivisor(shadowOffsetYLoc, 1);
-
-    const shapeTypeLoc = gl.getAttribLocation(this._nodeProgram, 'aShapeType');
-    gl.enableVertexAttribArray(shapeTypeLoc);
-    gl.vertexAttribPointer(shapeTypeLoc, 1, gl.FLOAT, false, INSTANCE_STRIDE, 19 * 4);
-    gl.vertexAttribDivisor(shapeTypeLoc, 1);
+    attr('aCenter', 2, 0);
+    attr('aRadius', 1, 2);
+    attr('aColor', 4, 3);
+    attr('aBorderColor', 4, 7);
+    attr('aBorderWidth', 1, 11);
+    attr('aShadowColor', 4, 12);
+    attr('aShadowSize', 1, 16);
+    attr('aShadowOffsetX', 1, 17);
+    attr('aShadowOffsetY', 1, 18);
+    attr('aShapeType', 1, 19);
+    attr('aImageUV0', 2, 20);
+    attr('aImageUV1', 2, 22);
+    attr('aImageAspect', 1, 24);
 
     gl.bindVertexArray(null);
   }
@@ -225,6 +217,44 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     attr('aShadowSize', 1, 22);
     attr('aShadowOffsetX', 1, 23);
     attr('aShadowOffsetY', 1, 24);
+
+    gl.bindVertexArray(null);
+  }
+
+  private _initLabelBuffers(): void {
+    if (!this._labelProgram) {
+      throw new OrbError('Label program not initialized.');
+    }
+
+    const gl = this._gl;
+
+    this._labelVao = gl.createVertexArray();
+    gl.bindVertexArray(this._labelVao);
+
+    const quadVerts = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+    const quadBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, quadVerts, gl.STATIC_DRAW);
+
+    const posLoc = gl.getAttribLocation(this._labelProgram, 'aQuadPosition');
+    gl.enableVertexAttribArray(posLoc);
+    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+    this._labelInstanceBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this._labelInstanceBuffer);
+
+    const STRIDE = FLOATS_PER_LABEL * 4;
+    const attr = (name: string, size: number, offset: number) => {
+      const loc = gl.getAttribLocation(this._labelProgram!, name);
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, size, gl.FLOAT, false, STRIDE, offset * 4);
+      gl.vertexAttribDivisor(loc, 1);
+    };
+
+    attr('aLabelCenter', 2, 0);
+    attr('aLabelSize', 2, 2);
+    attr('aLabelUV0', 2, 4);
+    attr('aLabelUV1', 2, 6);
 
     gl.bindVertexArray(null);
   }
@@ -326,8 +356,8 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
   }
 
   render(graph: IGraph<N, E>): void {
-    if (!this._nodeProgram || !this._edgeProgram) {
-      throw new OrbError('Node or edge program not initialized.');
+    if (!this._nodeProgram || !this._edgeProgram || !this._labelProgram) {
+      throw new OrbError('Shader programs not initialized.');
     }
 
     const gl = this._gl;
@@ -517,8 +547,15 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     gl.useProgram(this._nodeProgram);
     this._setViewUniforms(this._nodeProgram);
 
+    if (this._imageAtlas) {
+      this._imageAtlas.uploadIfDirty();
+      this._imageAtlas.bind(0);
+      gl.uniform1i(gl.getUniformLocation(this._nodeProgram, 'uImageAtlas'), 0);
+    }
+
     const nodes = graph.getNodes();
-    const FLOATS_PER_NODE = 20;
+    const zoom = this.transform.k;
+    const FLOATS_PER_NODE = 25;
     const instanceData = new Float32Array(nodes.length * FLOATS_PER_NODE);
 
     if (nodes.length !== this._lastNodeCount || this._isColorCacheDirty) {
@@ -573,6 +610,31 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
       instanceData[off + 17] = shadowOffsetX;
       instanceData[off + 18] = shadowOffsetY;
       instanceData[off + 19] = SHAPE_TYPE_MAP[node.getStyle().shape ?? NodeShapeType.CIRCLE] ?? 0;
+
+      const style = node.getStyle();
+      let imgU0 = 0;
+      let imgV0 = 0;
+      let imgU1 = 0;
+      let imgV1 = 0;
+      let imgAspect = 0;
+      if (radius * zoom >= IMAGE_LOD_MIN_SCREEN_PX) {
+        const imageUrl = node.isSelected() ? style.imageUrlSelected || style.imageUrl : style.imageUrl;
+        if (imageUrl && this._imageAtlas) {
+          const entry = this._imageAtlas.getOrCreate(imageUrl);
+          if (entry) {
+            imgU0 = entry.u0;
+            imgV0 = entry.v0;
+            imgU1 = entry.u1;
+            imgV1 = entry.v1;
+            imgAspect = entry.aspect;
+          }
+        }
+      }
+      instanceData[off + 20] = imgU0;
+      instanceData[off + 21] = imgV0;
+      instanceData[off + 22] = imgU1;
+      instanceData[off + 23] = imgV1;
+      instanceData[off + 24] = imgAspect;
     }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this._nodeInstanceBuffer);
@@ -581,6 +643,109 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     gl.bindVertexArray(this._nodeVao);
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, nodes.length);
     gl.bindVertexArray(null);
+
+    if (this._labelProgram && this._labelCache && this._settings.labelsIsEnabled) {
+      const labelCache = this._labelCache;
+      const rasterPx = labelCache.rasterFontPx;
+      let labelCount = 0;
+
+      const maxLabels = nodes.length + edges.length;
+      const labelData = new Float32Array(maxLabels * FLOATS_PER_LABEL);
+
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        const text = node.getLabel();
+        if (!text) {
+          continue;
+        }
+
+        const style = node.getStyle();
+        const fontSize = style.fontSize || DEFAULT_FONT_SIZE;
+        if (fontSize * zoom < LABEL_LOD_MIN_SCREEN_PX) {
+          continue;
+        }
+
+        const fontFamily = style.fontFamily || DEFAULT_FONT_FAMILY;
+        const fontColor = (style.fontColor ?? DEFAULT_FONT_COLOR).toString();
+        const bgColor = style.fontBackgroundColor ? style.fontBackgroundColor.toString() : null;
+
+        const entry = labelCache.getOrCreate(text, fontSize, fontFamily, fontColor, bgColor);
+        if (!entry) {
+          continue;
+        }
+
+        const center = node.getCenter();
+        const borderedRadius = node.getBorderedRadius();
+        const worldW = (entry.pxWidth / rasterPx) * fontSize;
+        const worldH = (entry.pxHeight / rasterPx) * fontSize;
+
+        const off = labelCount * FLOATS_PER_LABEL;
+        labelData[off] = center.x;
+        labelData[off + 1] = center.y + borderedRadius * (1 + LABEL_DISTANCE_FROM_NODE) + worldH / 2;
+        labelData[off + 2] = worldW / 2;
+        labelData[off + 3] = worldH / 2;
+        labelData[off + 4] = entry.u0;
+        labelData[off + 5] = entry.v0;
+        labelData[off + 6] = entry.u1;
+        labelData[off + 7] = entry.v1;
+        labelCount++;
+      }
+
+      for (let i = 0; i < edges.length; i++) {
+        const edge = edges[i];
+        const text = edge.getLabel();
+        if (!text) {
+          continue;
+        }
+
+        const style = edge.getStyle();
+        const fontSize = style.fontSize || DEFAULT_FONT_SIZE;
+        if (fontSize * zoom < LABEL_LOD_MIN_SCREEN_PX) {
+          continue;
+        }
+
+        const fontFamily = style.fontFamily || DEFAULT_FONT_FAMILY;
+        const fontColor = (style.fontColor ?? DEFAULT_FONT_COLOR).toString();
+        const bgColor = style.fontBackgroundColor ? style.fontBackgroundColor.toString() : null;
+
+        const entry = labelCache.getOrCreate(text, fontSize, fontFamily, fontColor, bgColor);
+        if (!entry) {
+          continue;
+        }
+
+        const edgeCenter = edge.getCenter();
+        const worldW = (entry.pxWidth / rasterPx) * fontSize;
+        const worldH = (entry.pxHeight / rasterPx) * fontSize;
+
+        const off = labelCount * FLOATS_PER_LABEL;
+        labelData[off] = edgeCenter.x;
+        labelData[off + 1] = edgeCenter.y;
+        labelData[off + 2] = worldW / 2;
+        labelData[off + 3] = worldH / 2;
+        labelData[off + 4] = entry.u0;
+        labelData[off + 5] = entry.v0;
+        labelData[off + 6] = entry.u1;
+        labelData[off + 7] = entry.v1;
+        labelCount++;
+      }
+
+      if (labelCount > 0) {
+        labelCache.uploadIfDirty();
+
+        gl.useProgram(this._labelProgram);
+        this._setViewUniforms(this._labelProgram);
+
+        labelCache.bind(0);
+        gl.uniform1i(gl.getUniformLocation(this._labelProgram, 'uAtlas'), 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._labelInstanceBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, labelData.subarray(0, labelCount * FLOATS_PER_LABEL), gl.DYNAMIC_DRAW);
+
+        gl.bindVertexArray(this._labelVao);
+        gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, labelCount);
+        gl.bindVertexArray(null);
+      }
+    }
 
     this._isInitiallyRendered = true;
   }
