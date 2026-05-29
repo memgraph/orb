@@ -17,6 +17,8 @@ in float vShadowSize;
 in vec2 vShadowOffset;
 flat in int vEdgeType;
 
+uniform bool uSimpleMode;
+
 out vec4 fragColor;
 
 float sdSegment(vec2 p, vec2 a, vec2 b) {
@@ -89,32 +91,44 @@ float sdArrow(vec2 p, vec2 tip, vec2 dir, float size) {
 }
 
 void main() {
-  float cutoff = vHalfWidth + vShadowSize + length(vShadowOffset) + vArrowSize + 2.0;
-
-  float dist;
-  float shadowDist;
-  vec2 shadowPos = vWorldPos - vShadowOffset;
-
-  if (vEdgeType == 0) {
-    dist = sdSegment(vWorldPos, vStart, vEnd);
-    shadowDist = sdSegment(shadowPos, vStart, vEnd);
-  } else if (vEdgeType == 1) {
-    dist = sdBezier(vWorldPos, vStart, vControl, vEnd);
-    shadowDist = sdBezier(shadowPos, vStart, vControl, vEnd);
-  } else {
-    dist = abs(length(vWorldPos - vControl) - vLoopbackRadius);
-    shadowDist = abs(length(shadowPos - vControl) - vLoopbackRadius);
+  if (uSimpleMode && vEdgeType == 0) {
+    fragColor = vColor;
+    return;
   }
 
-  float arrowDist = sdArrow(vWorldPos, vArrowTip, vArrowDir, vArrowSize);
-  float shadowArrowDist = sdArrow(shadowPos, vArrowTip, vArrowDir, vArrowSize);
+  // Edge SDF: type-based dispatch (always needed).
+  float dist;
+  if (vEdgeType == 0) {
+    dist = sdSegment(vWorldPos, vStart, vEnd);
+  } else if (vEdgeType == 1) {
+    dist = sdBezier(vWorldPos, vStart, vControl, vEnd);
+  } else {
+    dist = abs(length(vWorldPos - vControl) - vLoopbackRadius);
+  }
 
   float edgeSdf = dist - vHalfWidth;
-  float combinedSdf = min(edgeSdf, arrowDist);
-  float shadowCombined = min(shadowDist - vHalfWidth, shadowArrowDist);
+  float combinedSdf = edgeSdf;
+
+  if (vArrowSize > 0.0) {
+    float arrowDist = sdArrow(vWorldPos, vArrowTip, vArrowDir, vArrowSize);
+    combinedSdf = min(edgeSdf, arrowDist);
+  }
 
   float shadowAlpha = 0.0;
   if (vShadowSize > 0.0) {
+    vec2 shadowPos = vWorldPos - vShadowOffset;
+    float shadowDist;
+    if (vEdgeType == 0) {
+      shadowDist = sdSegment(shadowPos, vStart, vEnd);
+    } else if (vEdgeType == 1) {
+      shadowDist = sdBezier(shadowPos, vStart, vControl, vEnd);
+    } else {
+      shadowDist = abs(length(shadowPos - vControl) - vLoopbackRadius);
+    }
+    float shadowArrowDist = vArrowSize > 0.0
+      ? sdArrow(shadowPos, vArrowTip, vArrowDir, vArrowSize)
+      : 1.0e6;
+    float shadowCombined = min(shadowDist - vHalfWidth, shadowArrowDist);
     float t = max(shadowCombined, 0.0) / vShadowSize;
     shadowAlpha = exp(-t * t * 1.5) * 0.5 * vShadowColor.a;
   }
@@ -128,6 +142,10 @@ void main() {
 
   if (finalAlpha < 0.001) discard;
 
-  vec3 finalRGB = (edgeColor.rgb * edgeColor.a + vShadowColor.rgb * shadowAlpha * (1.0 - edgeColor.a)) / finalAlpha;
-  fragColor = vec4(finalRGB, finalAlpha);
+  if (shadowAlpha > 0.0) {
+    vec3 finalRGB = (edgeColor.rgb * edgeColor.a + vShadowColor.rgb * shadowAlpha * (1.0 - edgeColor.a)) / finalAlpha;
+    fragColor = vec4(finalRGB, finalAlpha);
+  } else {
+    fragColor = edgeColor;
+  }
 }

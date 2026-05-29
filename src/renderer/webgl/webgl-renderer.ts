@@ -11,6 +11,7 @@ import {
   IRenderer,
   RendererEvents as RE,
   IRendererSettings,
+  RenderEventType,
 } from '../shared';
 import { copyObject } from '../../utils/object.utils';
 import { appendCanvas, setupContainer } from '../../utils/html.utils';
@@ -30,6 +31,13 @@ const EDGE_TYPE_STRAIGHT = 0;
 const EDGE_TYPE_CURVED = 1;
 const EDGE_TYPE_LOOPBACK = 2;
 
+// Shared default color tuples — same array reused across all cache misses.
+// Without this, every miss in the render loop allocated a fresh 4-element array
+// (~hundreds of thousands of allocations per frame at scale). Must not be mutated.
+const TRANSPARENT_RGBA: [number, number, number, number] = [0, 0, 0, 0];
+const EDGE_DEFAULT_RGBA: [number, number, number, number] = [0.6, 0.6, 0.6, 1];
+const NODE_DEFAULT_RGBA: [number, number, number, number] = [1, 0, 0, 1];
+
 const SHAPE_TYPE_MAP: Record<string, number> = {
   [NodeShapeType.CIRCLE]: 0,
   [NodeShapeType.DOT]: 1,
@@ -46,6 +54,10 @@ const DEFAULT_FONT_FAMILY = 'Roboto, sans-serif';
 const DEFAULT_FONT_COLOR = '#000000';
 const LABEL_LOD_MIN_SCREEN_PX = 6;
 const IMAGE_LOD_MIN_SCREEN_PX = 4;
+// Below this zoom, edges render with a simplified fragment path (no SDF, no fwidth, no
+// anti-aliasing) since AA shoulders aren't visible anyway. Big win at far-zoom views with
+// many overlapping edges, where the per-fragment SDF math dominates GPU time.
+const EDGE_SIMPLE_LOD_ZOOM = 0.2;
 const LABEL_DISTANCE_FROM_NODE = 0.2;
 const FLOATS_PER_LABEL = 8;
 
@@ -92,6 +104,18 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
   private _lastNodeCount = 0;
   private _lastEdgeCount = 0;
 
+  private _edgeInstanceData: Float32Array | null = null;
+  private _nodeInstanceData: Float32Array | null = null;
+  private _buffersAreCurrent = false;
+  private _bufferCacheStats = { hits: 0, misses: 0 };
+
+  private _timerExt: any = null;
+  private _timerEdgeQueries: WebGLQuery[] = [];
+  private _timerNodeQueries: WebGLQuery[] = [];
+  private _timerQueryIdx = 0;
+  private _lastEdgeGpuMs: number | null = null;
+  private _lastNodeGpuMs: number | null = null;
+
   constructor(container: HTMLElement, settings?: Partial<IRendererSettings>) {
     super();
     setupContainer(container, settings?.areCollapsedContainerDimensionsAllowed);
@@ -118,6 +142,46 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     this._initLabelBuffers();
     this._labelCache = new LabelCache(this._gl);
     this._imageAtlas = new ImageAtlas(this._gl);
+
+    // GPU timer queries — async, polled lazily. Without this extension getGpuTimeStats
+    // returns nulls but render() runs identically.
+    this._timerExt = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+    if (this._timerExt) {
+      for (let i = 0; i < 4; i++) {
+        const eq = gl.createQuery();
+        const nq = gl.createQuery();
+        if (eq) {
+          this._timerEdgeQueries.push(eq);
+        }
+        if (nq) {
+          this._timerNodeQueries.push(nq);
+        }
+      }
+    }
+  }
+
+  private _pollTimerQuery(query: WebGLQuery): number | null {
+    if (!this._timerExt) {
+      return null;
+    }
+    const gl = this._gl;
+    const available = gl.getQueryParameter(query, gl.QUERY_RESULT_AVAILABLE);
+    if (!available) {
+      return null;
+    }
+    if (gl.getParameter(this._timerExt.GPU_DISJOINT_EXT)) {
+      return null;
+    }
+    const ns = gl.getQueryParameter(query, gl.QUERY_RESULT) as number;
+    return ns / 1e6;
+  }
+
+  getGpuTimeStats(): { edgeMs: number | null; nodeMs: number | null; supported: boolean } {
+    return {
+      edgeMs: this._lastEdgeGpuMs,
+      nodeMs: this._lastNodeGpuMs,
+      supported: this._timerExt !== null,
+    };
   }
 
   private _initShaders(): void {
@@ -344,6 +408,14 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     return this._isInitiallyRendered;
   }
 
+  invalidateBuffers(): void {
+    this._buffersAreCurrent = false;
+  }
+
+  getRenderCacheStats(): { hits: number; misses: number } {
+    return { ...this._bufferCacheStats };
+  }
+
   getSettings(): IRendererSettings {
     return copyObject(this._settings);
   }
@@ -360,13 +432,18 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
       throw new OrbError('Shader programs not initialized.');
     }
 
+    this.emit(RenderEventType.RENDER_START, undefined);
+    const renderStartedAt = performance.now();
+
     const gl = this._gl;
 
     const rect = this._container.getBoundingClientRect();
-    this._canvas.width = rect.width;
-    this._canvas.height = rect.height;
-    this._width = rect.width;
-    this._height = rect.height;
+    if (rect.width !== this._width || rect.height !== this._height) {
+      this._canvas.width = rect.width;
+      this._canvas.height = rect.height;
+      this._width = rect.width;
+      this._height = rect.height;
+    }
 
     gl.viewport(0, 0, this._width, this._height);
 
@@ -378,171 +455,254 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
 
     const edges = graph.getEdges();
     const FLOATS_PER_EDGE = 25;
-    const edgeData = new Float32Array(edges.length * FLOATS_PER_EDGE);
+    const edgeBufferLen = edges.length * FLOATS_PER_EDGE;
+    const edgeBufferSizeChanged = this._edgeInstanceData === null || this._edgeInstanceData.length !== edgeBufferLen;
+    if (edgeBufferSizeChanged) {
+      this._edgeInstanceData = new Float32Array(edgeBufferLen);
+    }
+    const edgeData = this._edgeInstanceData!;
 
-    if (edges.length !== this._lastEdgeCount || this._isColorCacheDirty) {
+    const canSkipRebuild = this._buffersAreCurrent && !edgeBufferSizeChanged;
+    if (canSkipRebuild) {
+      this._bufferCacheStats.hits++;
+    } else {
+      this._bufferCacheStats.misses++;
+    }
+
+    let nodeCxCache: Float64Array | null = null;
+    let nodeCyCache: Float64Array | null = null;
+    let nodeBorderCache: Float64Array | null = null;
+    let nodeIdToIndex: Map<any, number> | null = null;
+    if (!canSkipRebuild) {
+      const allNodes = graph.getNodes();
+      nodeCxCache = new Float64Array(allNodes.length);
+      nodeCyCache = new Float64Array(allNodes.length);
+      nodeBorderCache = new Float64Array(allNodes.length);
+      nodeIdToIndex = new Map<any, number>();
+      for (let i = 0; i < allNodes.length; i++) {
+        const n = allNodes[i];
+        const c = n.getCenter();
+        nodeCxCache[i] = c.x;
+        nodeCyCache[i] = c.y;
+        nodeBorderCache[i] = n.getDistanceToBorder();
+        nodeIdToIndex.set(n.id, i);
+      }
+    }
+
+    if (!canSkipRebuild && (edges.length !== this._lastEdgeCount || this._isColorCacheDirty)) {
       this._buildEdgeColorCache(edges);
       this._buildEdgeShadowColorCache(edges);
       this._isColorCacheDirty = false;
       this._lastEdgeCount = edges.length;
     }
 
-    for (let i = 0; i < edges.length; i++) {
-      const edge = edges[i];
-      const start = edge.startNode.getCenter();
-      const end = edge.endNode.getCenter();
-      const shadowSize = edge.getStyle().shadowSize || 0;
-      const shadowOffsetX = edge.getStyle().shadowOffsetX || 0;
-      const shadowOffsetY = edge.getStyle().shadowOffsetY || 0;
-      const shadowColor = this._edgeShadowColorCache.get(edge.id) || [0, 0, 0, 0];
-      const off = i * FLOATS_PER_EDGE;
-
-      const width = edge.getWidth();
-      const rgba =
-        edge.isHovered() || edge.isSelected()
-          ? this._resolveColor(edge.getColor())
-          : this._edgeColorCache.get(edge.id) || [0.6, 0.6, 0.6, 1];
-
-      let edgeType = EDGE_TYPE_STRAIGHT;
-      let controlX = 0;
-      let controlY = 0;
-      let loopbackRadius = 0;
-      let arrowSize = 0;
-      let arrowTipX = 0;
-      let arrowTipY = 0;
-      let arrowDirX = 0;
-      let arrowDirY = 0;
-
-      if (edge.isCurved()) {
-        edgeType = EDGE_TYPE_CURVED;
-        const cp = (edge as EdgeCurved<N, E>).getCurvedControlPoint();
-        controlX = cp.x;
-        controlY = cp.y;
-      } else if (edge.isLoopback()) {
-        edgeType = EDGE_TYPE_LOOPBACK;
-        const circle = (edge as EdgeLoopback<N, E>).getCircularData();
-        controlX = circle.x;
-        controlY = circle.y;
-        loopbackRadius = circle.radius;
-      }
-
-      const scaleFactor = edge.getStyle().arrowSize ?? 1;
-      if (scaleFactor > 0) {
-        const lineWidth = width || 1;
-        arrowSize = 1.5 * scaleFactor + 3 * lineWidth;
-
-        if (edgeType === EDGE_TYPE_STRAIGHT) {
-          const dx = end.x - start.x;
-          const dy = end.y - start.y;
-          const len = Math.sqrt(dx * dx + dy * dy);
-          if (len > 0) {
-            arrowDirX = dx / len;
-            arrowDirY = dy / len;
-            const borderDist = edge.endNode.getDistanceToBorder();
-            arrowTipX = end.x - arrowDirX * borderDist;
-            arrowTipY = end.y - arrowDirY * borderDist;
-          }
-        } else if (edgeType === EDGE_TYPE_CURVED) {
-          const targetCenter = edge.endNode.getCenter();
-          const borderDist = edge.endNode.getDistanceToBorder();
-          let bestT = 1.0;
-          let low = 0.5;
-          let high = 1.0;
-
-          for (let iter = 0; iter < 8; iter++) {
-            const mid = (low + high) * 0.5;
-            const mt = 1 - mid;
-            const px = mt * mt * start.x + 2 * mid * mt * controlX + mid * mid * end.x;
-            const py = mt * mt * start.y + 2 * mid * mt * controlY + mid * mid * end.y;
-            const d = Math.sqrt((px - targetCenter.x) ** 2 + (py - targetCenter.y) ** 2);
-            if (Math.abs(d - borderDist) < 0.1) {
-              bestT = mid;
-              break;
-            }
-            if (d > borderDist) {
-              low = mid;
-            } else {
-              high = mid;
-            }
-            bestT = mid;
-          }
-
-          const mt = 1 - bestT;
-          arrowTipX = mt * mt * start.x + 2 * bestT * mt * controlX + bestT * bestT * end.x;
-          arrowTipY = mt * mt * start.y + 2 * bestT * mt * controlY + bestT * bestT * end.y;
-          const tx = 2 * mt * (controlX - start.x) + 2 * bestT * (end.x - controlX);
-          const ty = 2 * mt * (controlY - start.y) + 2 * bestT * (end.y - controlY);
-          const tLen = Math.sqrt(tx * tx + ty * ty);
-          if (tLen > 0) {
-            arrowDirX = tx / tLen;
-            arrowDirY = ty / tLen;
-          }
+    if (!canSkipRebuild) {
+      for (let i = 0; i < edges.length; i++) {
+        const edge = edges[i];
+        const startIdx = nodeIdToIndex!.get(edge.startNode.id);
+        const endIdx = nodeIdToIndex!.get(edge.endNode.id);
+        let startX: number;
+        let startY: number;
+        let endX: number;
+        let endY: number;
+        let endBorderDist: number;
+        let startBorderDist: number;
+        if (startIdx !== undefined) {
+          startX = nodeCxCache![startIdx];
+          startY = nodeCyCache![startIdx];
+          startBorderDist = nodeBorderCache![startIdx];
         } else {
-          const nodeCenter = edge.startNode.getCenter();
-          const borderDist = edge.startNode.getDistanceToBorder();
-          let bestT = 0.8;
-          let low = 0.6;
-          let high = 1.0;
-          for (let iter = 0; iter < 8; iter++) {
-            const mid = (low + high) * 0.5;
-            const angle = mid * 2 * Math.PI;
-            const px = controlX + loopbackRadius * Math.cos(angle);
-            const py = controlY - loopbackRadius * Math.sin(angle);
-            const d = Math.sqrt((px - nodeCenter.x) ** 2 + (py - nodeCenter.y) ** 2);
-            if (Math.abs(d - borderDist) < 0.1) {
-              bestT = mid;
-              break;
-            }
-            if (d > borderDist) {
-              high = mid;
-            } else {
-              low = mid;
-            }
-            bestT = mid;
-          }
-          const angle = bestT * 2 * Math.PI;
-          arrowTipX = controlX + loopbackRadius * Math.cos(angle);
-          arrowTipY = controlY - loopbackRadius * Math.sin(angle);
-          const arrowAngle = bestT * -2 * Math.PI + 0.45 * Math.PI;
-          arrowDirX = Math.cos(arrowAngle);
-          arrowDirY = Math.sin(arrowAngle);
+          const c = edge.startNode.getCenter();
+          startX = c.x;
+          startY = c.y;
+          startBorderDist = edge.startNode.getDistanceToBorder();
         }
-      }
+        if (endIdx !== undefined) {
+          endX = nodeCxCache![endIdx];
+          endY = nodeCyCache![endIdx];
+          endBorderDist = nodeBorderCache![endIdx];
+        } else {
+          const c = edge.endNode.getCenter();
+          endX = c.x;
+          endY = c.y;
+          endBorderDist = edge.endNode.getDistanceToBorder();
+        }
+        const edgeStyle = edge.getStyle();
+        const shadowSize = edgeStyle.shadowSize || 0;
+        const shadowOffsetX = edgeStyle.shadowOffsetX || 0;
+        const shadowOffsetY = edgeStyle.shadowOffsetY || 0;
+        const shadowColor = this._edgeShadowColorCache.get(edge.id) || TRANSPARENT_RGBA;
+        const off = i * FLOATS_PER_EDGE;
 
-      edgeData[off] = start.x;
-      edgeData[off + 1] = start.y;
-      edgeData[off + 2] = end.x;
-      edgeData[off + 3] = end.y;
-      edgeData[off + 4] = controlX;
-      edgeData[off + 5] = controlY;
-      edgeData[off + 6] = width;
-      edgeData[off + 7] = edgeType;
-      edgeData[off + 8] = loopbackRadius;
-      edgeData[off + 9] = arrowSize;
-      edgeData[off + 10] = arrowTipX;
-      edgeData[off + 11] = arrowTipY;
-      edgeData[off + 12] = arrowDirX;
-      edgeData[off + 13] = arrowDirY;
-      edgeData[off + 14] = rgba[0];
-      edgeData[off + 15] = rgba[1];
-      edgeData[off + 16] = rgba[2];
-      edgeData[off + 17] = rgba[3];
-      edgeData[off + 18] = shadowColor[0];
-      edgeData[off + 19] = shadowColor[1];
-      edgeData[off + 20] = shadowColor[2];
-      edgeData[off + 21] = shadowColor[3];
-      edgeData[off + 22] = shadowSize;
-      edgeData[off + 23] = shadowOffsetX;
-      edgeData[off + 24] = shadowOffsetY;
+        const width = edge.getWidth();
+        const rgba =
+          edge.isHovered() || edge.isSelected()
+            ? this._resolveColor(edge.getColor())
+            : this._edgeColorCache.get(edge.id) || EDGE_DEFAULT_RGBA;
+
+        let edgeType = EDGE_TYPE_STRAIGHT;
+        let controlX = 0;
+        let controlY = 0;
+        let loopbackRadius = 0;
+        let arrowSize = 0;
+        let arrowTipX = 0;
+        let arrowTipY = 0;
+        let arrowDirX = 0;
+        let arrowDirY = 0;
+
+        if (edge.isCurved()) {
+          edgeType = EDGE_TYPE_CURVED;
+          const cp = (edge as EdgeCurved<N, E>).getCurvedControlPoint();
+          controlX = cp.x;
+          controlY = cp.y;
+        } else if (edge.isLoopback()) {
+          edgeType = EDGE_TYPE_LOOPBACK;
+          const circle = (edge as EdgeLoopback<N, E>).getCircularData();
+          controlX = circle.x;
+          controlY = circle.y;
+          loopbackRadius = circle.radius;
+        }
+
+        const scaleFactor = edgeStyle.arrowSize ?? 1;
+        if (scaleFactor > 0) {
+          const lineWidth = width || 1;
+          arrowSize = 1.5 * scaleFactor + 3 * lineWidth;
+
+          if (edgeType === EDGE_TYPE_STRAIGHT) {
+            const dx = endX - startX;
+            const dy = endY - startY;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            if (len > 0) {
+              arrowDirX = dx / len;
+              arrowDirY = dy / len;
+              arrowTipX = endX - arrowDirX * endBorderDist;
+              arrowTipY = endY - arrowDirY * endBorderDist;
+            }
+          } else if (edgeType === EDGE_TYPE_CURVED) {
+            // End node's center is (endX, endY); border distance cached above.
+            let bestT = 1.0;
+            let low = 0.5;
+            let high = 1.0;
+
+            for (let iter = 0; iter < 8; iter++) {
+              const mid = (low + high) * 0.5;
+              const mt = 1 - mid;
+              const px = mt * mt * startX + 2 * mid * mt * controlX + mid * mid * endX;
+              const py = mt * mt * startY + 2 * mid * mt * controlY + mid * mid * endY;
+              const d = Math.sqrt((px - endX) ** 2 + (py - endY) ** 2);
+              if (Math.abs(d - endBorderDist) < 0.1) {
+                bestT = mid;
+                break;
+              }
+              if (d > endBorderDist) {
+                low = mid;
+              } else {
+                high = mid;
+              }
+              bestT = mid;
+            }
+
+            const mt = 1 - bestT;
+            arrowTipX = mt * mt * startX + 2 * bestT * mt * controlX + bestT * bestT * endX;
+            arrowTipY = mt * mt * startY + 2 * bestT * mt * controlY + bestT * bestT * endY;
+            const tx = 2 * mt * (controlX - startX) + 2 * bestT * (endX - controlX);
+            const ty = 2 * mt * (controlY - startY) + 2 * bestT * (endY - controlY);
+            const tLen = Math.sqrt(tx * tx + ty * ty);
+            if (tLen > 0) {
+              arrowDirX = tx / tLen;
+              arrowDirY = ty / tLen;
+            }
+          } else {
+            let bestT = 0.8;
+            let low = 0.6;
+            let high = 1.0;
+            for (let iter = 0; iter < 8; iter++) {
+              const mid = (low + high) * 0.5;
+              const angle = mid * 2 * Math.PI;
+              const px = controlX + loopbackRadius * Math.cos(angle);
+              const py = controlY - loopbackRadius * Math.sin(angle);
+              const d = Math.sqrt((px - startX) ** 2 + (py - startY) ** 2);
+              if (Math.abs(d - startBorderDist) < 0.1) {
+                bestT = mid;
+                break;
+              }
+              if (d > startBorderDist) {
+                high = mid;
+              } else {
+                low = mid;
+              }
+              bestT = mid;
+            }
+            const angle = bestT * 2 * Math.PI;
+            arrowTipX = controlX + loopbackRadius * Math.cos(angle);
+            arrowTipY = controlY - loopbackRadius * Math.sin(angle);
+            const arrowAngle = bestT * -2 * Math.PI + 0.45 * Math.PI;
+            arrowDirX = Math.cos(arrowAngle);
+            arrowDirY = Math.sin(arrowAngle);
+          }
+        }
+
+        edgeData[off] = startX;
+        edgeData[off + 1] = startY;
+        edgeData[off + 2] = endX;
+        edgeData[off + 3] = endY;
+        edgeData[off + 4] = controlX;
+        edgeData[off + 5] = controlY;
+        edgeData[off + 6] = width;
+        edgeData[off + 7] = edgeType;
+        edgeData[off + 8] = loopbackRadius;
+        edgeData[off + 9] = arrowSize;
+        edgeData[off + 10] = arrowTipX;
+        edgeData[off + 11] = arrowTipY;
+        edgeData[off + 12] = arrowDirX;
+        edgeData[off + 13] = arrowDirY;
+        edgeData[off + 14] = rgba[0];
+        edgeData[off + 15] = rgba[1];
+        edgeData[off + 16] = rgba[2];
+        edgeData[off + 17] = rgba[3];
+        edgeData[off + 18] = shadowColor[0];
+        edgeData[off + 19] = shadowColor[1];
+        edgeData[off + 20] = shadowColor[2];
+        edgeData[off + 21] = shadowColor[3];
+        edgeData[off + 22] = shadowSize;
+        edgeData[off + 23] = shadowOffsetX;
+        edgeData[off + 24] = shadowOffsetY;
+      }
     }
 
     gl.useProgram(this._edgeProgram);
     this._setViewUniforms(this._edgeProgram);
     gl.bindBuffer(gl.ARRAY_BUFFER, this._edgeInstanceBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, edgeData, gl.DYNAMIC_DRAW);
+    if (!canSkipRebuild) {
+      gl.bufferData(gl.ARRAY_BUFFER, edgeData.byteLength, gl.STREAM_DRAW);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, edgeData);
+    }
+
+    const isSimpleEdgeMode = this.transform.k <= EDGE_SIMPLE_LOD_ZOOM;
+    const uSimpleModeLoc = gl.getUniformLocation(this._edgeProgram, 'uSimpleMode');
+    gl.uniform1i(uSimpleModeLoc, isSimpleEdgeMode ? 1 : 0);
+
     gl.bindVertexArray(this._edgeVao);
+
+    if (this._timerExt && this._timerEdgeQueries.length > 0) {
+      const slot = this._timerEdgeQueries[this._timerQueryIdx];
+      const ms = this._pollTimerQuery(slot);
+      if (ms !== null) {
+        this._lastEdgeGpuMs = ms;
+      }
+      gl.beginQuery(this._timerExt.TIME_ELAPSED_EXT, slot);
+    }
+
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, edges.length);
+
+    if (this._timerExt && this._timerEdgeQueries.length > 0) {
+      gl.endQuery(this._timerExt.TIME_ELAPSED_EXT);
+    }
     gl.bindVertexArray(null);
+
+    if (isSimpleEdgeMode) {
+      gl.enable(gl.BLEND);
+    }
 
     gl.useProgram(this._nodeProgram);
     this._setViewUniforms(this._nodeProgram);
@@ -556,9 +716,15 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     const nodes = graph.getNodes();
     const zoom = this.transform.k;
     const FLOATS_PER_NODE = 25;
-    const instanceData = new Float32Array(nodes.length * FLOATS_PER_NODE);
+    const nodeBufferLen = nodes.length * FLOATS_PER_NODE;
+    const nodeBufferSizeChanged = this._nodeInstanceData === null || this._nodeInstanceData.length !== nodeBufferLen;
+    if (nodeBufferSizeChanged) {
+      this._nodeInstanceData = new Float32Array(nodeBufferLen);
+    }
+    const instanceData = this._nodeInstanceData!;
+    const canSkipNodeRebuild = canSkipRebuild && !nodeBufferSizeChanged;
 
-    if (nodes.length !== this._lastNodeCount || this._isColorCacheDirty) {
+    if (!canSkipNodeRebuild && (nodes.length !== this._lastNodeCount || this._isColorCacheDirty)) {
       this._buildNodeColorCache(nodes);
       this._buildNodeBorderColorCache(nodes);
       this._buildNodeShadowColorCache(nodes);
@@ -566,82 +732,103 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
       this._lastNodeCount = nodes.length;
     }
 
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i];
-      const center = node.getCenter();
-      const radius = node.getRadius();
-      const shadowSize = node.getStyle().shadowSize || 0;
-      const shadowOffsetX = node.getStyle().shadowOffsetX || 0;
-      const shadowOffsetY = node.getStyle().shadowOffsetY || 0;
-      const shadowColor = this._nodeShadowColorCache.get(node.id) || [0, 0, 0, 0];
-      const off = i * FLOATS_PER_NODE;
+    if (!canSkipNodeRebuild) {
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        const center = node.getCenter();
+        const radius = node.getRadius();
+        const nodeStyle = node.getStyle();
+        const shadowSize = nodeStyle.shadowSize || 0;
+        const shadowOffsetX = nodeStyle.shadowOffsetX || 0;
+        const shadowOffsetY = nodeStyle.shadowOffsetY || 0;
+        const shadowColor = this._nodeShadowColorCache.get(node.id) || TRANSPARENT_RGBA;
+        const off = i * FLOATS_PER_NODE;
 
-      let rgba: RGBAFloats;
-      let borderColor: RGBAFloats;
-      let borderWidth: number;
+        let rgba: RGBAFloats;
+        let borderColor: RGBAFloats;
+        let borderWidth: number;
 
-      if (node.isHovered() || node.isSelected()) {
-        rgba = this._resolveColor(node.getColor());
-        borderColor = this._resolveColor(node.getBorderColor());
-        borderWidth = node.getBorderWidth();
-      } else {
-        rgba = this._nodeColorCache.get(node.id) || [1, 0, 0, 1];
-        borderColor = this._nodeBorderColorCache.get(node.id) || [0, 0, 0, 0];
-        borderWidth = node.getBorderWidth();
-      }
+        if (node.isHovered() || node.isSelected()) {
+          rgba = this._resolveColor(node.getColor());
+          borderColor = this._resolveColor(node.getBorderColor());
+          borderWidth = node.getBorderWidth();
+        } else {
+          rgba = this._nodeColorCache.get(node.id) || NODE_DEFAULT_RGBA;
+          borderColor = this._nodeBorderColorCache.get(node.id) || TRANSPARENT_RGBA;
+          borderWidth = node.getBorderWidth();
+        }
 
-      instanceData[off] = center.x;
-      instanceData[off + 1] = center.y;
-      instanceData[off + 2] = radius;
-      instanceData[off + 3] = rgba[0];
-      instanceData[off + 4] = rgba[1];
-      instanceData[off + 5] = rgba[2];
-      instanceData[off + 6] = rgba[3];
-      instanceData[off + 7] = borderColor[0];
-      instanceData[off + 8] = borderColor[1];
-      instanceData[off + 9] = borderColor[2];
-      instanceData[off + 10] = borderColor[3];
-      instanceData[off + 11] = borderWidth;
-      instanceData[off + 12] = shadowColor[0];
-      instanceData[off + 13] = shadowColor[1];
-      instanceData[off + 14] = shadowColor[2];
-      instanceData[off + 15] = shadowColor[3];
-      instanceData[off + 16] = shadowSize;
-      instanceData[off + 17] = shadowOffsetX;
-      instanceData[off + 18] = shadowOffsetY;
-      instanceData[off + 19] = SHAPE_TYPE_MAP[node.getStyle().shape ?? NodeShapeType.CIRCLE] ?? 0;
+        instanceData[off] = center.x;
+        instanceData[off + 1] = center.y;
+        instanceData[off + 2] = radius;
+        instanceData[off + 3] = rgba[0];
+        instanceData[off + 4] = rgba[1];
+        instanceData[off + 5] = rgba[2];
+        instanceData[off + 6] = rgba[3];
+        instanceData[off + 7] = borderColor[0];
+        instanceData[off + 8] = borderColor[1];
+        instanceData[off + 9] = borderColor[2];
+        instanceData[off + 10] = borderColor[3];
+        instanceData[off + 11] = borderWidth;
+        instanceData[off + 12] = shadowColor[0];
+        instanceData[off + 13] = shadowColor[1];
+        instanceData[off + 14] = shadowColor[2];
+        instanceData[off + 15] = shadowColor[3];
+        instanceData[off + 16] = shadowSize;
+        instanceData[off + 17] = shadowOffsetX;
+        instanceData[off + 18] = shadowOffsetY;
+        instanceData[off + 19] = SHAPE_TYPE_MAP[nodeStyle.shape ?? NodeShapeType.CIRCLE] ?? 0;
 
-      const style = node.getStyle();
-      let imgU0 = 0;
-      let imgV0 = 0;
-      let imgU1 = 0;
-      let imgV1 = 0;
-      let imgAspect = 0;
-      if (radius * zoom >= IMAGE_LOD_MIN_SCREEN_PX) {
-        const imageUrl = node.isSelected() ? style.imageUrlSelected || style.imageUrl : style.imageUrl;
-        if (imageUrl && this._imageAtlas) {
-          const entry = this._imageAtlas.getOrCreate(imageUrl);
-          if (entry) {
-            imgU0 = entry.u0;
-            imgV0 = entry.v0;
-            imgU1 = entry.u1;
-            imgV1 = entry.v1;
-            imgAspect = entry.aspect;
+        let imgU0 = 0;
+        let imgV0 = 0;
+        let imgU1 = 0;
+        let imgV1 = 0;
+        let imgAspect = 0;
+        if (radius * zoom >= IMAGE_LOD_MIN_SCREEN_PX) {
+          const imageUrl = node.isSelected() ? nodeStyle.imageUrlSelected || nodeStyle.imageUrl : nodeStyle.imageUrl;
+          if (imageUrl && this._imageAtlas) {
+            const entry = this._imageAtlas.getOrCreate(imageUrl);
+            if (entry) {
+              imgU0 = entry.u0;
+              imgV0 = entry.v0;
+              imgU1 = entry.u1;
+              imgV1 = entry.v1;
+              imgAspect = entry.aspect;
+            }
           }
         }
+        instanceData[off + 20] = imgU0;
+        instanceData[off + 21] = imgV0;
+        instanceData[off + 22] = imgU1;
+        instanceData[off + 23] = imgV1;
+        instanceData[off + 24] = imgAspect;
       }
-      instanceData[off + 20] = imgU0;
-      instanceData[off + 21] = imgV0;
-      instanceData[off + 22] = imgU1;
-      instanceData[off + 23] = imgV1;
-      instanceData[off + 24] = imgAspect;
     }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this._nodeInstanceBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, instanceData, gl.DYNAMIC_DRAW);
+    if (!canSkipNodeRebuild) {
+      gl.bufferData(gl.ARRAY_BUFFER, instanceData.byteLength, gl.STREAM_DRAW);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, instanceData);
+    }
+    this._buffersAreCurrent = true;
 
     gl.bindVertexArray(this._nodeVao);
+
+    if (this._timerExt && this._timerNodeQueries.length > 0) {
+      const slot = this._timerNodeQueries[this._timerQueryIdx];
+      const ms = this._pollTimerQuery(slot);
+      if (ms !== null) {
+        this._lastNodeGpuMs = ms;
+      }
+      gl.beginQuery(this._timerExt.TIME_ELAPSED_EXT, slot);
+    }
+
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, nodes.length);
+
+    if (this._timerExt && this._timerNodeQueries.length > 0) {
+      gl.endQuery(this._timerExt.TIME_ELAPSED_EXT);
+      this._timerQueryIdx = (this._timerQueryIdx + 1) % this._timerNodeQueries.length;
+    }
     gl.bindVertexArray(null);
 
     if (this._labelProgram && this._labelCache && this._settings.labelsIsEnabled) {
@@ -748,6 +935,7 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     }
 
     this._isInitiallyRendered = true;
+    this.emit(RenderEventType.RENDER_END, { durationMs: performance.now() - renderStartedAt });
   }
 
   reset(): void {

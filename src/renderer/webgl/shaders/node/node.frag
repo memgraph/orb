@@ -107,17 +107,20 @@ float shapeSDF(vec2 p, float r, int shapeType) {
 }
 
 void main() {
+  // Body SDF - always needed.
   float dist = shapeSDF(vUV, vNodeRadius, vShapeType);
-  float shadowDist = shapeSDF(vUV - vShadowOffset, vNodeRadius, vShapeType);
-
-  float shadowAlpha = 0.0;
-  if (vShadowBlur > 0.0) {
-    float t = max(shadowDist, 0.0) / vShadowBlur;
-    shadowAlpha = exp(-t * t * 1.5) * 0.5 * vShadowColor.a;
-  }
 
   float aa = 0.02 * vNodeRadius;
   float nodeAlpha = 1.0 - smoothstep(-aa, 0.0, dist);
+
+  // Shadow SDF - skip entirely when no shadow. Avoids a second full shapeSDF() call
+  // (which is a cascade of ifs) and the exp() per fragment.
+  float shadowAlpha = 0.0;
+  if (vShadowBlur > 0.0) {
+    float shadowDist = shapeSDF(vUV - vShadowOffset, vNodeRadius, vShapeType);
+    float t = max(shadowDist, 0.0) / vShadowBlur;
+    shadowAlpha = exp(-t * t * 1.5) * 0.5 * vShadowColor.a;
+  }
 
   vec4 fillColor = vColor;
   if (vImageAspect > 0.0 && dist < 0.0) {
@@ -134,9 +137,14 @@ void main() {
     }
   }
 
-  float borderDist = shapeSDF(vUV, vBorderThreshold, vShapeType);
-  float borderMix = smoothstep(-aa, aa, borderDist);
-  vec4 nodeColor = mix(fillColor, vBorderColor, borderMix);
+  vec4 nodeColor;
+  if (vBorderThreshold < vNodeRadius) {
+    float borderDist = shapeSDF(vUV, vBorderThreshold, vShapeType);
+    float borderMix = smoothstep(-aa, aa, borderDist);
+    nodeColor = mix(fillColor, vBorderColor, borderMix);
+  } else {
+    nodeColor = fillColor;
+  }
   nodeColor.a *= nodeAlpha;
 
   float finalAlpha = nodeColor.a + shadowAlpha * (1.0 - nodeColor.a);
@@ -145,6 +153,10 @@ void main() {
     discard;
   }
 
-  vec3 finalRGB = (nodeColor.rgb * nodeColor.a + vShadowColor.rgb * shadowAlpha * (1.0 - nodeColor.a)) / finalAlpha;
-  fragColor = vec4(finalRGB, finalAlpha);
+  if (shadowAlpha > 0.0) {
+    vec3 finalRGB = (nodeColor.rgb * nodeColor.a + vShadowColor.rgb * shadowAlpha * (1.0 - nodeColor.a)) / finalAlpha;
+    fragColor = vec4(finalRGB, finalAlpha);
+  } else {
+    fragColor = nodeColor;
+  }
 }

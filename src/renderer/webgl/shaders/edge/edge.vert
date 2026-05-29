@@ -44,7 +44,8 @@ void main() {
   vStart = aStart;
   vEnd = aEnd;
   vControl = aControl;
-  vHalfWidth = aWidth * 0.5;
+  float effectiveWidth = max(aWidth, 1.0 / uScale);
+  vHalfWidth = effectiveWidth * 0.5;
   vLoopbackRadius = aLoopbackRadius;
   vArrowSize = aArrowSize;
   vArrowTip = aArrowTip;
