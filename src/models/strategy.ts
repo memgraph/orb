@@ -25,8 +25,6 @@ export interface IEventStrategyResponse<N extends INodeBase, E extends IEdgeBase
 }
 
 export interface IEventStrategyClickOptions {
-  // When true (e.g. shift held), the click adds/removes the target from the current selection
-  // instead of replacing it. Falls back to single-select behavior when omitted.
   isAppend?: boolean;
 }
 
@@ -98,12 +96,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
       };
     }
 
-    if (!this.isSelectEnabled) {
-      return { isStateChanged: false };
-    }
-
-    // Clicking empty space with the append modifier keeps the current selection intact.
-    if (isAppend) {
+    if (!this.isSelectEnabled || isAppend) {
       return { isStateChanged: false };
     }
 
