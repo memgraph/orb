@@ -54,9 +54,6 @@ const DEFAULT_FONT_FAMILY = 'Roboto, sans-serif';
 const DEFAULT_FONT_COLOR = '#000000';
 const LABEL_LOD_MIN_SCREEN_PX = 6;
 const IMAGE_LOD_MIN_SCREEN_PX = 4;
-// Below this zoom, edges render with a simplified fragment path (no SDF, no fwidth, no
-// anti-aliasing) since AA shoulders aren't visible anyway. Big win at far-zoom views with
-// many overlapping edges, where the per-fragment SDF math dominates GPU time.
 const EDGE_SIMPLE_LOD_ZOOM = 0.2;
 const LABEL_DISTANCE_FROM_NODE = 0.2;
 const FLOATS_PER_LABEL = 8;

@@ -96,7 +96,6 @@ void main() {
     return;
   }
 
-  // Edge SDF: type-based dispatch (always needed).
   float dist;
   if (vEdgeType == 0) {
     dist = sdSegment(vWorldPos, vStart, vEnd);

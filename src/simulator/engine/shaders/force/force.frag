@@ -67,7 +67,6 @@ void main() {
   vec2 pos = state.xy;
   vec2 vel = state.zw;
 
-  // === ManyBody (Barnes-Hut repulsion) ===
   if (uHasManyBody > 0.5 && uTreeNodeCount > 0) {
     int stack[128];
     int top = 0;
@@ -79,7 +78,6 @@ void main() {
       float w = data.w;
 
       if (w < -0.5) {
-        // Leaf node
         int bodyIdx = int(-w - 0.5);
         if (bodyIdx != nodeId) {
           vec2 delta = data.xy - pos;
@@ -97,7 +95,6 @@ void main() {
           }
         }
       } else {
-        // Internal node - BH approximation check
         vec2 delta = data.xy - pos;
         float distSq = dot(delta, delta);
 
@@ -118,11 +115,8 @@ void main() {
     }
   }
 
-  // === Collision (separate tree traversal - always descends to nearby leaves) ===
   if (uHasCollision > 0.5 && uCollisionRadius > 0.0 && uTreeNodeCount > 0) {
     float collisionDiam = uCollisionRadius * 2.0;
-    // Use input-state predicted position (not accumulated vel) for symmetry
-    // with the quadtree, which stores positions from the same input state.
     vec2 predictedPos = state.xy + state.zw;
     int stack[64];
     int top = 0;
@@ -134,23 +128,19 @@ void main() {
       float w = data.w;
 
       if (w < -0.5) {
-        // Leaf node - apply collision using predicted positions
         int bodyIdx = int(-w - 0.5);
         if (bodyIdx != nodeId && bodyIdx < uNodeCount) {
           vec2 delta = data.xy - predictedPos;
           float dist = length(delta);
 
           if (dist < collisionDiam && dist > 0.0) {
-            // d3's forceCollide: push = overlap * strength, split equally (bias=0.5)
             float push = (collisionDiam - dist) * uCollisionStrength;
             vel -= (delta / dist) * push * 0.5;
           }
         }
       } else {
-        // Internal node - prune using geometric AABB distance.
         vec4 geo = texelFetch(uTreeGeometry, texCoord(idx, uTreeTexWidth), 0);
         float cellSize = geo.z;
-        // Compute distance from predicted pos to nearest point on the cell AABB
         vec2 nearest = clamp(predictedPos, geo.xy, geo.xy + cellSize);
         float distToCell = length(nearest - predictedPos);
 
@@ -165,7 +155,6 @@ void main() {
     }
   }
 
-  // === Link (spring) force ===
   if (uHasLinks > 0.5) {
     vec4 offData = texelFetch(uAdjOffsets, texCoord(nodeId, uAdjOffsetsTexWidth), 0);
     int start = int(offData.x + 0.5);
@@ -179,11 +168,6 @@ void main() {
       float dirBias = edgeData.w;
 
       vec4 targetState = texelFetch(uState, texCoord(targetId, uTexWidth), 0);
-      // Use input-state predicted positions for BOTH sides to keep the link force
-      // symmetric in parallel execution. Using (pos + vel) here would include
-      // manyBody/collision forces already accumulated in vel for the current node
-      // but not for the target (read from input texture), creating a systematic
-      // inward bias that causes clumping at sustained alpha during drag.
       vec2 delta = (targetState.xy + targetState.zw) - (state.xy + state.zw);
       float d = length(delta);
 
@@ -197,12 +181,10 @@ void main() {
     }
   }
 
-  // === Centering force ===
   if (uHasCentering > 0.5) {
     vel += (uCenter - pos) * uCenterStrength * uAlpha;
   }
 
-  // === Positioning force ===
   if (uHasPositioning > 0.5) {
     vel.x += (uForceXTarget - pos.x) * uForceXStrength * uAlpha;
     vel.y += (uForceYTarget - pos.y) * uForceYStrength * uAlpha;
