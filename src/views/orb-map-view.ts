@@ -108,6 +108,8 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
       strategy: {
         isDefaultHoverEnabled: true,
         isDefaultSelectEnabled: true,
+        isDefaultMultiSelectEnabled: false,
+        isDefaultSelectCascadeEnabled: true,
         ...settings?.strategy,
       },
     };
@@ -115,6 +117,8 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     this._strategy = new DefaultEventStrategy<N, E>({
       isDefaultSelectEnabled: this._settings.strategy.isDefaultSelectEnabled ?? false,
       isDefaultHoverEnabled: this._settings.strategy.isDefaultHoverEnabled ?? false,
+      isDefaultMultiSelectEnabled: this._settings.strategy.isDefaultMultiSelectEnabled ?? true,
+      isDefaultSelectCascadeEnabled: this._settings.strategy.isDefaultSelectCascadeEnabled ?? true,
     });
 
     try {
@@ -200,6 +204,16 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
       if (isBoolean(settings.strategy.isDefaultSelectEnabled)) {
         this._settings.strategy.isDefaultSelectEnabled = settings.strategy.isDefaultSelectEnabled;
         this._strategy.isSelectEnabled = this._settings.strategy.isDefaultSelectEnabled;
+      }
+
+      if (isBoolean(settings.strategy.isDefaultMultiSelectEnabled)) {
+        this._settings.strategy.isDefaultMultiSelectEnabled = settings.strategy.isDefaultMultiSelectEnabled;
+        this._strategy.isMultiSelectEnabled = this._settings.strategy.isDefaultMultiSelectEnabled;
+      }
+
+      if (isBoolean(settings.strategy.isDefaultSelectCascadeEnabled)) {
+        this._settings.strategy.isDefaultSelectCascadeEnabled = settings.strategy.isDefaultSelectCascadeEnabled;
+        this._strategy.isSelectCascadeEnabled = this._settings.strategy.isDefaultSelectCascadeEnabled;
       }
     }
   }
@@ -349,7 +363,9 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
           this._renderer.render(this._graph);
         }
       } else if (event.type === 'click') {
-        const response = this._strategy.onMouseClick(this._graph, point);
+        const response = this._strategy.onMouseClick(this._graph, point, {
+          isAppend: event.originalEvent.shiftKey,
+        });
         const subject = response.changedSubject;
 
         if (subject) {

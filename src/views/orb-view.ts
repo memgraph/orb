@@ -85,6 +85,8 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       strategy: {
         isDefaultHoverEnabled: true,
         isDefaultSelectEnabled: true,
+        isDefaultMultiSelectEnabled: false,
+        isDefaultSelectCascadeEnabled: true,
         ...settings?.strategy,
       },
       interaction: {
@@ -110,6 +112,8 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._strategy = new DefaultEventStrategy<N, E>({
       isDefaultSelectEnabled: this._settings.strategy.isDefaultSelectEnabled ?? false,
       isDefaultHoverEnabled: this._settings.strategy.isDefaultHoverEnabled ?? false,
+      isDefaultMultiSelectEnabled: this._settings.strategy.isDefaultMultiSelectEnabled ?? true,
+      isDefaultSelectCascadeEnabled: this._settings.strategy.isDefaultSelectCascadeEnabled ?? true,
     });
 
     try {
@@ -248,6 +252,16 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       if (isBoolean(settings.strategy.isDefaultSelectEnabled)) {
         this._settings.strategy.isDefaultSelectEnabled = settings.strategy.isDefaultSelectEnabled;
         this._strategy.isSelectEnabled = this._settings.strategy.isDefaultSelectEnabled;
+      }
+
+      if (isBoolean(settings.strategy.isDefaultMultiSelectEnabled)) {
+        this._settings.strategy.isDefaultMultiSelectEnabled = settings.strategy.isDefaultMultiSelectEnabled;
+        this._strategy.isMultiSelectEnabled = this._settings.strategy.isDefaultMultiSelectEnabled;
+      }
+
+      if (isBoolean(settings.strategy.isDefaultSelectCascadeEnabled)) {
+        this._settings.strategy.isDefaultSelectCascadeEnabled = settings.strategy.isDefaultSelectCascadeEnabled;
+        this._strategy.isSelectCascadeEnabled = this._settings.strategy.isDefaultSelectCascadeEnabled;
       }
     }
 
@@ -468,7 +482,9 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     const mousePoint = this.getCanvasMousePosition(event);
     const simulationPoint = this._renderer.getSimulationPosition(mousePoint);
 
-    const response = this._strategy.onMouseClick(this._graph, simulationPoint);
+    const response = this._strategy.onMouseClick(this._graph, simulationPoint, {
+      isAppend: event.shiftKey,
+    });
     const subject = response.changedSubject;
 
     if (subject) {
