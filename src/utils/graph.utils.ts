@@ -6,22 +6,86 @@ import { IFitZoomTransformOptions } from '../renderer/shared';
 import { ILayoutSettings } from '../simulator';
 import { IHierarchicalLayoutOptions } from '../simulator/engine/shared';
 
-export const selectNode = <N extends INodeBase, E extends IEdgeBase>(node: INode<N, E>) => {
-  setNodeState(node, GraphObjectState.SELECTED, { isStateOverride: true });
+export interface ISelectionOptions {
+  cascade?: boolean;
+}
+
+export const selectNode = <N extends INodeBase, E extends IEdgeBase>(
+  node: INode<N, E>,
+  options?: ISelectionOptions,
+) => {
+  if (options?.cascade ?? true) {
+    setNodeState(node, GraphObjectState.SELECTED, { isStateOverride: true });
+  } else {
+    node.setState(GraphObjectState.SELECTED, { isNotifySkipped: true });
+  }
 };
 
-export const selectEdge = <N extends INodeBase, E extends IEdgeBase>(edge: IEdge<N, E>) => {
-  setEdgeState(edge, GraphObjectState.SELECTED, { isStateOverride: true });
+export const selectEdge = <N extends INodeBase, E extends IEdgeBase>(
+  edge: IEdge<N, E>,
+  options?: ISelectionOptions,
+) => {
+  if (options?.cascade ?? true) {
+    setEdgeState(edge, GraphObjectState.SELECTED, { isStateOverride: true });
+  } else {
+    edge.setState(GraphObjectState.SELECTED, { isNotifySkipped: true });
+  }
 };
 
-export const selectOnlyNode = <N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>, node: INode<N, E>) => {
+export const unselectNode = <N extends INodeBase, E extends IEdgeBase>(
+  node: INode<N, E>,
+  options?: ISelectionOptions,
+) => {
+  if (options?.cascade ?? true) {
+    setNodeState(node, GraphObjectState.NONE, { isStateOverride: true });
+  } else {
+    node.clearState();
+  }
+};
+
+export const unselectEdge = <N extends INodeBase, E extends IEdgeBase>(
+  edge: IEdge<N, E>,
+  options?: ISelectionOptions,
+) => {
+  if (options?.cascade ?? true) {
+    setEdgeState(edge, GraphObjectState.NONE, { isStateOverride: true });
+  } else {
+    edge.clearState();
+  }
+};
+
+export const selectOnlyNode = <N extends INodeBase, E extends IEdgeBase>(
+  graph: IGraph<N, E>,
+  node: INode<N, E>,
+  options?: ISelectionOptions,
+) => {
   unselectAll(graph);
-  selectNode(node);
+  selectNode(node, options);
 };
 
-export const selectOnlyEdge = <N extends INodeBase, E extends IEdgeBase>(graph: IGraph<N, E>, edge: IEdge<N, E>) => {
+export const selectOnlyEdge = <N extends INodeBase, E extends IEdgeBase>(
+  graph: IGraph<N, E>,
+  edge: IEdge<N, E>,
+  options?: ISelectionOptions,
+) => {
   unselectAll(graph);
-  selectEdge(edge);
+  selectEdge(edge, options);
+};
+
+export const toggleNodeSelection = <N extends INodeBase, E extends IEdgeBase>(node: INode<N, E>) => {
+  if (node.isSelected()) {
+    unselectNode(node, { cascade: false });
+  } else {
+    selectNode(node, { cascade: false });
+  }
+};
+
+export const toggleEdgeSelection = <N extends INodeBase, E extends IEdgeBase>(edge: IEdge<N, E>) => {
+  if (edge.isSelected()) {
+    unselectEdge(edge, { cascade: false });
+  } else {
+    selectEdge(edge, { cascade: false });
+  }
 };
 
 export const unselectAll = <N extends INodeBase, E extends IEdgeBase>(

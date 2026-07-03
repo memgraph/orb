@@ -2,11 +2,21 @@ import { INode, INodeBase } from './node';
 import { IEdge, IEdgeBase } from './edge';
 import { IGraph } from './graph';
 import { IPosition } from '../common';
-import { hoverOnlyNode, selectOnlyEdge, selectOnlyNode, unhoverAll, unselectAll } from '../utils/graph.utils';
+import {
+  hoverOnlyNode,
+  selectOnlyEdge,
+  selectOnlyNode,
+  toggleEdgeSelection,
+  toggleNodeSelection,
+  unhoverAll,
+  unselectAll,
+} from '../utils/graph.utils';
 
 export interface IEventStrategySettings {
   isDefaultSelectEnabled: boolean;
   isDefaultHoverEnabled: boolean;
+  isDefaultMultiSelectEnabled: boolean;
+  isDefaultSelectCascadeEnabled: boolean;
 }
 
 export interface IEventStrategyResponse<N extends INodeBase, E extends IEdgeBase> {
@@ -14,10 +24,20 @@ export interface IEventStrategyResponse<N extends INodeBase, E extends IEdgeBase
   changedSubject?: INode<N, E> | IEdge<N, E>;
 }
 
+export interface IEventStrategyClickOptions {
+  isAppend?: boolean;
+}
+
 export interface IEventStrategy<N extends INodeBase, E extends IEdgeBase> {
   isSelectEnabled: boolean;
   isHoverEnabled: boolean;
-  onMouseClick: (graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>;
+  isMultiSelectEnabled: boolean;
+  isSelectCascadeEnabled: boolean;
+  onMouseClick: (
+    graph: IGraph<N, E>,
+    point: IPosition,
+    options?: IEventStrategyClickOptions,
+  ) => IEventStrategyResponse<N, E>;
   onMouseMove: (graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>;
   onMouseRightClick: (graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>;
   onMouseDoubleClick: (graph: IGraph<N, E>, point: IPosition) => IEventStrategyResponse<N, E>;
@@ -27,17 +47,31 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
   private _lastHoveredNode?: INode<N, E>;
   public isSelectEnabled: boolean;
   public isHoverEnabled: boolean;
+  public isMultiSelectEnabled: boolean;
+  public isSelectCascadeEnabled: boolean;
 
   constructor(settings: IEventStrategySettings) {
     this.isSelectEnabled = settings.isDefaultSelectEnabled;
     this.isHoverEnabled = settings.isDefaultHoverEnabled;
+    this.isMultiSelectEnabled = settings.isDefaultMultiSelectEnabled;
+    this.isSelectCascadeEnabled = settings.isDefaultSelectCascadeEnabled;
   }
 
-  onMouseClick(graph: IGraph<N, E>, point: IPosition): IEventStrategyResponse<N, E> {
+  onMouseClick(
+    graph: IGraph<N, E>,
+    point: IPosition,
+    options?: IEventStrategyClickOptions,
+  ): IEventStrategyResponse<N, E> {
+    const isAppend = this.isMultiSelectEnabled && (options?.isAppend ?? false);
+
     const node = graph.getNearestNode(point);
     if (node) {
       if (this.isSelectEnabled) {
-        selectOnlyNode(graph, node);
+        if (isAppend) {
+          toggleNodeSelection(node);
+        } else {
+          selectOnlyNode(graph, node, { cascade: this.isSelectCascadeEnabled });
+        }
       }
 
       return {
@@ -49,7 +83,11 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
     const edge = graph.getNearestEdge(point);
     if (edge) {
       if (this.isSelectEnabled) {
-        selectOnlyEdge(graph, edge);
+        if (isAppend) {
+          toggleEdgeSelection(edge);
+        } else {
+          selectOnlyEdge(graph, edge, { cascade: this.isSelectCascadeEnabled });
+        }
       }
 
       return {
@@ -58,7 +96,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
       };
     }
 
-    if (!this.isSelectEnabled) {
+    if (!this.isSelectEnabled || isAppend) {
       return { isStateChanged: false };
     }
 
@@ -104,7 +142,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
     const node = graph.getNearestNode(point);
     if (node) {
       if (this.isSelectEnabled) {
-        selectOnlyNode(graph, node);
+        selectOnlyNode(graph, node, { cascade: this.isSelectCascadeEnabled });
       }
 
       return {
@@ -116,7 +154,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
     const edge = graph.getNearestEdge(point);
     if (edge) {
       if (this.isSelectEnabled) {
-        selectOnlyEdge(graph, edge);
+        selectOnlyEdge(graph, edge, { cascade: this.isSelectCascadeEnabled });
       }
 
       return {
@@ -139,7 +177,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
     const node = graph.getNearestNode(point);
     if (node) {
       if (this.isSelectEnabled) {
-        selectOnlyNode(graph, node);
+        selectOnlyNode(graph, node, { cascade: this.isSelectCascadeEnabled });
       }
 
       return {
@@ -151,7 +189,7 @@ export class DefaultEventStrategy<N extends INodeBase, E extends IEdgeBase> impl
     const edge = graph.getNearestEdge(point);
     if (edge) {
       if (this.isSelectEnabled) {
-        selectOnlyEdge(graph, edge);
+        selectOnlyEdge(graph, edge, { cascade: this.isSelectCascadeEnabled });
       }
 
       return {

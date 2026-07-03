@@ -1,11 +1,23 @@
-import { hoverEdge, hoverNode, selectEdge, selectNode, unhoverAll, unselectAll } from '../utils/graph.utils';
+import {
+  hoverEdge,
+  hoverNode,
+  ISelectionOptions,
+  selectEdge,
+  selectNode,
+  unhoverAll,
+  unselectAll,
+  unselectEdge,
+  unselectNode,
+} from '../utils/graph.utils';
 import { IEdgeBase } from './edge';
 import { IGraph } from './graph';
 import { INodeBase } from './node';
 
 export interface IGraphInteraction {
-  selectNodeById(id: any): boolean;
-  selectEdgeById(id: any): boolean;
+  selectNodeById(id: any, options?: ISelectionOptions): boolean;
+  selectEdgeById(id: any, options?: ISelectionOptions): boolean;
+  unselectNodeById(id: any, options?: ISelectionOptions): boolean;
+  unselectEdgeById(id: any, options?: ISelectionOptions): boolean;
   unselectAll(): number;
   hoverNodeById(id: any): boolean;
   hoverEdgeById(id: any): boolean;
@@ -19,21 +31,39 @@ export class GraphInteraction<N extends INodeBase, E extends IEdgeBase> implemen
     this._graph = graph;
   }
 
-  selectNodeById(id: any): boolean {
+  selectNodeById(id: any, options?: ISelectionOptions): boolean {
     const node = this._graph.getNodeById(id);
     if (!node) {
       return false;
     }
-    selectNode(node);
+    selectNode(node, options);
     return true;
   }
 
-  selectEdgeById(id: any): boolean {
+  selectEdgeById(id: any, options?: ISelectionOptions): boolean {
     const edge = this._graph.getEdgeById(id);
     if (!edge) {
       return false;
     }
-    selectEdge(edge);
+    selectEdge(edge, options);
+    return true;
+  }
+
+  unselectNodeById(id: any, options?: ISelectionOptions): boolean {
+    const node = this._graph.getNodeById(id);
+    if (!node) {
+      return false;
+    }
+    unselectNode(node, options);
+    return true;
+  }
+
+  unselectEdgeById(id: any, options?: ISelectionOptions): boolean {
+    const edge = this._graph.getEdgeById(id);
+    if (!edge) {
+      return false;
+    }
+    unselectEdge(edge, options);
     return true;
   }
 
