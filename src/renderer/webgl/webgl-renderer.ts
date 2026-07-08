@@ -409,6 +409,11 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     this._buffersAreCurrent = false;
   }
 
+  invalidateStyles(): void {
+    this._buffersAreCurrent = false;
+    this._isColorCacheDirty = true;
+  }
+
   getRenderCacheStats(): { hits: number; misses: number } {
     return { ...this._bufferCacheStats };
   }

@@ -475,6 +475,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     });
 
     if (response.isStateChanged) {
+      this._invalidateStyles();
       this.render();
     }
   };
@@ -513,6 +514,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     });
 
     if (response.isStateChanged || response.changedSubject) {
+      this._invalidateStyles();
       this.render();
     }
   };
@@ -551,6 +553,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     });
 
     if (response.isStateChanged || response.changedSubject) {
+      this._invalidateStyles();
       this.render();
     }
   };
@@ -589,6 +592,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     });
 
     if (response.isStateChanged || response.changedSubject) {
+      this._invalidateStyles();
       this.render();
     }
   };
@@ -611,6 +615,10 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       .on('end', () => this.render(onRendered));
   };
 
+  private _invalidateStyles = (): void => {
+    (this._renderer as any).invalidateStyles?.();
+  };
+
   private _update: IObserver = (data?: IObserverDataPayload): void => {
     if (data && 'x' in data && 'y' in data && 'id' in data) {
       this._simulator.patchData({
@@ -628,6 +636,7 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         edges: [],
       });
     }
+    this._invalidateStyles();
     this.render();
   };
 

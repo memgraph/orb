@@ -255,7 +255,12 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     this._leaflet.getContainer().outerHTML = '';
   }
 
+  private _invalidateStyles = (): void => {
+    (this._renderer as any).invalidateStyles?.();
+  };
+
   private _update: IObserver = (): void => {
+    this._invalidateStyles();
     this.render();
   };
 
@@ -283,6 +288,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
 
     leaflet.on('zoom', (event) => {
       this._updateGraphPositions();
+      (this._renderer as any).invalidateBuffers?.();
       const leafletPos = event.target._mapPane._leaflet_pos;
       const k = this._getStyleScale();
       this._renderer.transform = { ...leafletPos, k };
@@ -324,6 +330,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
       });
 
       if (response.isStateChanged) {
+        this._invalidateStyles();
         this._renderer.render(this._graph);
       }
     });
@@ -365,6 +372,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
         });
 
         if (response.isStateChanged) {
+          this._invalidateStyles();
           this._renderer.render(this._graph);
         }
       } else if (event.type === 'click') {
@@ -398,6 +406,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
         });
 
         if (response.isStateChanged || response.changedSubject) {
+          this._invalidateStyles();
           this._renderer.render(this._graph);
         }
       } else if (event.type === 'dblclick') {
@@ -437,6 +446,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
         }
 
         if (response.isStateChanged || response.changedSubject) {
+          this._invalidateStyles();
           this._renderer.render(this._graph);
         }
       }
