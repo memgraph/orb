@@ -231,6 +231,10 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     onRendered?.();
   }
 
+  getSVG(): string {
+    throw new Error('Method not implemented.');
+  }
+
   destroy() {
     this._renderer.destroy();
     this._leaflet.off();

@@ -24,6 +24,7 @@ import {
   IFitZoomTransformOptions,
 } from '../renderer/shared';
 import { RendererFactory } from '../renderer/factory';
+import { graphToSVG, ISVGExportOptions } from '../renderer/svg';
 import { SimulatorEventType } from '../simulator/shared';
 import { getDefaultGraphStyle } from '../models/style';
 import { isBoolean } from '../utils/type.utils';
@@ -313,6 +314,13 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       .ease(easeLinear)
       .call(this._d3Zoom.transform, fitZoomTransform)
       .on('end', () => this.render(onRendered));
+  }
+
+  getSVG(options?: ISVGExportOptions): string {
+    return graphToSVG(this._graph, {
+      backgroundColor: this._settings.render.backgroundColor,
+      ...options,
+    });
   }
 
   destroy() {
