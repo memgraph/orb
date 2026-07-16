@@ -23,6 +23,7 @@ export const DEFAULT_CIRCULAR_LAYOUT_OPTIONS: ICircularLayoutOptions = {
 };
 
 export interface IForceLayoutOptions extends ILayoutOptionsBase {
+  useGPU?: boolean;
   isSimulatingOnDataUpdate: boolean;
   isSimulatingOnSettingsUpdate: boolean;
   isSimulatingOnUnstick: boolean;
@@ -44,6 +45,7 @@ export const getManyBodyMaxDistance = (linkDistance: number) => {
 };
 
 export const DEFAULT_FORCE_LAYOUT_OPTIONS: IForceLayoutOptions = {
+  useGPU: false,
   isSimulatingOnDataUpdate: true,
   isSimulatingOnSettingsUpdate: true,
   isSimulatingOnUnstick: true,
@@ -72,7 +74,7 @@ export const DEFAULT_FORCE_LAYOUT_OPTIONS: IForceLayoutOptions = {
   manyBody: {
     strength: -100,
     theta: 0.9,
-    distanceMin: 0,
+    distanceMin: 1,
     distanceMax: getManyBodyMaxDistance(DEFAULT_LINK_DISTANCE),
   },
   positioning: {
@@ -159,6 +161,7 @@ export interface IForceLayoutManyBody {
   theta: number;
   distanceMin: number;
   distanceMax: number;
+  edgeMidpointRepulsion?: boolean;
 }
 
 export interface IForceLayoutPositioning {

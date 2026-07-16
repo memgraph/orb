@@ -1,5 +1,5 @@
 import { DeepPartial } from '../utils/type.utils';
-import { ILayoutSettings } from './engine/shared';
+import { IForceLayoutOptions, ILayoutSettings } from './engine/shared';
 import { ISimulator } from './shared';
 import { MainThreadSimulator } from './types/main-thread-simulator';
 import { WebWorkerSimulator } from './types/web-worker-simulator/web-worker-simulator';
@@ -8,6 +8,13 @@ import { WebWorkerSimulator } from './types/web-worker-simulator/web-worker-simu
 export class SimulatorFactory {
   static getSimulator(settings?: DeepPartial<ILayoutSettings>): ISimulator {
     const layoutSettings: DeepPartial<ILayoutSettings> = { type: 'force', ...settings };
+
+    // GPU engine requires main thread (needs WebGL context, cannot run in Web Worker)
+    const forceOptions = layoutSettings.options as Partial<IForceLayoutOptions> | undefined;
+    if (layoutSettings.type === 'force' && forceOptions?.useGPU) {
+      return new MainThreadSimulator(layoutSettings);
+    }
+
     try {
       if (typeof Worker !== 'undefined') {
         return new WebWorkerSimulator(layoutSettings);

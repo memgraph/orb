@@ -71,8 +71,9 @@ interface IOrbViewSettings {
       radius: number;
     }
   };
-  // For canvas rendering and events
+  // For rendering and events
   render: {
+    type: 'canvas' | 'webgl';
     devicePixelRatio: number | null;
     fps: number;
     minZoom: number;
@@ -319,6 +320,7 @@ Each layout type has its own option list you can tweak in order to change the la
   - `isSimulatingOnDataUpdate` - Whether to run simulation when graph data is updated. Enabled by default (`true`).
   - `isSimulatingOnSettingsUpdate` - Whether to re-run simulation when settings are updated. Enabled by default (`true`).
   - `isSimulatingOnUnstick` - Whether to re-run simulation when a node is unstuck. Enabled by default (`true`).
+  - `useGPU` - Runs the force layout on the GPU (WebGL2) using a Barnes-Hut quadtree. Falls back to the CPU engine automatically if WebGL2 is unavailable. Disabled by default (`false`).
   - `alpha` - Fine-grained control over the simulation's annealing process.
     - `alpha` - Current alpha value. Default `1`.
     - `alphaMin` - Minimum alpha threshold below which simulation stops. Default `0.001`.
@@ -351,6 +353,13 @@ Each layout type has its own option list you can tweak in order to change the la
 
 Optional property `render` has several rendering options that you can tweak. Read more about them
 on [Styling guide](./styles.md).
+
+#### Property `render.type`
+
+Selects the rendering backend. `canvas` (default) draws with the HTML5 Canvas API, while `webgl`
+uses a WebGL2 renderer that offloads drawing to the GPU for better performance on large graphs.
+The backend is chosen when the view is created and cannot be changed afterwards — to switch, create
+a new view. See the `example-webgl-renderer.html` example for a live comparison.
 
 #### Property `render.devicePixelRatio`
 

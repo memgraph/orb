@@ -7,6 +7,7 @@ import {
   IForceLayoutOptions,
 } from './shared';
 import { ForceLayoutEngine } from './engines/dynamic/force-layout-engine';
+import { GPUForceLayoutEngine } from './engines/dynamic/gpu-force-layout-engine';
 import { CircularLayoutEngine } from './engines/static/circular-layout-engine';
 import { GridLayoutEngine } from './engines/static/grid-layout-engine';
 import { HierarchicalLayoutEngine } from './engines/static/hierarchical-layout-engine';
@@ -22,8 +23,18 @@ export class LayoutEngineFactory {
       case 'hierarchical':
         return new HierarchicalLayoutEngine(settings.options as IHierarchicalLayoutOptions);
       case 'force':
-      default:
-        return new ForceLayoutEngine(settings?.options as IForceLayoutOptions);
+      default: {
+        const forceOptions = settings?.options as IForceLayoutOptions | undefined;
+        if (forceOptions?.useGPU) {
+          try {
+            return new GPUForceLayoutEngine(forceOptions);
+          } catch {
+            console.warn('WebGL2 unavailable, falling back to CPU force layout engine.');
+            return new ForceLayoutEngine(forceOptions);
+          }
+        }
+        return new ForceLayoutEngine(forceOptions);
+      }
     }
   }
 }

@@ -42,9 +42,12 @@ const getDefaultMapTile = () => {
 
 const DEFAULT_ZOOM_LEVEL = 2;
 
+export type INodeSizeMode = 'fixed' | 'geographic';
+
 export interface IMapSettings {
   zoomLevel: number;
   tile: ILeafletMapTile;
+  nodeSizeMode: INodeSizeMode;
 }
 
 export interface IOrbMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
@@ -100,6 +103,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
       map: {
         zoomLevel: settings.map?.zoomLevel ?? DEFAULT_ZOOM_LEVEL,
         tile: settings.map?.tile ?? getDefaultMapTile(),
+        nodeSizeMode: settings.map?.nodeSizeMode ?? 'geographic',
       },
       render: {
         type: RendererType.CANVAS,
@@ -188,6 +192,15 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
         this._settings.map.tile = settings.map.tile;
         this._handleTileChange();
       }
+
+      if (settings.map.nodeSizeMode && settings.map.nodeSizeMode !== this._settings.map.nodeSizeMode) {
+        this._settings.map.nodeSizeMode = settings.map.nodeSizeMode;
+        this._updateGraphPositions();
+        const leafletPos = (this._leaflet as any)._mapPane._leaflet_pos;
+        const k = this._getStyleScale();
+        this._renderer.transform = { ...leafletPos, k };
+        this._renderer.render(this._graph);
+      }
     }
 
     if (settings.render) {
@@ -234,8 +247,12 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
 
   recenter(onRendered?: () => void) {
     const view = this._graph.getBoundingBox();
-    const topRightCoordinate = this._leaflet.layerPointToLatLng([view.x, view.y]);
-    const bottomLeftCoordinate = this._leaflet.layerPointToLatLng([view.x + view.width, view.y + view.height]);
+    const k = this._getStyleScale();
+    const topRightCoordinate = this._leaflet.layerPointToLatLng([view.x * k, view.y * k]);
+    const bottomLeftCoordinate = this._leaflet.layerPointToLatLng([
+      (view.x + view.width) * k,
+      (view.y + view.height) * k,
+    ]);
     this._leaflet.fitBounds(L.latLngBounds(topRightCoordinate, bottomLeftCoordinate));
     onRendered?.();
   }
@@ -256,7 +273,12 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     this._leaflet.getContainer().outerHTML = '';
   }
 
+  private _invalidateStyles = (): void => {
+    (this._renderer as any).invalidateStyles?.();
+  };
+
   private _update: IObserver = (): void => {
+    this._invalidateStyles();
     this.render();
   };
 
@@ -284,13 +306,16 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
 
     leaflet.on('zoom', (event) => {
       this._updateGraphPositions();
+      (this._renderer as any).invalidateBuffers?.();
+      const leafletPos = event.target._mapPane._leaflet_pos;
+      const k = this._getStyleScale();
+      this._renderer.transform = { ...leafletPos, k };
       this._renderer.render(this._graph);
-      const transform = { ...event.target._mapPane._leaflet_pos, k: event.target._zoom };
-      this._events.emit(OrbEventType.TRANSFORM, { transform });
+      this._events.emit(OrbEventType.TRANSFORM, { transform: { ...leafletPos, k } });
     });
 
     leaflet.on('mousemove', (event: ILeafletEvent<MouseEvent>) => {
-      const point: IPosition = { x: event.layerPoint.x, y: event.layerPoint.y };
+      const point: IPosition = this._toSimulationPoint(event.layerPoint);
       const containerPoint: IPosition = { x: event.containerPoint.x, y: event.containerPoint.y };
 
       const response = this._strategy.onMouseMove(this._graph, point);
@@ -323,6 +348,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
       });
 
       if (response.isStateChanged) {
+        this._invalidateStyles();
         this._renderer.render(this._graph);
       }
     });
@@ -330,7 +356,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     // Leaflet doesn't have a valid type definition for click event
     // @ts-ignore
     leaflet.on('click contextmenu dblclick', (event: ILeafletEvent<PointerEvent>) => {
-      const point: IPosition = { x: event.layerPoint.x, y: event.layerPoint.y };
+      const point: IPosition = this._toSimulationPoint(event.layerPoint);
       const containerPoint: IPosition = { x: event.containerPoint.x, y: event.containerPoint.y };
 
       if (event.type === 'contextmenu') {
@@ -364,6 +390,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
         });
 
         if (response.isStateChanged) {
+          this._invalidateStyles();
           this._renderer.render(this._graph);
         }
       } else if (event.type === 'click') {
@@ -399,6 +426,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
         });
 
         if (response.isStateChanged || response.changedSubject) {
+          this._invalidateStyles();
           this._renderer.render(this._graph);
         }
       } else if (event.type === 'dblclick') {
@@ -438,6 +466,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
         }
 
         if (response.isStateChanged || response.changedSubject) {
+          this._invalidateStyles();
           this._renderer.render(this._graph);
         }
       }
@@ -445,16 +474,17 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
 
     leaflet.on('moveend', (event) => {
       const leafletPos = event.target._mapPane._leaflet_pos;
-      this._renderer.transform = { ...leafletPos, k: 1 };
+      const k = this._getStyleScale();
+      this._renderer.transform = { ...leafletPos, k };
       this._renderer.render(this._graph);
     });
 
     leaflet.on('drag', (event) => {
       const leafletPos = event.target._mapPane._leaflet_pos;
-      this._renderer.transform = { ...leafletPos, k: 1 };
+      const k = this._getStyleScale();
+      this._renderer.transform = { ...leafletPos, k };
       this._renderer.render(this._graph);
-      const transform = { ...leafletPos, k: event.target._zoom };
-      this._events.emit(OrbEventType.TRANSFORM, { transform });
+      this._events.emit(OrbEventType.TRANSFORM, { transform: { ...leafletPos, k } });
     });
 
     return leaflet;
@@ -462,6 +492,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
 
   private _updateGraphPositions() {
     const nodes = this._graph.getNodes();
+    const k = this._getStyleScale();
 
     for (let i = 0; i < nodes.length; i++) {
       const coordinates = this._settings.getGeoPosition(nodes[i]);
@@ -473,8 +504,20 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
       }
 
       const layerPoint = this._leaflet.latLngToLayerPoint([coordinates.lat, coordinates.lng]);
-      nodes[i].setPosition(layerPoint, { isNotifySkipped: true });
+      nodes[i].setPosition({ x: layerPoint.x / k, y: layerPoint.y / k }, { isNotifySkipped: true });
     }
+  }
+
+  private _getStyleScale(): number {
+    if (this._settings.map.nodeSizeMode === 'fixed') {
+      return 1;
+    }
+    return Math.pow(2, this._leaflet.getZoom() - this._settings.map.zoomLevel);
+  }
+
+  private _toSimulationPoint(layerPoint: { x: number; y: number }): IPosition {
+    const k = this._getStyleScale();
+    return { x: layerPoint.x / k, y: layerPoint.y / k };
   }
 
   private _handleTileChange() {

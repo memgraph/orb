@@ -11,7 +11,13 @@ import {
   SimulationLinkDatum,
 } from 'd3-force';
 import { IPosition } from '../../../../common';
-import { ISimulationNode, ISimulationGraph, ISimulationIds, SimulatorEventType } from '../../../shared';
+import {
+  ISimulationNode,
+  ISimulationEdge,
+  ISimulationGraph,
+  ISimulationIds,
+  SimulatorEventType,
+} from '../../../shared';
 import { isObjectEqual, copyObject } from '../../../../utils/object.utils';
 import { IEngineSettingsUpdate, IForceLayoutOptions, DEFAULT_FORCE_LAYOUT_OPTIONS, LayoutType } from '../../shared';
 import { BaseLayoutEngine } from '../base-layout-engine';
@@ -21,6 +27,49 @@ const CHUNK_SIZE = 100;
 
 interface IRunSimulationOptions {
   isUpdatingSettings: boolean;
+}
+
+function forceEdgeMidpointRepulsion(strength: number, distanceMax: number, getEdges: () => ISimulationEdge[]) {
+  let nodes: ISimulationNode[] = [];
+  const distanceMax2 = distanceMax * distanceMax;
+
+  function force(alpha: number) {
+    const edges = getEdges();
+    for (let e = 0; e < edges.length; e++) {
+      const src = edges[e].source as ISimulationNode;
+      const tgt = edges[e].target as ISimulationNode;
+      if (!src || !tgt) {
+        continue;
+      }
+
+      const mx = ((src.x ?? 0) + (tgt.x ?? 0)) * 0.5;
+      const my = ((src.y ?? 0) + (tgt.y ?? 0)) * 0.5;
+
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        const dx = (node.x ?? 0) - mx;
+        const dy = (node.y ?? 0) - my;
+        let distSq = dx * dx + dy * dy;
+
+        if (distSq === 0 || distSq >= distanceMax2) {
+          continue;
+        }
+        if (distSq < 1) {
+          distSq = 1;
+        }
+
+        const f = (-strength * alpha) / distSq;
+        node.vx! += dx * f;
+        node.vy! += dy * f;
+      }
+    }
+  }
+
+  force.initialize = (initNodes: ISimulationNode[]) => {
+    nodes = initNodes;
+  };
+
+  return force;
 }
 
 export class ForceLayoutEngine extends BaseLayoutEngine {
@@ -470,10 +519,24 @@ export class ForceLayoutEngine extends BaseLayoutEngine {
         .distanceMin(settings.manyBody.distanceMin)
         .distanceMax(settings.manyBody.distanceMax);
       this._simulation.force('charge', manyBody);
+
+      if (settings.manyBody.edgeMidpointRepulsion) {
+        this._simulation.force(
+          'edgeMidpointRepulsion',
+          forceEdgeMidpointRepulsion(
+            settings.manyBody.strength,
+            settings.manyBody.distanceMax,
+            () => this._edges,
+          ) as any,
+        );
+      } else {
+        this._simulation.force('edgeMidpointRepulsion', null);
+      }
     }
 
     if (settings.manyBody === null) {
       this._simulation.force('charge', null);
+      this._simulation.force('edgeMidpointRepulsion', null);
     }
 
     if (settings.positioning?.forceX) {
