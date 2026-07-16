@@ -311,22 +311,24 @@ export class GPUForceLayoutEngine extends BaseLayoutEngine {
     super.terminate();
 
     const gl = this._gl;
-    if (gl) {
-      gl.deleteBuffer(this._quadBuffer);
-      gl.deleteVertexArray(this._quadVAO);
-      gl.deleteProgram(this._forceProgram);
-      gl.deleteTexture(this._stateTexA);
-      gl.deleteTexture(this._stateTexB);
-      gl.deleteTexture(this._fixedTex);
-      gl.deleteTexture(this._treeDataTexture);
-      gl.deleteTexture(this._treeChildrenTexture);
-      gl.deleteTexture(this._treeGeometryTexture);
-      gl.deleteTexture(this._adjOffsetsTexture);
-      gl.deleteTexture(this._adjEdgesTexture);
-      gl.deleteFramebuffer(this._fboA);
-      gl.deleteFramebuffer(this._fboB);
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
+    if (!gl) {
+      return;
     }
+
+    gl.deleteBuffer(this._quadBuffer);
+    gl.deleteVertexArray(this._quadVAO);
+    gl.deleteProgram(this._forceProgram);
+    gl.deleteTexture(this._stateTexA);
+    gl.deleteTexture(this._stateTexB);
+    gl.deleteTexture(this._fixedTex);
+    gl.deleteTexture(this._treeDataTexture);
+    gl.deleteTexture(this._treeChildrenTexture);
+    gl.deleteTexture(this._treeGeometryTexture);
+    gl.deleteTexture(this._adjOffsetsTexture);
+    gl.deleteTexture(this._adjEdgesTexture);
+    gl.deleteFramebuffer(this._fboA);
+    gl.deleteFramebuffer(this._fboB);
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
   }
 
   reheat() {

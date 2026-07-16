@@ -11,7 +11,7 @@ export const createProgram = (
 
   const program = gl.createProgram();
   if (!program) {
-    throw new OrbError('Failed to create program.');
+    throw new OrbError('Failed to create GL program.');
   }
 
   gl.attachShader(program, vertexShader);
@@ -21,7 +21,7 @@ export const createProgram = (
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     const info = gl.getProgramInfoLog(program);
     gl.deleteProgram(program);
-    throw new OrbError(`Failed to link program: ${info}`);
+    throw new OrbError(`Failed to link GL program: ${info}`);
   }
 
   gl.deleteShader(vertexShader);

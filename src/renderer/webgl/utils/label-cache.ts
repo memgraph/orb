@@ -5,7 +5,7 @@ const FONT_LINE_SPACING = 1.2;
 const FONT_BACKGROUND_MARGIN = 0.12;
 const PADDING = 2;
 
-export interface LabelAtlasEntry {
+export interface ILabelAtlasEntry {
   u0: number;
   v0: number;
   u1: number;
@@ -14,7 +14,7 @@ export interface LabelAtlasEntry {
   pxHeight: number;
 }
 
-interface Shelf {
+interface IShelf {
   y: number;
   height: number;
   x: number;
@@ -25,10 +25,10 @@ export class LabelCache {
   private _canvas: HTMLCanvasElement;
   private _ctx: CanvasRenderingContext2D;
   private _texture: WebGLTexture | null = null;
-  private _cache = new Map<string, LabelAtlasEntry>();
-  private _shelves: Shelf[] = [];
-  private _dirty = false;
-  private _textureAllocated = false;
+  private _cache = new Map<string, ILabelAtlasEntry>();
+  private _shelves: IShelf[] = [];
+  private _isDirty = false;
+  private _isTextureAllocated = false;
 
   constructor(gl: WebGL2RenderingContext) {
     this._gl = gl;
@@ -52,7 +52,7 @@ export class LabelCache {
     fontFamily: string,
     fontColor: string,
     bgColor: string | null,
-  ): LabelAtlasEntry | null {
+  ): ILabelAtlasEntry | null {
     const key = `${text}|${fontSize}|${fontFamily}|${fontColor}|${bgColor ?? ''}`;
     const cached = this._cache.get(key);
     if (cached) {
@@ -105,7 +105,7 @@ export class LabelCache {
       ctx.fillText(lines[i], centerX, oy + margin + i * lineHeight);
     }
 
-    const entry: LabelAtlasEntry = {
+    const entry: ILabelAtlasEntry = {
       u0: slot.x / ATLAS_WIDTH,
       v0: slot.y / ATLAS_HEIGHT,
       u1: (slot.x + pxWidth) / ATLAS_WIDTH,
@@ -115,7 +115,7 @@ export class LabelCache {
     };
 
     this._cache.set(key, entry);
-    this._dirty = true;
+    this._isDirty = true;
     return entry;
   }
 
@@ -126,28 +126,28 @@ export class LabelCache {
   }
 
   uploadIfDirty(): void {
-    if (!this._dirty) {
+    if (!this._isDirty) {
       return;
     }
 
     const gl = this._gl;
     gl.bindTexture(gl.TEXTURE_2D, this._texture);
 
-    if (!this._textureAllocated) {
+    if (!this._isTextureAllocated) {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ATLAS_WIDTH, ATLAS_HEIGHT, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-      this._textureAllocated = true;
+      this._isTextureAllocated = true;
     }
 
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, this._canvas);
 
     gl.bindTexture(gl.TEXTURE_2D, null);
-    this._dirty = false;
+    this._isDirty = false;
   }
 
   clear(): void {
     this._cache.clear();
     this._shelves = [];
-    this._dirty = false;
+    this._isDirty = false;
     this._ctx.clearRect(0, 0, ATLAS_WIDTH, ATLAS_HEIGHT);
   }
 
@@ -174,7 +174,7 @@ export class LabelCache {
       return null;
     }
 
-    const newShelf: Shelf = { y: shelfY, height: h, x: w };
+    const newShelf: IShelf = { y: shelfY, height: h, x: w };
     this._shelves.push(newShelf);
     return { x: 0, y: shelfY };
   }
