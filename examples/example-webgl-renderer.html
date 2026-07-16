@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang='en' type="module">
+<head>
+  <base href=".">
+  <meta charset='UTF-8'>
+  <title>Orb | WebGL renderer & GPU layout</title>
+  <script type="text/javascript" src="./orb.js"></script>
+</head>
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+  .controls {
+    width: 70%;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  .controls label {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+  }
+</style>
+<body>
+  <div style="display: flex; flex-direction: column; align-items: center; height: 100%;">
+    <h1>Example 9 - WebGL renderer & GPU layout</h1>
+    <p style="width: 70%">
+      Renders a generated graph and lets you switch between the Canvas and WebGL
+      renderers and the CPU and GPU force-layout engines across different graph
+      sizes. The GPU layout falls back to the CPU automatically if WebGL2 is
+      unavailable.
+    </p>
+
+    <div class="controls">
+      <label>
+        Renderer
+        <select id="renderer">
+          <option value="canvas">Canvas</option>
+          <option value="webgl" selected>WebGL</option>
+        </select>
+      </label>
+      <label>
+        Layout engine
+        <select id="engine">
+          <option value="cpu">CPU</option>
+          <option value="gpu" selected>GPU</option>
+        </select>
+      </label>
+      <label>
+        Nodes
+        <select id="size">
+          <option>100</option>
+          <option>500</option>
+          <option selected>2000</option>
+          <option>5000</option>
+          <option>10000</option>
+          <option>20000</option>
+        </select>
+      </label>
+      <button id="regenerate">Regenerate</button>
+    </div>
+
+    <!--
+      Make sure that your graph container has a defined width and height.
+      Orb will expand to any available space, but won't be visible if it's parent container is collapsed.
+    -->
+    <div id='graph' style="flex: 1; width: 100%;"></div>
+  </div>
+  <script type="text/javascript">
+    const container = document.getElementById('graph');
+    const rendererSelect = document.getElementById('renderer');
+    const engineSelect = document.getElementById('engine');
+    const sizeSelect = document.getElementById('size');
+    const regenerateButton = document.getElementById('regenerate');
+
+    // Generates a connected random graph: a spanning tree plus some extra edges.
+    const generateGraph = (nodeCount) => {
+      const nodes = [];
+      const edges = [];
+      for (let i = 0; i < nodeCount; i++) {
+        nodes.push({ id: i });
+      }
+      let edgeId = 0;
+      for (let i = 1; i < nodeCount; i++) {
+        const target = Math.floor(Math.random() * i);
+        edges.push({ id: edgeId++, start: i, end: target });
+      }
+      const extraEdges = Math.floor(nodeCount * 0.5);
+      for (let i = 0; i < extraEdges; i++) {
+        const start = Math.floor(Math.random() * nodeCount);
+        const end = Math.floor(Math.random() * nodeCount);
+        if (start !== end) {
+          edges.push({ id: edgeId++, start, end });
+        }
+      }
+      return { nodes, edges };
+    };
+
+    let orb;
+
+    const build = () => {
+      const type = rendererSelect.value;
+      const useGPU = engineSelect.value === 'gpu';
+      const nodeCount = Number(sizeSelect.value);
+
+      // The renderer type is fixed at construction time, so a switch rebuilds the view.
+      if (orb) {
+        orb.destroy();
+      }
+      orb = new Orb.OrbView(container, {
+        render: { type },
+        layout: { type: 'force', options: { useGPU } },
+      });
+
+      orb.data.setDefaultStyle({
+        getNodeStyle() {
+          return {
+            size: 6,
+            color: '#1d5fa5',
+            borderColor: '#0c447c',
+            borderWidth: 0.5,
+          };
+        },
+        getEdgeStyle() {
+          return {
+            width: 0.3,
+            color: '#cccccc',
+          };
+        },
+      });
+
+      orb.data.setup(generateGraph(nodeCount));
+      orb.render(() => orb.recenter());
+    };
+
+    rendererSelect.addEventListener('change', build);
+    engineSelect.addEventListener('change', build);
+    sizeSelect.addEventListener('change', build);
+    regenerateButton.addEventListener('click', build);
+
+    build();
+  </script>
+</body>
+</html>
