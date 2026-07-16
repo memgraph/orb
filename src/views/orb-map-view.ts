@@ -245,6 +245,10 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     onRendered?.();
   }
 
+  getSVG(): string {
+    throw new Error('SVG export is not supported on OrbMapView.');
+  }
+
   destroy() {
     this._renderer.destroy();
     this._leaflet.off();

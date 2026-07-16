@@ -3,6 +3,7 @@ import { IEdgeBase } from '../models/edge';
 import { IGraph } from '../models/graph';
 import { OrbEmitter } from '../events';
 import { IGraphInteraction } from '../models/interaction';
+import { ISVGExportOptions } from '../renderer/svg';
 
 export interface IOrbView<N extends INodeBase, E extends IEdgeBase, S> {
   data: IGraph<N, E>;
@@ -12,5 +13,6 @@ export interface IOrbView<N extends INodeBase, E extends IEdgeBase, S> {
   setSettings(settings: Partial<S>): void;
   render(onRendered?: () => void): void;
   recenter(onRendered?: () => void): void;
+  getSVG(options?: ISVGExportOptions): string;
   destroy(): void;
 }

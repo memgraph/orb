@@ -22,3 +22,4 @@ export { IEdge, IEdgeBase, IEdgePosition, IEdgeStyle, isEdge, EdgeType } from '.
 export { IGraphStyle, getDefaultGraphStyle } from './models/style';
 export { ICircle, IPosition, IRectangle, Color, IColorRGB } from './common';
 export { OrbView, OrbMapView, IOrbView, IOrbMapViewSettings, IOrbViewSettings } from './views';
+export { graphToSVG, ISVGExportOptions } from './renderer/svg';
