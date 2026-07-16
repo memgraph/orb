@@ -8,8 +8,8 @@ import { getCurvedArrowShape } from '../canvas/edge/types/edge-curved';
 import { getLoopbackArrowShape } from '../canvas/edge/types/edge-loopback';
 import { labelToSVG } from './label';
 import { shadowFilterId, toShadow } from './shadow';
-import { SVGDefs } from './defs';
-import { formatNumber, svgElement, SVGAttributes } from './utils';
+import { ISVGDefs } from './defs';
+import { formatNumber, svgElement, ISVGAttributes } from './utils';
 
 const DEFAULT_EDGE_COLOR = '#000000';
 
@@ -26,7 +26,7 @@ export interface IEdgeToSVGOptions {
 
 export const edgeToSVG = <N extends INodeBase, E extends IEdgeBase>(
   edge: IEdge<N, E>,
-  defs: SVGDefs,
+  defs: ISVGDefs,
   options?: Partial<IEdgeToSVGOptions>,
 ): string => {
   const width = edge.getWidth();
@@ -59,7 +59,7 @@ const edgeLineToSVG = <N extends INodeBase, E extends IEdgeBase>(
   color: string,
 ): string => {
   const dashPattern = edge.getLineDashPattern();
-  const strokeAttributes: SVGAttributes = {
+  const strokeAttributes: ISVGAttributes = {
     stroke: color,
     'stroke-width': width,
     fill: 'none',

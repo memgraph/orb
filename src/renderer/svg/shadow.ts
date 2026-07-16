@@ -1,7 +1,7 @@
 import { Color, IRectangle } from '../../common';
 import { INodeStyle } from '../../models/node';
 import { IEdgeStyle } from '../../models/edge';
-import { SVGDefs } from './defs';
+import { ISVGDefs } from './defs';
 import { escapeXML, formatNumber } from './utils';
 
 const SHADOW_STD_DEVIATION_RATIO = 0.5;
@@ -25,7 +25,7 @@ export const toShadow = (style: INodeStyle | IEdgeStyle): IShadow | null => {
   };
 };
 
-export const shadowFilterId = (defs: SVGDefs, shadow: IShadow): string => {
+export const shadowFilterId = (defs: ISVGDefs, shadow: IShadow): string => {
   const { color, opacity } = parseColorAlpha(shadow.color.toString());
   const stdDeviation = Math.max(shadow.size * SHADOW_STD_DEVIATION_RATIO, 0);
   const signature = `shadow:${color}:${opacity}:${stdDeviation}:${shadow.offsetX}:${shadow.offsetY}`;

@@ -1,18 +1,17 @@
 import { IRectangle } from '../../common';
 
-export class SVGDefs {
+export interface ISVGDefs {
+  readonly filterRegion?: IRectangle;
+  add(signature: string, build: (id: string) => string): string;
+  toSVG(): string;
+}
+
+export class SVGDefs implements ISVGDefs {
   private _idBySignature = new Map<string, string>();
   private _entries: string[] = [];
   private _counter = 0;
-  private readonly _filterRegion?: IRectangle;
 
-  constructor(filterRegion?: IRectangle) {
-    this._filterRegion = filterRegion;
-  }
-
-  get filterRegion(): IRectangle | undefined {
-    return this._filterRegion;
-  }
+  constructor(public readonly filterRegion?: IRectangle) {}
 
   add(signature: string, build: (id: string) => string): string {
     const existing = this._idBySignature.get(signature);

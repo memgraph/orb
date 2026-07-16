@@ -232,7 +232,7 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
   }
 
   getSVG(): string {
-    throw new Error('Method not implemented.');
+    throw new Error('SVG export is not supported on OrbMapView.');
   }
 
   destroy() {

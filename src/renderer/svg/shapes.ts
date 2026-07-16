@@ -1,10 +1,10 @@
 import { NodeShapeType } from '../../models/node';
 import { IPosition } from '../../common';
-import { formatNumber, SVGAttributes } from './utils';
+import { formatNumber, ISVGAttributes } from './utils';
 
 export interface ISVGShape {
   tag: string;
-  attributes: SVGAttributes;
+  attributes: ISVGAttributes;
 }
 
 const toPointsAttribute = (points: IPosition[]): string => {

@@ -1,4 +1,6 @@
-export type SVGAttributes = Record<string, string | number | undefined | null>;
+export interface ISVGAttributes {
+  [key: string]: string | number | undefined | null;
+}
 
 export const formatNumber = (value: number): string => {
   if (!isFinite(value)) {
@@ -16,7 +18,7 @@ export const escapeXML = (value: string): string => {
     .replace(/'/g, '&apos;');
 };
 
-export const svgElement = (tag: string, attributes: SVGAttributes, children?: string): string => {
+export const svgElement = (tag: string, attributes: ISVGAttributes, children?: string): string => {
   const serializedAttributes = Object.keys(attributes)
     .filter((key) => {
       const value = attributes[key];

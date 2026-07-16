@@ -1,12 +1,12 @@
 import { INodeBase, INode } from '../../models/node';
 import { IEdgeBase } from '../../models/edge';
-import { SVGDefs } from './defs';
+import { ISVGDefs } from './defs';
 import { ISVGShape } from './shapes';
 import { svgElement } from './utils';
 
 export const nodeImageToSVG = <N extends INodeBase, E extends IEdgeBase>(
   node: INode<N, E>,
-  defs: SVGDefs,
+  defs: ISVGDefs,
   shape: ISVGShape,
 ): string => {
   const image = node.getBackgroundImage();

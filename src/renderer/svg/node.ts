@@ -5,8 +5,8 @@ import { shapeToSVGShape } from './shapes';
 import { labelToSVG } from './label';
 import { nodeImageToSVG } from './image';
 import { shadowFilterId, toShadow } from './shadow';
-import { SVGDefs } from './defs';
-import { svgElement, SVGAttributes } from './utils';
+import { ISVGDefs } from './defs';
+import { svgElement, ISVGAttributes } from './utils';
 
 const DEFAULT_LABEL_DISTANCE_SIZE_FROM_NODE = 0.2;
 const DEFAULT_NODE_COLOR = '#000000';
@@ -20,7 +20,7 @@ export interface INodeToSVGOptions {
 
 export const nodeToSVG = <N extends INodeBase, E extends IEdgeBase>(
   node: INode<N, E>,
-  defs: SVGDefs,
+  defs: ISVGDefs,
   options?: Partial<INodeToSVGOptions>,
 ): string => {
   const isLabelEnabled = options?.isLabelEnabled ?? true;
@@ -37,7 +37,7 @@ export const nodeToSVG = <N extends INodeBase, E extends IEdgeBase>(
   const color = (node.getColor() ?? DEFAULT_NODE_COLOR).toString();
 
   const hasBorder = node.hasBorder();
-  const borderAttributes: SVGAttributes = {};
+  const borderAttributes: ISVGAttributes = {};
   if (hasBorder) {
     borderAttributes.stroke = node.getBorderColor()?.toString() ?? DEFAULT_BORDER_COLOR;
     borderAttributes['stroke-width'] = node.getBorderWidth();
