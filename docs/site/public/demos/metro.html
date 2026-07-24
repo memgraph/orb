@@ -27,6 +27,13 @@
       .modes button { font-family:inherit; font-size:13px; font-weight:500; padding:5px 12px; border:1px solid var(--border); border-radius:4px; background:var(--panel); color:var(--text); cursor:pointer; }
       .modes button.active { border-color:var(--orange); background:var(--accent-soft); color:var(--orange); }
       body.preview .caption, body.preview .modes { display:none; }
+
+      /* Narrow screens: the top-left caption/legend and the top-right toggle collide,
+         so drop the toggle to the bottom-left (clear of Leaflet's zoom control top-left
+         and attribution bottom-right). */
+      @media (max-width: 600px) {
+        .modes { top:auto; bottom:12px; left:12px; right:auto; }
+      }
     </style>
   </head>
   <body>

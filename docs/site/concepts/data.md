@@ -75,8 +75,11 @@ node.patchStyle({ color: '#FB6E00' }); // merge style props
 
 Readable state: `id`, `data`, `start`, `end`, `startNode`, `endNode`, `style`, `state`,
 `type`. The `type` is one of `EdgeType.STRAIGHT`, `EdgeType.CURVED`, or `EdgeType.LOOPBACK`
-(a node connected to itself). Parallel edges between the same two nodes are curved so they
-don't overlap.
+(a node connected to itself). Overlapping edges are handled automatically: when several edges
+run between the same two nodes Orb fans them out into separated curves (0, +1, -1, +2, -2, ...),
+and loopbacks get increasing radii. This is recomputed on every data change, so a single edge
+between two nodes is always a straight line - the curvature is derived from the graph
+topology, not set per edge.
 
 ```typescript
 const edge = orb.data.getEdgeById(0);

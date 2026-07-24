@@ -36,6 +36,21 @@ to disable it.
 `anchorX` / `anchorY` (`'start' | 'center' | 'end'`, both default `'center'`) set where the
 settled graph is anchored in the view.
 
+### Edge midpoint repulsion
+
+`manyBody` takes an optional `edgeMidpointRepulsion: boolean` (default off):
+
+```typescript
+manyBody: { strength: -100, theta: 0.9, distanceMin: 1, distanceMax: 400, edgeMidpointRepulsion: true }
+```
+
+When enabled, nodes are also repelled from the midpoint of every edge - not just from other
+nodes - which pushes edges out from under unrelated nodes and reduces edges routed straight
+through them. It reuses the `manyBody` `strength` and `distanceMax`, and works on both the CPU
+and GPU engines. Because it compares every node against every edge midpoint each tick, it adds
+work proportional to nodes x edges, so it is best on small-to-medium graphs where readability
+matters more than raw scale. Try it live in the [playground](/demos/playground.html).
+
 ## Convergence
 
 The simulation cools down over time, controlled by `alpha`:

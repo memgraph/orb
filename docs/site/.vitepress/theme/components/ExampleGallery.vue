@@ -14,6 +14,11 @@ const examples = [
     href: '/demos/playground.html',
   },
   {
+    title: 'GPU playground',
+    desc: 'Scale up to tens of thousands of nodes and compare Canvas vs WebGL and CPU vs GPU force, with live fps and layout timing.',
+    href: '/demos/gpu.html',
+  },
+  {
     title: 'Map view',
     desc: 'A network of European cities plotted on an interactive Leaflet map.',
     href: '/demos/map.html',
@@ -27,6 +32,11 @@ const examples = [
     title: 'Kyiv Metro',
     desc: 'A real, hard-coded transit network - three colored lines with interchange transfers.',
     href: '/demos/metro.html',
+  },
+  {
+    title: 'Interaction',
+    desc: 'Hover to focus a neighborhood, click to select (with cascade), Shift-click to multi-select, right-click for actions, and drag nodes around.',
+    href: '/demos/interaction-showcase.html',
   },
 ];
 
@@ -73,7 +83,8 @@ const previewSrc = (href: string) => `${withBase(href)}?preview=1&theme=${theme.
 }
 .example-gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  /* ~3 columns on wide screens so six cards read as a clean 3 x 2 grid. */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 16px;
   margin-top: 20px;
 }

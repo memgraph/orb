@@ -18,20 +18,28 @@
 
 ![](./docs/assets/graph-example.png)
 
-Orb is a graph visualization library. Read more about Orb in the following guides:
+Orb is a graph visualization library. It renders interactive graphs on the 2D Canvas or on
+WebGL, runs force-directed (CPU or GPU), circular, grid, and hierarchical layouts, plots
+geo-located nodes on a map, and gives you full control over the style of every node and edge.
 
-* [Handling nodes and edges](./docs/data.md)
-* [Styling nodes and edges](./docs/styles.md)
-* [Handling events](./docs/events.md)
-* Using different views
-  * [Default view](./docs/view-default.md)
-  * [Map view](./docs/view-map.md)
+## Documentation
+
+Full guides, the API reference, and live interactive demos are on the documentation site:
+
+**https://memgraph.github.io/orb/**
+
+Some good places to start:
+
+* [Getting started](https://memgraph.github.io/orb/introduction/getting-started)
+* [Graph data](https://memgraph.github.io/orb/concepts/data) - nodes, edges, and updates
+* [Styling](https://memgraph.github.io/orb/concepts/styling) - colors, shapes, borders, labels
+* [Events](https://memgraph.github.io/orb/concepts/events) and [Interaction](https://memgraph.github.io/orb/concepts/interaction)
+* [Layouts](https://memgraph.github.io/orb/layouts/overview) - force, GPU, and static layouts
+* [Canvas vs WebGL](https://memgraph.github.io/orb/rendering/renderers)
+* [Map view](https://memgraph.github.io/orb/views/map)
+* [API reference](https://memgraph.github.io/orb/reference/api)
 
 ## Install
-
-> **Important note**: Please note that there might be breaking changes in minor version upgrades until
-> the Orb reaches version 1.0.0, so we recommend to either set strict version (`@memgraph/orb: "0.x.y"`)
-> of the Orb in your `package.json` or to allow only fix updates (`@memgraph/orb: "~0.x.y"`).
 
 ### With `npm` (recommended)
 
@@ -39,24 +47,22 @@ Orb is a graph visualization library. Read more about Orb in the following guide
 npm install @memgraph/orb
 ```
 
-Below you can find a simple Typescript example using Orb to visualize a small graph. Feel
-free to check other JavaScript examples in `examples/` directory.
-
 ```typescript
 import { OrbView } from '@memgraph/orb';
+
 const container = document.getElementById('graph');
 
-const nodes: MyNode[] = [
+const nodes = [
   { id: 1, label: 'Orb' },
   { id: 2, label: 'Graph' },
   { id: 3, label: 'Canvas' },
 ];
-const edges: MyEdge[] = [
+const edges = [
   { id: 1, start: 1, end: 2, label: 'DRAWS' },
   { id: 2, start: 2, end: 3, label: 'ON' },
 ];
 
-const orb = new OrbView<MyNode, MyEdge>(container);
+const orb = new OrbView(container);
 
 // Initialize nodes and edges
 orb.data.setup({ nodes, edges });
@@ -73,69 +79,24 @@ orb.render(() => {
 > link. Graph simulation will use the main thread, which will affect performance.
 
 ```html
-<!-- Direct reference non-minified -->
-<script src="dist/browser/orb.js"></script>
-<!-- Direct reference minified -->
-<script src="dist/browser/orb.min.js"></script>
-
-<!-- unpkg CDN non-minified -->
-<script src="https://unpkg.com/@memgraph/orb/dist/browser/orb.js"></script>
 <!-- unpkg CDN minified -->
 <script src="https://unpkg.com/@memgraph/orb/dist/browser/orb.min.js"></script>
+<script>
+  // `Orb` is the global namespace of the UMD bundle.
+  const orb = new Orb.OrbView(document.getElementById('graph'));
+  orb.data.setup({ nodes, edges });
+  orb.render(() => orb.recenter());
+</script>
 ```
 
-Below you can find a simple JavaScript example using Orb to visualize a small graph. Feel
-free to check other JavaScript examples in `examples/` directory.
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Orb | Simple graph</title>
-    <script src="https://unpkg.com/@memgraph/orb/dist/browser/orb.min.js"></script>
-    <style>
-      #graph {
-        border: 1px solid #e0e0e0;
-        width: 600px;
-        height: 600px;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="graph"></div>
-    <script>
-      const container = document.getElementById("graph");
-
-      const nodes = [
-        { id: 1, label: "Orb" },
-        { id: 2, label: "Graph" },
-        { id: 3, label: "Canvas" },
-      ];
-      const edges = [
-        { id: 1, start: 1, end: 2, label: "DRAWS" },
-        { id: 2, start: 2, end: 3, label: "ON" },
-      ];
-
-      // First `Orb` is just a namespace of the JS package
-      const orb = new Orb.OrbView(container);
-
-      // Initialize nodes and edges
-      orb.data.setup({ nodes, edges });
-
-      // Render and recenter the view
-      orb.render(() => {
-        orb.recenter();
-      });
-    </script>
-  </body>
-</html>
-```
+See the [getting started guide](https://memgraph.github.io/orb/introduction/getting-started)
+for a complete runnable example.
 
 ## Build
 
 ```
-npm run build
+npm run build          # type-check + emit (tsc)
+npm run build:release  # tsc + webpack browser bundle (dist/browser/)
 ```
 
 ## Test
@@ -146,30 +107,38 @@ npm run test
 
 ## Development
 
-If you want to experiment, contribute, or simply play with the Orb locally, you can
-set up your local development environment with:
+If you want to experiment, contribute, or simply play with Orb locally:
 
-* Installation of all project dependencies
+* Install dependencies
 
   ```
   npm install
   ```
 
-* Running webpack build in the watch mode
+* Rebuild the browser bundle on change
 
   ```
   npm run webpack:watch
   ```
 
-* Running a local http server that will serve Orb and `examples/` directory on `localhost:8080`
+* Serve the built bundle from `dist/browser/` on `localhost:8082`
 
   ```
   npm run serve
   ```
 
+* Lint
+
+  ```
+  npm run lint
+  ```
+
+To work on the documentation site itself, see `docs/site/` (a self-contained VitePress
+project with its own `package.json`).
+
 ## License
 
-Copyright (c) 2016-2022 [Memgraph Ltd.](https://memgraph.com)
+Copyright (c) 2016-present [Memgraph Ltd.](https://memgraph.com)
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the

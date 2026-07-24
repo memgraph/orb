@@ -71,7 +71,7 @@
       const state = {
         layout: 'force', shape: 'circle', color: '#fb6e00', size: 8, edgeWidth: 3, labels: true,
         opts: {
-          force: { isPhysicsEnabled: false, collision: { radius: 15 }, manyBody: { strength: -100 }, links: { distance: 50 } },
+          force: { isPhysicsEnabled: false, collision: { radius: 15 }, manyBody: { strength: -100, theta: 0.9, distanceMin: 1, distanceMax: 400, edgeMidpointRepulsion: false }, links: { distance: 50 } },
           circular: { radius: 120 },
           grid: { rowGap: 50, colGap: 50 },
           hierarchical: { orientation: 'vertical', levelGap: 60, nodeGap: 40 },
@@ -183,6 +183,7 @@
           box.append(slider('Collision radius', 1, 40, 1, o.collision.radius, (v) => { o.collision.radius = v; applyForce(); }));
           box.append(slider('Repel force', -300, -10, 10, o.manyBody.strength, (v) => { o.manyBody.strength = v; applyForce(); }));
           box.append(slider('Link distance', 10, 200, 5, o.links.distance, (v) => { o.links.distance = v; applyForce(); }));
+          box.append(chips('Edge midpoint repel', [['off', 'Off'], ['on', 'On']], o.manyBody.edgeMidpointRepulsion ? 'on' : 'off', (v) => { o.manyBody.edgeMidpointRepulsion = v === 'on'; applyForce(); }));
         } else if (state.layout === 'circular') {
           box.append(slider('Radius', 40, 300, 10, o.radius, (v) => { o.radius = v; rebuild(); }));
         } else if (state.layout === 'grid') {

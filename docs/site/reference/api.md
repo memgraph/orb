@@ -87,7 +87,7 @@ See [Canvas vs WebGL](/rendering/renderers) and [Performance](/rendering/perform
 | `isPhysicsEnabled` | `false` |
 | `alpha` | `{ alpha: 1, alphaMin: 0.05, alphaDecay: 0.028, alphaTarget: 0 }` |
 | `links` | `{ distance: 50, strength: 1, iterations: 1 }` |
-| `manyBody` | `{ strength: -100, theta: 0.9, distanceMin: 1, distanceMax: 5000 }` |
+| `manyBody` | `{ strength: -100, theta: 0.9, distanceMin: 1, distanceMax: 5000 }` (also takes `edgeMidpointRepulsion?: boolean`, default off - see [Force layout](/layouts/force#edge-midpoint-repulsion)) |
 | `collision` | `{ radius: 15, strength: 1, iterations: 1 }` |
 | `centering` | `{ x: 0, y: 0, strength: 1 }` |
 | `positioning` | `{ forceX: { x: 0, strength: 0.1 }, forceY: { y: 0, strength: 0.1 } }` |

@@ -38,6 +38,8 @@ export {
   ILayoutSettings,
   ICircularLayoutOptions,
   IForceLayoutOptions,
+  IForceLayoutManyBody,
+  IForceLayoutLinks,
   IGridLayoutOptions,
   IHierarchicalLayoutOptions,
   HierarchicalLayoutOrientation,
