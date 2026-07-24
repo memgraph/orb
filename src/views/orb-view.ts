@@ -19,6 +19,7 @@ import { OrbEmitter, OrbEventType } from '../events';
 import {
   IRenderer,
   RenderEventType,
+  RendererType,
   IRendererSettingsInit,
   IRendererSettings,
   IFitZoomTransformOptions,
@@ -61,12 +62,13 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   private _settings: IOrbViewSettings<N, E>;
   private _interaction: IGraphInteraction;
 
-  private readonly _renderer: IRenderer<N, E>;
+  private _renderer!: IRenderer<N, E>;
+  private _rendererType: RendererType;
   private _simulator: ISimulator;
   private _simulatorUsesGPU = false;
 
   private _simulationStartedAt = Date.now();
-  private _d3Zoom: ZoomBehavior<HTMLCanvasElement, any>;
+  private _d3Zoom!: ZoomBehavior<HTMLCanvasElement, any>;
   private _dragStartPosition: IPosition | undefined;
 
   constructor(container: HTMLElement, settings?: Partial<IOrbViewSettingsInit<N, E>>) {
@@ -118,12 +120,45 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       isDefaultSelectCascadeEnabled: this._settings.strategy.isDefaultSelectCascadeEnabled ?? true,
     });
 
+    this._rendererType = settings?.render?.type ?? RendererType.CANVAS;
+    this._initRenderer(this._rendererType);
+
+    this._simulator = SimulatorFactory.getSimulator(this._settings.layout);
+    this._simulatorUsesGPU = OrbView._needsGPU(this._settings.layout);
+    this._initializeSimulationEvents();
+
+    this._graph.setSettings({
+      onSetupData: () => {
+        this._assignPositions(this._graph.getNodes());
+        const nodePositions = this._graph.getNodePositions();
+        const edgePositions = this._graph.getEdgePositions();
+        this._simulator.setupData({ nodes: nodePositions, edges: edgePositions });
+      },
+      onMergeData: (data) => {
+        const nodeIds = new Set(data.nodes?.map((node) => node.id));
+        const nodeFilter: INodeFilter<N, E> = (node: INode<N, E>) => nodeIds.has(node.getId());
+        const edgeIds = new Set(data.edges?.map((edge) => edge.id));
+        const edgeFilter: IEdgeFilter<N, E> = (edge: IEdge<N, E>) => edgeIds.has(edge.getId());
+
+        this._assignPositions(this._graph.getNodes(nodeFilter));
+
+        const nodePositions = this._graph.getNodePositions(nodeFilter);
+        const edgePositions = this._graph.getEdgePositions(edgeFilter);
+        this._simulator.mergeData({ nodes: nodePositions, edges: edgePositions });
+      },
+      onRemoveData: (data) => {
+        this._simulator.deleteData(data);
+      },
+    });
+  }
+
+  // Creates the renderer of the given type and wires up everything that is coupled to it:
+  // render event forwarding, origin centering, the d3 zoom behaviour (scale extent), and the
+  // drag/zoom/mouse handlers bound to its canvas. Called once from the constructor and again
+  // by setRenderer() when the renderer type changes at runtime.
+  private _initRenderer(type?: RendererType) {
     try {
-      this._renderer = RendererFactory.getRenderer<N, E>(
-        this._container,
-        settings?.render?.type,
-        this._settings.render,
-      );
+      this._renderer = RendererFactory.getRenderer<N, E>(this._container, type, this._settings.render);
     } catch (error: any) {
       this._container.textContent = error.message;
       throw error;
@@ -161,34 +196,23 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
       .on('mousemove', this.mouseMoved)
       .on('contextmenu', this.mouseRightClicked)
       .on('dblclick.zoom', this.mouseDoubleClicked);
+  }
 
-    this._simulator = SimulatorFactory.getSimulator(this._settings.layout);
-    this._simulatorUsesGPU = OrbView._needsGPU(this._settings.layout);
-    this._initializeSimulationEvents();
+  setRenderer(type: RendererType) {
+    if (type === this._rendererType) {
+      return;
+    }
 
-    this._graph.setSettings({
-      onSetupData: () => {
-        this._assignPositions(this._graph.getNodes());
-        const nodePositions = this._graph.getNodePositions();
-        const edgePositions = this._graph.getEdgePositions();
-        this._simulator.setupData({ nodes: nodePositions, edges: edgePositions });
-      },
-      onMergeData: (data) => {
-        const nodeIds = new Set(data.nodes?.map((node) => node.id));
-        const nodeFilter: INodeFilter<N, E> = (node: INode<N, E>) => nodeIds.has(node.getId());
-        const edgeIds = new Set(data.edges?.map((edge) => edge.id));
-        const edgeFilter: IEdgeFilter<N, E> = (edge: IEdge<N, E>) => edgeIds.has(edge.getId());
+    const previousTransform = this._renderer.transform;
 
-        this._assignPositions(this._graph.getNodes(nodeFilter));
+    this._renderer.destroy();
+    this._initRenderer(type);
+    this._rendererType = type;
 
-        const nodePositions = this._graph.getNodePositions(nodeFilter);
-        const edgePositions = this._graph.getEdgePositions(edgeFilter);
-        this._simulator.mergeData({ nodes: nodePositions, edges: edgePositions });
-      },
-      onRemoveData: (data) => {
-        this._simulator.deleteData(data);
-      },
-    });
+    this._renderer.transform = previousTransform;
+    select(this._renderer.canvas).property('__zoom', previousTransform);
+
+    this.render();
   }
 
   get data(): IGraph<N, E> {
@@ -207,12 +231,15 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     return copyObject(this._settings);
   }
 
-  setSettings(settings: Partial<IOrbViewSettings<N, E>>) {
+  setSettings(settings: Partial<IOrbViewSettingsInit<N, E>>) {
     if (settings.getPosition) {
       this._settings.getPosition = settings.getPosition;
     }
 
     if (settings.render) {
+      if (settings.render.type && settings.render.type !== this._rendererType) {
+        this.setRenderer(settings.render.type);
+      }
       this._renderer.setSettings(settings.render);
       this._settings.render = this._renderer.getSettings();
     }

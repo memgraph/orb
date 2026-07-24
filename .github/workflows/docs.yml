@@ -1,0 +1,82 @@
+name: Deploy docs to GitHub Pages
+
+on:
+  push:
+    # NOTE: `new/add-docs-page` is a TEMPORARY entry so the team can review a live
+    # deploy from the docs branch. Remove it before/at merge so main deploys only
+    # from main.
+    branches: [main, release/1.0.0, new/add-docs-page]
+  # Validate the bundle + docs build on any PR that touches them, so reviewers
+  # get a green check without needing Pages enabled or a merge to main. The
+  # deploy job below is skipped for PRs.
+  pull_request:
+    paths:
+      - "docs/site/**"
+      - "src/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time, but keep PR builds from cancelling a main deploy (and
+# vice versa) by scoping the group per ref.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 1. Build the Orb browser bundle from source so the live demos stay in sync.
+      - name: Build Orb bundle
+        run: |
+          npm ci
+          npm run build:release
+
+      # 2. Refresh the copies the docs site embeds.
+      - name: Sync bundle into docs site
+        run: |
+          cp dist/browser/orb.min.js docs/site/public/orb.min.js
+          cp dist/browser/orb.worker.min.js docs/site/public/orb.worker.min.js
+          # The module worker loads this shared vendor chunk as a sibling; without
+          # it the worker fails silently and layout simulation never runs.
+          cp dist/browser/orb.worker.vendor.min.js docs/site/public/orb.worker.vendor.min.js
+
+      # 3. Build the VitePress site.
+      - name: Build docs
+        working-directory: docs/site
+        run: |
+          npm install
+          npm run build
+
+      # 4. Package for Pages. Only needed for an actual deploy, so skip on PRs
+      #    (where these steps would also fail until Pages is enabled).
+      - uses: actions/configure-pages@v5
+        if: github.event_name != 'pull_request'
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: docs/site/.vitepress/dist
+
+  deploy:
+    needs: build
+    # Deploy only from main; PRs run the build job above for validation only.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

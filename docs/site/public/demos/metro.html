@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orb - Kyiv Metro</title>
+    <script src="../orb.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
+      integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap" />
+    <style>
+      :root { --bg:#fff; --text:#231f20; --panel:rgba(255,255,255,0.92); --border:#e6e6e6; --orange:#fb6e00; --accent-soft:#fff4eb; }
+      :root[data-theme='dark'] { --bg:#231f20; --text:#e6e6e6; --panel:rgba(43,39,39,0.94); --border:#3a3536; --accent-soft:#3a2a1a; }
+      html, body { height:100%; margin:0; font-family:'Inter Tight',system-ui,sans-serif; background:var(--bg); color:var(--text); }
+      #graph { width:100%; height:100%; position:relative; }
+      .caption { position:absolute; top:12px; left:12px; z-index:500; font-size:12px; color:var(--text); background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:8px 12px; pointer-events:none; }
+      .caption b { font-size:13px; }
+      .legend { display:flex; flex-wrap:wrap; gap:10px 12px; margin-top:6px; }
+      .legend span { display:flex; align-items:center; gap:4px; }
+      .dot { width:9px; height:9px; border-radius:999px; display:inline-block; }
+      .dash { width:16px; border-top:2px dashed currentColor; display:inline-block; opacity:0.7; }
+      .modes { position:absolute; top:12px; right:12px; z-index:500; display:flex; gap:6px; }
+      .modes button { font-family:inherit; font-size:13px; font-weight:500; padding:5px 12px; border:1px solid var(--border); border-radius:4px; background:var(--panel); color:var(--text); cursor:pointer; }
+      .modes button.active { border-color:var(--orange); background:var(--accent-soft); color:var(--orange); }
+      body.preview .caption, body.preview .modes { display:none; }
+    </style>
+  </head>
+  <body>
+    <div id="graph">
+      <div class="caption">
+        <b>Kyiv Metro</b>
+        <div class="legend">
+          <span><i class="dot" style="background:#dd2222"></i>M1</span>
+          <span><i class="dot" style="background:#1d87c9"></i>M2</span>
+          <span><i class="dot" style="background:#19af66"></i>M3</span>
+          <span><i class="dash"></i>Planned</span>
+        </div>
+      </div>
+      <div class="modes">
+        <button class="active" data-mode="map">Map</button>
+        <button data-mode="schematic">Schematic</button>
+      </div>
+    </div>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const dark = params.get('theme') ? params.get('theme') === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      if (params.has('preview')) document.body.classList.add('preview');
+
+      const container = document.getElementById('graph');
+      const { OrbView, OrbMapView, Color, EdgeLineStyleType } = Orb;
+      const LINES = { M1: '#dd2222', M2: '#1d87c9', M3: '#19af66' };
+
+      // Running order per line: [name, lat, lng]. Full network per the official map.
+      const lines = {
+        M1: [
+          ['Akademmistechko', 50.4647, 30.3556], ['Zhytomyrska', 50.4556, 30.3651], ['Sviatoshyn', 50.4581, 30.3912],
+          ['Nyvky', 50.4586, 30.4103], ['Beresteiska', 50.4553, 30.4256], ['Shuliavska', 50.4548, 30.4442],
+          ['Politekhnichnyi Instytut', 50.4509, 30.4663], ['Vokzalna', 50.4419, 30.4890], ['Universytet', 50.4444, 30.5058],
+          ['Teatralna', 50.4455, 30.5136], ['Khreshchatyk', 50.4470, 30.5225], ['Arsenalna', 50.4444, 30.5456],
+          ['Dnipro', 50.4413, 30.5599], ['Hidropark', 50.4462, 30.5766], ['Livoberezhna', 50.4515, 30.5990],
+          ['Darnytsia', 50.4571, 30.6113], ['Chernihivska', 50.4598, 30.6256], ['Lisova', 50.4644, 30.6448],
+        ],
+        M2: [
+          ['Heroiv Dnipra', 50.5228, 30.4986], ['Minska', 50.5122, 30.4986], ['Obolon', 50.5012, 30.4983],
+          ['Pochaina', 50.4869, 30.4975], ['Tarasa Shevchenka', 50.4739, 30.5061], ['Kontraktova Ploshcha', 50.4655, 30.5153],
+          ['Poshtova Ploshcha', 50.4595, 30.5240], ['Maidan Nezalezhnosti', 50.4501, 30.5240], ['Ploshcha Ukrainska', 50.4392, 30.5192],
+          ['Olimpiiska', 50.4322, 30.5178], ['Palats Ukraina', 50.4210, 30.5210], ['Lybidska', 50.4122, 30.5252],
+          ['Demiivska', 50.4053, 30.5170], ['Holosiivska', 50.3969, 30.5089], ['Vasylkivska', 50.3906, 30.4983],
+          ['Vystavkovyi Tsentr', 50.3826, 30.4772], ['Ipodrom', 50.3760, 30.4640], ['Teremky', 50.3690, 30.4560],
+        ],
+        M3: [
+          ['Syrets', 50.4750, 30.4460], ['Dorohozhychi', 50.4653, 30.4640], ['Lukianivska', 50.4600, 30.4830],
+          ['Zoloti Vorota', 50.4478, 30.5130], ['Palats Sportu', 50.4392, 30.5222], ['Klovska', 50.4380, 30.5345],
+          ['Pecherska', 50.4270, 30.5423], ['Druzhby Narodiv', 50.4180, 30.5540], ['Vydubychi', 50.4030, 30.5625],
+          ['Slavutych', 50.3922, 30.6060], ['Osokorky', 50.3960, 30.6150], ['Pozniaky', 50.3990, 30.6262],
+          ['Kharkivska', 50.4012, 30.6370], ['Vyrlytsia', 50.4060, 30.6480], ['Boryspilska', 50.4110, 30.6570],
+          ['Chervonyi Khutir', 50.4160, 30.6660],
+        ],
+      };
+      const planned = { line: 'M3', from: 'Syrets', stations: [
+        ['Mostytska', 50.4850, 30.4300], ['Prospekt Pravdy', 50.4950, 30.4150], ['Vynohradar', 50.4900, 30.4000],
+      ] };
+      const transfers = [
+        ['Teatralna', 'Zoloti Vorota'], ['Khreshchatyk', 'Maidan Nezalezhnosti'], ['Ploshcha Ukrainska', 'Palats Sportu'],
+      ];
+      const transferSet = new Set(transfers.flat());
+
+      // Build node/edge lists + a lat/lng map and a degree count (for shapes).
+      const nodes = [];
+      const edges = [];
+      const geo = {};
+      const degree = {};
+      const addNode = (name, lat, lng, line, isPlanned) => {
+        if (geo[name]) return;
+        geo[name] = { lat, lng };
+        nodes.push({ id: name, label: name, line, planned: isPlanned });
+      };
+      const addEdge = (a, b, data) => {
+        edges.push({ id: edges.length, start: a, end: b, ...data });
+        degree[a] = (degree[a] || 0) + 1;
+        degree[b] = (degree[b] || 0) + 1;
+      };
+      Object.entries(lines).forEach(([line, stations]) => {
+        stations.forEach(([name, lat, lng], i) => {
+          addNode(name, lat, lng, line, false);
+          if (i > 0) addEdge(stations[i - 1][0], name, { color: LINES[line] });
+        });
+      });
+      let prev = planned.from;
+      planned.stations.forEach(([name, lat, lng]) => {
+        addNode(name, lat, lng, planned.line, true);
+        addEdge(prev, name, { color: LINES[planned.line], planned: true });
+        prev = name;
+      });
+      transfers.forEach(([a, b]) => addEdge(a, b, { transfer: true }));
+
+      // Schematic coordinates hand-placed to follow the official Kyiv map layout
+      // (x right, y down; the interchange triangle sits near the centre).
+      const schematic = {
+        // M1 (red): diagonal down from the NW, then horizontal through the centre and east.
+        'Akademmistechko': { x: -520, y: -250 }, 'Zhytomyrska': { x: -470, y: -220 }, 'Sviatoshyn': { x: -430, y: -195 },
+        'Nyvky': { x: -390, y: -170 }, 'Beresteiska': { x: -350, y: -140 }, 'Shuliavska': { x: -305, y: -95 },
+        'Politekhnichnyi Instytut': { x: -265, y: -55 }, 'Vokzalna': { x: -210, y: 0 }, 'Universytet': { x: -140, y: 0 },
+        'Teatralna': { x: -70, y: 0 }, 'Khreshchatyk': { x: 0, y: 0 }, 'Arsenalna': { x: 85, y: 20 },
+        'Dnipro': { x: 150, y: 40 }, 'Hidropark': { x: 215, y: 70 }, 'Livoberezhna': { x: 285, y: 55 },
+        'Darnytsia': { x: 350, y: 35 }, 'Chernihivska': { x: 410, y: 20 }, 'Lisova': { x: 475, y: 0 },
+        // M2 (blue): vertical from the north, curving through the centre and down to the SW.
+        'Heroiv Dnipra': { x: 110, y: -360 }, 'Minska': { x: 110, y: -310 }, 'Obolon': { x: 110, y: -265 },
+        'Pochaina': { x: 110, y: -220 }, 'Tarasa Shevchenka': { x: 105, y: -180 }, 'Kontraktova Ploshcha': { x: 85, y: -140 },
+        'Poshtova Ploshcha': { x: 60, y: -100 }, 'Maidan Nezalezhnosti': { x: 35, y: -60 }, 'Ploshcha Ukrainska': { x: 30, y: 75 },
+        'Olimpiiska': { x: 30, y: 130 }, 'Palats Ukraina': { x: 30, y: 185 }, 'Lybidska': { x: 25, y: 240 },
+        'Demiivska': { x: 0, y: 295 }, 'Holosiivska': { x: -35, y: 345 }, 'Vasylkivska': { x: -80, y: 390 },
+        'Vystavkovyi Tsentr': { x: -135, y: 435 }, 'Ipodrom': { x: -185, y: 475 }, 'Teremky': { x: -235, y: 515 },
+        // M3 (green): diagonal from the N through the centre, then east along the left bank.
+        'Syrets': { x: -140, y: -280 }, 'Dorohozhychi': { x: -120, y: -230 }, 'Lukianivska': { x: -105, y: -180 },
+        'Zoloti Vorota': { x: -75, y: -55 }, 'Palats Sportu': { x: -10, y: 55 }, 'Klovska': { x: 55, y: 110 },
+        'Pecherska': { x: 115, y: 165 }, 'Druzhby Narodiv': { x: 170, y: 220 }, 'Vydubychi': { x: 220, y: 280 },
+        'Slavutych': { x: 290, y: 320 }, 'Osokorky': { x: 360, y: 335 }, 'Pozniaky': { x: 430, y: 335 },
+        'Kharkivska': { x: 500, y: 320 }, 'Vyrlytsia': { x: 565, y: 300 }, 'Boryspilska': { x: 625, y: 275 },
+        'Chervonyi Khutir': { x: 685, y: 250 },
+        // Planned (dashed) Vynohradar branch off Syrets, extending NW.
+        'Mostytska': { x: -200, y: -330 }, 'Prospekt Pravdy': { x: -260, y: -380 }, 'Vynohradar': { x: -315, y: -410 },
+      };
+
+      const shapeFor = (d) => (transferSet.has(d.id) ? 'triangle' : degree[d.id] === 1 ? 'square' : 'circle');
+
+      function styleDefs(isMap) {
+        const lc = isMap ? '#231f20' : dark ? '#e6e6e6' : '#231f20';
+        const lbg = isMap || !dark ? 'rgba(255,255,255,0.82)' : 'rgba(35,31,32,0.72)';
+        const hollow = isMap || !dark ? '#ffffff' : '#231f20';
+        const size = isMap ? 5 : 6;
+        const fontSize = isMap ? 9 : 5;
+        return {
+          getNodeStyle(node) {
+            const d = node.getData();
+            const line = LINES[d.line];
+            const shape = shapeFor(d);
+            if (d.planned) {
+              return { size, shape, color: hollow, borderColor: line, borderWidth: 1.8, label: d.label, fontSize, fontColor: lc, fontBackgroundColor: lbg };
+            }
+            const c = new Color(line);
+            return { size, shape, color: line, colorHover: c.getLighterColor(), colorSelected: c.getDarkerColor(),
+              borderColor: '#ffffff', borderWidth: 1.4, label: d.label, fontSize, fontColor: lc, fontBackgroundColor: lbg };
+          },
+          getEdgeStyle(edge) {
+            const d = edge.getData();
+            if (d.planned) return { color: d.color, width: 2.4, lineStyle: { type: EdgeLineStyleType.DASHED } };
+            if (d.transfer) return { color: '#646265', width: 1.4 };
+            return { color: d.color, width: 3, colorHover: '#231f20' };
+          },
+        };
+      }
+
+      let orb;
+      function build(mode) {
+        if (orb) orb.destroy();
+        const isMap = mode === 'map';
+        if (isMap) {
+          orb = new OrbMapView(container, {
+            getGeoPosition: (n) => geo[n.getData().id],
+            map: { zoomLevel: 11, nodeSizeMode: 'fixed' },
+          });
+        } else {
+          orb = new OrbView(container, {
+            getPosition: (n) => schematic[n.getData().id],
+            layout: { type: 'force', options: { isSimulatingOnDataUpdate: false } },
+            interaction: { isDragEnabled: false },
+          });
+        }
+        orb.data.setDefaultStyle(styleDefs(isMap));
+        orb.data.setup({ nodes, edges });
+        if (isMap) {
+          // Fit to the stations' real geographic bounds via Leaflet directly:
+          // robust to container resizes, unlike recenter() which reprojects
+          // stale node positions through the current map view.
+          const pts = nodes.map((n) => geo[n.id]).filter(Boolean);
+          const lats = pts.map((p) => p.lat), lngs = pts.map((p) => p.lng);
+          const geoBounds = [[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]];
+          const fit = () => { orb.leaflet.invalidateSize(); orb.leaflet.fitBounds(geoBounds, { padding: [20, 20] }); };
+          orb.render(fit);
+          window.addEventListener('load', () => setTimeout(fit, 100));
+          setTimeout(fit, 400);
+        } else {
+          orb.render(() => orb.recenter());
+        }
+        document.querySelectorAll('.modes button').forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
+      }
+
+      document.querySelectorAll('.modes button').forEach((b) => b.addEventListener('click', () => build(b.dataset.mode)));
+      build('map');
+    </script>
+  </body>
+</html>

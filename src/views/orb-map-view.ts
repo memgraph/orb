@@ -79,7 +79,8 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
   private _settings: IOrbMapViewSettings<N, E>;
   private _map: HTMLDivElement;
 
-  private readonly _renderer: IRenderer<N, E>;
+  private _renderer!: IRenderer<N, E>;
+  private _rendererType: RendererType;
   private readonly _leaflet: L.Map;
 
   constructor(container: HTMLElement, settings: IOrbMapViewSettingsInit<N, E>) {
@@ -125,12 +126,23 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
       isDefaultSelectCascadeEnabled: this._settings.strategy.isDefaultSelectCascadeEnabled ?? true,
     });
 
+    this._rendererType = settings?.render?.type ?? RendererType.CANVAS;
+    this._initRenderer(this._rendererType);
+
+    this._map = this._initMap();
+
+    this._leaflet = this._initLeaflet();
+    // Setting up leaflet map tile
+    this._handleTileChange();
+  }
+
+  // Creates the renderer of the given type and wires up what is coupled to it: render-event
+  // forwarding, the resize handler, and the overlay canvas styling. Interaction handlers live
+  // on the Leaflet map (see _initLeaflet), not the canvas, so they need no rebinding on a swap.
+  // Called once from the constructor and again by setRenderer() when the type changes at runtime.
+  private _initRenderer(type?: RendererType) {
     try {
-      this._renderer = RendererFactory.getRenderer<N, E>(
-        this._container,
-        settings?.render?.type,
-        this._settings.render,
-      );
+      this._renderer = RendererFactory.getRenderer<N, E>(this._container, type, this._settings.render);
     } catch (error: any) {
       this._container.textContent = error.message;
       throw error;
@@ -146,14 +158,29 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     });
 
     this._settings.render = this._renderer.getSettings();
+    // The renderer canvas is an overlay above the Leaflet tile pane (zIndex 1) and must not
+    // capture pointer events — Leaflet handles all interaction. Reapplied here so a renderer
+    // swap keeps the overlay stacked on top and click-through intact.
     this._renderer.canvas.style.zIndex = '2';
     this._renderer.canvas.style.pointerEvents = 'none';
+  }
 
-    this._map = this._initMap();
+  // Swaps the renderer (Canvas <-> WebGL) on a live map view. The Leaflet map is untouched;
+  // only the overlay canvas/renderer is rebuilt, and the transform is restored from the current
+  // Leaflet pane position and zoom scale so the overlay stays aligned with the tiles.
+  setRenderer(type: RendererType) {
+    if (type === this._rendererType) {
+      return;
+    }
 
-    this._leaflet = this._initLeaflet();
-    // Setting up leaflet map tile
-    this._handleTileChange();
+    this._renderer.destroy();
+    this._initRenderer(type);
+    this._rendererType = type;
+
+    const leafletPos = (this._leaflet as any)._mapPane._leaflet_pos;
+    const k = this._getStyleScale();
+    this._renderer.transform = { ...leafletPos, k };
+    this.render();
   }
 
   get data(): IGraph<N, E> {
@@ -204,6 +231,11 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
     }
 
     if (settings.render) {
+      // A render.type change means switching the renderer implementation (Canvas <-> WebGL),
+      // which requires rebuilding it rather than mutating the existing one.
+      if (settings.render.type && settings.render.type !== this._rendererType) {
+        this.setRenderer(settings.render.type);
+      }
       this._renderer.setSettings(settings.render);
       this._settings.render = this._renderer.getSettings();
     }

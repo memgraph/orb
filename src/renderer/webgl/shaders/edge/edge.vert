@@ -29,6 +29,7 @@ out vec2 vStart;
 out vec2 vEnd;
 out vec2 vControl;
 out float vHalfWidth;
+out float vWidthFade;
 out float vLoopbackRadius;
 out float vArrowSize;
 out vec2 vArrowTip;
@@ -44,8 +45,14 @@ void main() {
   vStart = aStart;
   vEnd = aEnd;
   vControl = aControl;
+  // Keep a >=1px geometric floor so the SDF line rasterizes stably (no shimmer or gaps
+  // between pixels), but fade its opacity by the true on-screen width. A sub-pixel-wide
+  // edge then reads as faint coverage instead of a hard 1px line — matching the Canvas
+  // renderer, which strokes at the real (sub-pixel) width and naturally fades when zoomed
+  // out. aWidth * uScale is the edge's true width in device pixels.
   float effectiveWidth = max(aWidth, 1.0 / uScale);
   vHalfWidth = effectiveWidth * 0.5;
+  vWidthFade = clamp(aWidth * uScale, 0.0, 1.0);
   vLoopbackRadius = aLoopbackRadius;
   vArrowSize = aArrowSize;
   vArrowTip = aArrowTip;

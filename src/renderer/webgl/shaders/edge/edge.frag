@@ -7,6 +7,7 @@ in vec2 vStart;
 in vec2 vEnd;
 in vec2 vControl;
 in float vHalfWidth;
+in float vWidthFade;
 in float vLoopbackRadius;
 in float vArrowSize;
 in vec2 vArrowTip;
@@ -92,7 +93,11 @@ float sdArrow(vec2 p, vec2 tip, vec2 dir, float size) {
 
 void main() {
   if (uSimpleMode && vEdgeType == 0) {
-    fragColor = vColor;
+    float d = sdSegment(vWorldPos, vStart, vEnd) - vHalfWidth;
+    float aa = fwidth(d);
+    float a = (1.0 - smoothstep(-aa, aa, d)) * vWidthFade;
+    if (a < 0.001) discard;
+    fragColor = vec4(vColor.rgb, vColor.a * a);
     return;
   }
 
@@ -133,7 +138,7 @@ void main() {
   }
 
   float aa = fwidth(combinedSdf);
-  float edgeAlpha = 1.0 - smoothstep(-aa, aa, combinedSdf);
+  float edgeAlpha = (1.0 - smoothstep(-aa, aa, combinedSdf)) * vWidthFade;
   vec4 edgeColor = vColor;
   edgeColor.a *= edgeAlpha;
 

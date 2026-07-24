@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orb - renderer & GPU demo</title>
+    <script src="../orb.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap" />
+    <style>
+      :root { --black:#231f20; --orange:#fb6e00; --g4:#e6e6e6; --g5:#f9f9f9; --g2:#646265; --bg:#ffffff; }
+      :root[data-theme="dark"] { --black:#e6e6e6; --g4:#3a3536; --g5:#2b2727; --g2:#bab8bb; --bg:#231f20; }
+      html, body { height:100%; margin:0; font-family:'Inter Tight',system-ui,sans-serif; color:var(--black); background:var(--bg); }
+      .wrap { display:flex; flex-direction:column; height:100%; }
+      .toolbar { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--g4); background:var(--g5); }
+      label { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:500; }
+      select, button { font-family:inherit; font-size:13px; padding:5px 8px; border:1px solid var(--g4); border-radius:4px; background:var(--bg); color:var(--black); cursor:pointer; }
+      button.primary { background:var(--orange); border-color:var(--orange); color:#fff; font-weight:600; }
+      #graph { flex:1; width:100%; min-height:0; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="toolbar">
+        <label>Renderer
+          <select id="renderer"><option value="canvas">Canvas</option><option value="webgl" selected>WebGL</option></select>
+        </label>
+        <label>Layout engine
+          <select id="engine"><option value="cpu">CPU</option><option value="gpu" selected>GPU</option></select>
+        </label>
+        <label>Nodes
+          <select id="size"><option>100</option><option>500</option><option selected>2000</option><option>5000</option><option>10000</option><option>20000</option><option>50000</option></select>
+        </label>
+        <button class="primary" id="regen">Regenerate</button>
+      </div>
+      <div id="graph"></div>
+    </div>
+
+    <script>
+      const container = document.getElementById('graph');
+      const rendererSel = document.getElementById('renderer');
+      const engineSel = document.getElementById('engine');
+      const sizeSel = document.getElementById('size');
+
+      function generate(count) {
+        const nodes = [];
+        const edges = [];
+        for (let i = 0; i < count; i++) nodes.push({ id: i });
+        let e = 0;
+        for (let i = 1; i < count; i++) edges.push({ id: e++, start: i, end: Math.floor(Math.random() * i) });
+        const extra = Math.floor(count * 0.4);
+        for (let i = 0; i < extra; i++) {
+          const s = Math.floor(Math.random() * count);
+          const t = Math.floor(Math.random() * count);
+          if (s !== t) edges.push({ id: e++, start: s, end: t });
+        }
+        return { nodes, edges };
+      }
+
+      let orb;
+      function build() {
+        const type = rendererSel.value;
+        const useGPU = engineSel.value === 'gpu';
+        const count = Number(sizeSel.value);
+
+        // Both the renderer type and the layout engine are set at construction,
+        // so switching either rebuilds the view.
+        if (orb) orb.destroy();
+        orb = new Orb.OrbView(container, {
+          // Large graphs need to zoom out well past the default minZoom (0.25) to fit.
+          render: { type, minZoom: 0.001 },
+          layout: { type: 'force', options: { useGPU } },
+        });
+        orb.data.setDefaultStyle({
+          getNodeStyle() { return { size: 6, color: '#fb6e00', borderColor: '#e36300', borderWidth: 0.5 }; },
+          getEdgeStyle() { return { color: '#d8d6d9', width: 0.3 }; },
+        });
+        orb.events.on(Orb.OrbEventType.SIMULATION_END, () => orb.recenter());
+        orb.data.setup(generate(count));
+        orb.render();
+      }
+
+      [rendererSel, engineSel, sizeSel].forEach((el) => el.addEventListener('change', build));
+      document.getElementById('regen').addEventListener('click', build);
+      build();
+    </script>
+  </body>
+</html>

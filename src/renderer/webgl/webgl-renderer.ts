@@ -14,7 +14,12 @@ import {
   RenderEventType,
 } from '../shared';
 import { copyObject } from '../../utils/object.utils';
-import { appendCanvas, setupContainer } from '../../utils/html.utils';
+import {
+  appendCanvas,
+  setupContainer,
+  observeDevicePixelRatioChanges,
+  IObserveDPRUnsubscribe,
+} from '../../utils/html.utils';
 import { OrbError } from '../../exceptions';
 import { createProgram } from '../../utils/program.utils';
 import { NodeShapeType } from '../../models/node';
@@ -74,6 +79,7 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
 
   private _isOriginCentered = false;
   private _isInitiallyRendered = false;
+  private _dprObserveUnsubscribe?: IObserveDPRUnsubscribe;
 
   private _nodeProgram: WebGLProgram | null = null;
   private _edgeProgram: WebGLProgram | null = null;
@@ -132,6 +138,18 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
       ...DEFAULT_RENDERER_SETTINGS,
       ...settings,
     };
+
+    // Redraw at the new device resolution when the display's DPR changes (e.g. the
+    // window moves to a monitor with a different pixel density). Skipped when the
+    // caller pins a fixed devicePixelRatio. Emitting RESIZE lets OrbView re-render,
+    // and render() then resizes the backing store for the new DPR.
+    if (typeof settings?.devicePixelRatio !== 'number') {
+      this._dprObserveUnsubscribe = observeDevicePixelRatioChanges(() => {
+        if (this._isInitiallyRendered) {
+          this.emit(RenderEventType.RESIZE, undefined);
+        }
+      });
+    }
 
     this._initShaders();
     this._initNodeBuffers();
@@ -440,14 +458,24 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     const gl = this._gl;
 
     const rect = this._container.getBoundingClientRect();
-    if (rect.width !== this._width || rect.height !== this._height) {
-      this._canvas.width = rect.width;
-      this._canvas.height = rect.height;
-      this._width = rect.width;
-      this._height = rect.height;
+    // Render at device resolution for crisp output on HiDPI displays: the backing
+    // store is sized in device pixels (CSS size x devicePixelRatio), while the CSS
+    // display size stays in CSS pixels and _width/_height (used by all the
+    // transform/hit-test math) remain in CSS pixels too. The viewport then maps
+    // clip space onto the full device-pixel framebuffer.
+    const dpr = this._settings.devicePixelRatio || window.devicePixelRatio || 1;
+    const deviceWidth = Math.max(1, Math.round(rect.width * dpr));
+    const deviceHeight = Math.max(1, Math.round(rect.height * dpr));
+    if (this._canvas.width !== deviceWidth || this._canvas.height !== deviceHeight) {
+      this._canvas.width = deviceWidth;
+      this._canvas.height = deviceHeight;
+      this._canvas.style.width = `${rect.width}px`;
+      this._canvas.style.height = `${rect.height}px`;
     }
+    this._width = rect.width;
+    this._height = rect.height;
 
-    gl.viewport(0, 0, this._width, this._height);
+    gl.viewport(0, 0, this._canvas.width, this._canvas.height);
 
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -991,8 +1019,10 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
   }
 
   destroy(): void {
+    this._dprObserveUnsubscribe?.();
     this.removeAllListeners();
-    this._canvas.outerHTML = '';
+    this._gl.getExtension('WEBGL_lose_context')?.loseContext();
+    this._canvas.remove();
   }
 
   private _setViewUniforms(program: WebGLProgram): void {

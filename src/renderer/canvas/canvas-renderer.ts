@@ -367,6 +367,6 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
     this._resizeObs.unobserve(this._container);
     this._dprObserveUnsubscribe?.();
     this.removeAllListeners();
-    this._canvas.outerHTML = '';
+    this._canvas.remove();
   }
 }
