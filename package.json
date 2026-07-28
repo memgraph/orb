@@ -3,7 +3,7 @@
   "version": "0.4.3",
   "description": "Graph visualization library",
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "repository": {
     "type": "git",
@@ -19,6 +19,10 @@
     {
       "name": "Toni Lastre",
       "url": "https://github.com/tonilastre"
+    },
+    {
+      "name": "Oleksandr Ichenskyi",
+      "url": "https://github.com/AlexIchenskiy"
     }
   ],
   "author": "Memgraph Ltd. <contact@memgraph.com>",
@@ -28,25 +32,29 @@
     "build:release": "tsc && webpack",
     "webpack": "webpack",
     "webpack:watch": "webpack --watch",
-    "serve": "http-server ./dist/browser/",
+    "serve": "http-server ./dist/browser/ -o -c-1 -p 8082",
     "test": "jest --runInBand --detectOpenHandles --forceExit --verbose --useStderr",
     "coverage": "npm test -- --coverage --collectCoverageFrom='./src/**'",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
-    "release": "semantic-release --branches main",
-    "prepare": "husky install"
+    "release": "semantic-release",
+    "prepare": "husky"
   },
   "dependencies": {
-    "d3-drag": "3.0.0",
-    "d3-ease": "3.0.1",
-    "d3-force": "3.0.0",
-    "d3-selection": "3.0.0",
-    "d3-transition": "3.0.1",
-    "d3-zoom": "3.0.0",
-    "leaflet": "1.8.0"
+    "d3-drag": "^3.0.0",
+    "d3-ease": "^3.0.1",
+    "d3-force": "^3.0.0",
+    "d3-selection": "^3.0.0",
+    "d3-transition": "^3.0.1",
+    "d3-zoom": "^3.0.0",
+    "leaflet": "^1.9.4"
   },
   "files": [
     "dist",
+    "!dist/browser/*.html",
+    "!dist/browser/orb.js",
+    "!dist/browser/orb.worker.js",
+    "!dist/browser/orb.worker.vendor.js",
     "LICENSE",
     "README.md"
   ],
@@ -54,40 +62,40 @@
     "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
-    "@commitlint/cli": "17.0.0",
-    "@commitlint/config-conventional": "17.0.0",
-    "@semantic-release/changelog": "6.0.1",
-    "@semantic-release/git": "10.0.1",
-    "@types/d3-drag": "3.0.1",
-    "@types/d3-ease": "3.0.0",
-    "@types/d3-force": "3.0.3",
-    "@types/d3-selection": "3.0.1",
-    "@types/d3-transition": "3.0.1",
-    "@types/d3-zoom": "3.0.1",
-    "@types/jest": "27.4.1",
-    "@types/leaflet": "1.7.9",
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
+    "@semantic-release/changelog": "^7.0.0",
+    "@semantic-release/git": "^11.0.1",
+    "@types/d3-drag": "^3.0.1",
+    "@types/d3-ease": "^3.0.0",
+    "@types/d3-force": "^3.0.3",
+    "@types/d3-selection": "^3.0.1",
+    "@types/d3-transition": "^3.0.1",
+    "@types/d3-zoom": "^3.0.1",
+    "@types/jest": "^30.0.0",
+    "@types/leaflet": "^1.9.4",
     "@types/resize-observer-browser": "^0.1.7",
-    "@typescript-eslint/eslint-plugin": "5.24.0",
-    "@typescript-eslint/parser": "5.24.0",
-    "conventional-changelog-eslint": "3.0.9",
-    "copy-webpack-plugin": "^11.0.0",
-    "eslint": "8.15.0",
-    "eslint-config-google": "0.14.0",
-    "eslint-config-prettier": "8.5.0",
-    "eslint-plugin-jest": "26.2.2",
-    "eslint-plugin-prettier": "4.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "conventional-changelog-eslint": "^6.1.0",
+    "copy-webpack-plugin": "^14.0.0",
+    "eslint": "^8.57.1",
+    "eslint-config-google": "^0.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jest": "^29.15.0",
+    "eslint-plugin-prettier": "^5.5.5",
     "http-server": "^14.1.1",
-    "husky": "^8.0.1",
-    "jest": "27.5.1",
-    "prettier": "^2.7.1",
-    "semantic-release": "19.0.3",
-    "ts-jest": "27.1.4",
+    "husky": "^9.1.7",
+    "jest": "^30.4.2",
+    "prettier": "^3.9.6",
+    "semantic-release": "^25.0.8",
+    "ts-jest": "^29.1.2",
     "ts-loader": "^9.3.1",
-    "ts-node": "10.8.0",
-    "typescript": "4.6.3",
-    "webpack": "^5.73.0",
-    "webpack-cli": "^4.10.0",
-    "webpack-dev-server": "^4.9.3"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "webpack": "^5.109.1",
+    "webpack-cli": "^7.2.1",
+    "webpack-dev-server": "^6.0.0"
   },
   "jest": {
     "moduleFileExtensions": [

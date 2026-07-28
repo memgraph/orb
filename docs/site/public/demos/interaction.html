@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orb - interaction demo</title>
+    <script src="../orb.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap" />
+    <style>
+      :root { --black:#231f20; --orange:#fb6e00; --g4:#e6e6e6; --g5:#f9f9f9; --g2:#646265; --bg:#ffffff; }
+      :root[data-theme="dark"] { --black:#e6e6e6; --g4:#3a3536; --g5:#2b2727; --g2:#bab8bb; --bg:#231f20; }
+      html, body { height:100%; margin:0; font-family:'Inter Tight',system-ui,sans-serif; color:var(--black); background:var(--bg); }
+      .wrap { display:flex; flex-direction:column; height:100%; }
+      .toolbar { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--g4); background:var(--g5); }
+      label.chk { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:500; }
+      button { font-family:inherit; font-size:13px; font-weight:500; padding:6px 12px; border:1px solid var(--g4); border-radius:4px; background:var(--bg); color:var(--black); cursor:pointer; }
+      button:hover { background:var(--g5); }
+      .hint { margin-left:auto; font-size:13px; color:var(--g2); }
+      .hint b { color:var(--black); }
+      #graph { flex:1; width:100%; min-height:0; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="toolbar">
+        <label class="chk"><input type="checkbox" id="multi" /> Multiselect (Shift-click)</label>
+        <button id="clear">Clear selection</button>
+        <span class="hint"><b id="sel">0</b> selected</span>
+      </div>
+      <div id="graph"></div>
+    </div>
+
+    <script>
+      const container = document.getElementById('graph');
+      const { OrbView, OrbEventType } = Orb;
+      let __dark = false;
+      const labelColor = () => (__dark ? '#e6e6e6' : '#231f20');
+
+      const orb = new OrbView(container, {
+        strategy: { isDefaultMultiSelectEnabled: false, isDefaultSelectCascadeEnabled: true },
+      });
+
+      orb.data.setDefaultStyle({
+        getNodeStyle(n) {
+          return {
+            size: 9,
+            color: '#fb6e00',
+            colorHover: '#ff8f40',
+            colorSelected: '#b34e00', // deep orange, not black
+            borderColor: '#e36300',
+            borderColorSelected: '#8a3f00',
+            borderWidth: 1,
+            borderWidthSelected: 2,
+            label: n.getData().label,
+            fontSize: 4,
+            fontColor: labelColor(),
+          };
+        },
+        getEdgeStyle() {
+          // Selected edges glow orange so a cascaded neighborhood reads as one group.
+          return { color: '#bab8bb', colorSelected: '#fb6e00', width: 0.6, widthSelected: 1.6 };
+        },
+      });
+
+      orb.data.setup({
+        nodes: [
+          { id: 1, label: 'A' }, { id: 2, label: 'B' }, { id: 3, label: 'C' },
+          { id: 4, label: 'D' }, { id: 5, label: 'E' }, { id: 6, label: 'F' }, { id: 7, label: 'G' },
+        ],
+        edges: [
+          { id: 1, start: 1, end: 2 }, { id: 2, start: 1, end: 3 }, { id: 3, start: 3, end: 4 },
+          { id: 4, start: 4, end: 5 }, { id: 5, start: 5, end: 6 }, { id: 6, start: 2, end: 7 }, { id: 7, start: 7, end: 4 },
+        ],
+      });
+      orb.events.on(OrbEventType.SIMULATION_END, () => orb.recenter());
+      orb.render();
+
+      window.__orbSetTheme = (dark) => {
+        __dark = !!dark;
+        document.documentElement.dataset.theme = __dark ? 'dark' : 'light';
+        orb.data.getNodes().forEach((n) => n.patchStyle({ fontColor: labelColor() }, { isNotifySkipped: true }));
+        orb.render();
+      };
+
+      orb.events.on(OrbEventType.NODE_CLICK, updateCount);
+      orb.events.on(OrbEventType.EDGE_CLICK, updateCount);
+      orb.events.on(OrbEventType.MOUSE_CLICK, updateCount);
+
+      function updateCount() {
+        const n = orb.data.getSelectedNodes().length + orb.data.getSelectedEdges().length;
+        document.getElementById('sel').textContent = n;
+      }
+
+      // Toggle multiselect live via setSettings - no rebuild, so the graph and any
+      // current selection are preserved (rebuilding re-ran the layout and felt buggy).
+      document.getElementById('multi').addEventListener('change', (e) => {
+        orb.setSettings({ strategy: { isDefaultMultiSelectEnabled: e.target.checked } });
+      });
+      document.getElementById('clear').addEventListener('click', () => {
+        orb.interaction.unselectAll();
+        orb.render();
+        updateCount();
+      });
+    </script>
+  </body>
+</html>

@@ -1,23 +1,23 @@
 import { IPosition } from '../../../../common';
 import { ISimulationNode, ISimulationEdge } from '../../../shared';
-import { ID3SimulatorEngineSettingsUpdate } from '../../../engine/d3-simulator-engine';
 import { IWorkerPayload } from './worker-payload';
+import { ILayoutSettings } from '../../../engine/shared';
+import { DeepPartial } from '../../../../utils/type.utils';
 
 // Messages are objects going into the simulation worker.
 // They can be thought of similar to requests.
 // (not quite as there is no immediate response to a request)
 
 export enum WorkerInputType {
-  // Set node and edge data without simulating
-  SetData = 'Set Data',
-  AddData = 'Add Data',
+  SetupData = 'Set Data',
+  MergeData = 'Add Data',
   UpdateData = 'Update Data',
+  DeleteData = 'Delete Data',
+  PatchData = 'Patch Data',
   ClearData = 'Clear Data',
 
   // Simulation message types
-  Simulate = 'Simulate',
   ActivateSimulation = 'Activate Simulation',
-  StartSimulation = 'Start Simulation',
   UpdateSimulation = 'Update Simulation',
   StopSimulation = 'Stop Simulation',
 
@@ -32,16 +32,16 @@ export enum WorkerInputType {
   SetSettings = 'Set Settings',
 }
 
-type IWorkerInputSetDataPayload = IWorkerPayload<
-  WorkerInputType.SetData,
+type IWorkerInputSetupDataPayload = IWorkerPayload<
+  WorkerInputType.SetupData,
   {
     nodes: ISimulationNode[];
     edges: ISimulationEdge[];
   }
 >;
 
-type IWorkerInputAddDataPayload = IWorkerPayload<
-  WorkerInputType.AddData,
+type IWorkerInputMergeDataPayload = IWorkerPayload<
+  WorkerInputType.MergeData,
   {
     nodes: ISimulationNode[];
     edges: ISimulationEdge[];
@@ -56,19 +56,27 @@ type IWorkerInputUpdateDataPayload = IWorkerPayload<
   }
 >;
 
-type IWorkerInputClearDataPayload = IWorkerPayload<WorkerInputType.ClearData>;
+type IWorkerInputDeleteDataPayload = IWorkerPayload<
+  WorkerInputType.DeleteData,
+  {
+    nodeIds: number[] | undefined;
+    edgeIds: number[] | undefined;
+  }
+>;
 
-type IWorkerInputSimulatePayload = IWorkerPayload<WorkerInputType.Simulate>;
+type IWorkerInputPatchDataPayload = IWorkerPayload<
+  WorkerInputType.PatchData,
+  {
+    nodes?: ISimulationNode[];
+    edges?: ISimulationEdge[];
+  }
+>;
+
+type IWorkerInputClearDataPayload = IWorkerPayload<WorkerInputType.ClearData>;
 
 type IWorkerInputActivateSimulationPayload = IWorkerPayload<WorkerInputType.ActivateSimulation>;
 
-type IWorkerInputStartSimulationPayload = IWorkerPayload<
-  WorkerInputType.StartSimulation,
-  {
-    nodes: ISimulationNode[];
-    edges: ISimulationEdge[];
-  }
->;
+type IWorkerInputStopSimulationPayload = IWorkerPayload<WorkerInputType.StopSimulation>;
 
 type IWorkerInputUpdateSimulationPayload = IWorkerPayload<
   WorkerInputType.UpdateSimulation,
@@ -77,8 +85,6 @@ type IWorkerInputUpdateSimulationPayload = IWorkerPayload<
     edges: ISimulationEdge[];
   }
 >;
-
-type IWorkerInputStopSimulationPayload = IWorkerPayload<WorkerInputType.StopSimulation>;
 
 type IWorkerInputStartDragNodePayload = IWorkerPayload<WorkerInputType.StartDragNode>;
 
@@ -105,18 +111,18 @@ type IWorkerInputReleaseNodesPayload = IWorkerPayload<
   }
 >;
 
-type IWorkerInputSetSettingsPayload = IWorkerPayload<WorkerInputType.SetSettings, ID3SimulatorEngineSettingsUpdate>;
+type IWorkerInputSetSettingsPayload = IWorkerPayload<WorkerInputType.SetSettings, DeepPartial<ILayoutSettings>>;
 
 export type IWorkerInputPayload =
-  | IWorkerInputSetDataPayload
-  | IWorkerInputAddDataPayload
+  | IWorkerInputSetupDataPayload
+  | IWorkerInputMergeDataPayload
   | IWorkerInputUpdateDataPayload
+  | IWorkerInputDeleteDataPayload
+  | IWorkerInputPatchDataPayload
   | IWorkerInputClearDataPayload
-  | IWorkerInputSimulatePayload
   | IWorkerInputActivateSimulationPayload
-  | IWorkerInputStartSimulationPayload
-  | IWorkerInputUpdateSimulationPayload
   | IWorkerInputStopSimulationPayload
+  | IWorkerInputUpdateSimulationPayload
   | IWorkerInputStartDragNodePayload
   | IWorkerInputDragNodePayload
   | IWorkerInputFixNodesPayload

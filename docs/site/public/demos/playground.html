@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orb - playground</title>
+    <script src="../orb.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap" />
+    <style>
+      :root { --bg:#fff; --panel:#f9f9f9; --border:#e6e6e6; --text:#231f20; --muted:#646265; --orange:#fb6e00; --accent-soft:#fff4eb; }
+      :root[data-theme='dark'] { --bg:#231f20; --panel:#2b2727; --border:#3a3536; --text:#e6e6e6; --muted:#bab8bb; --accent-soft:#3a2a1a; }
+      html, body { height:100%; margin:0; font-family:'Inter Tight',system-ui,sans-serif; color:var(--text); background:var(--bg); }
+      .wrap { display:flex; flex-direction:column; height:100%; }
+      .toolbar { display:flex; flex-wrap:wrap; gap:10px 20px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--border); background:var(--panel); }
+      .toolbar.sub { background:transparent; }
+      body.preview .toolbar { display:none; }
+      .group { display:flex; align-items:center; gap:6px; }
+      .group > span { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-right:2px; }
+      .group > span.val { text-transform:none; letter-spacing:0; color:var(--text); font-variant-numeric:tabular-nums; min-width:34px; }
+      button.chip, select { font-family:inherit; font-size:13px; font-weight:500; padding:5px 10px; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text); cursor:pointer; }
+      button.chip:hover, select:hover { background:var(--panel); }
+      button.chip.active { border-color:var(--orange); background:var(--accent-soft); color:var(--orange); }
+      button.swatch { width:22px; height:22px; padding:0; border-radius:4px; border:2px solid transparent; cursor:pointer; }
+      button.swatch.active { border-color:var(--text); }
+      input[type=range] { accent-color:var(--orange); width:110px; }
+      #graph { flex:1; width:100%; min-height:0; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="toolbar">
+        <div class="group" id="layoutGroup"><span>Layout</span>
+          <button class="chip active" data-layout="force">Force</button>
+          <button class="chip" data-layout="hierarchical">Tree</button>
+          <button class="chip" data-layout="circular">Circular</button>
+          <button class="chip" data-layout="grid">Grid</button>
+        </div>
+        <div class="group"><span>Shape</span>
+          <select id="shape">
+            <option value="circle">Circle</option><option value="square">Square</option>
+            <option value="diamond">Diamond</option><option value="triangle">Triangle</option>
+            <option value="star">Star</option><option value="hexagon">Hexagon</option>
+          </select>
+        </div>
+        <div class="group" id="colorGroup"><span>Color</span></div>
+        <div class="group"><span>Size</span><input type="range" id="size" min="4" max="16" value="8" /></div>
+        <div class="group"><span>Edge</span><input type="range" id="edgeWidth" min="1" max="10" value="3" /></div>
+        <div class="group" id="labelsGroup"><span>Labels</span>
+          <button class="chip active" data-labels="on">On</button>
+          <button class="chip" data-labels="off">Off</button>
+        </div>
+        <button class="chip" id="regen">Regenerate</button>
+      </div>
+      <div class="toolbar sub" id="layoutSettings"></div>
+      <div id="graph"></div>
+    </div>
+
+    <script>
+      // Follow the docs theme (?theme=), falling back to the OS preference.
+      const params = new URLSearchParams(location.search);
+      const dark = params.get('theme') ? params.get('theme') === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      if (params.has('preview')) document.body.classList.add('preview'); // gallery card preview: chrome hidden
+      const labelColor = dark ? '#e6e6e6' : '#231f20';
+      const edgeColor = dark ? '#57565a' : '#bab8bb';
+
+      const container = document.getElementById('graph');
+      const { OrbView, OrbEventType } = Orb;
+
+      const PALETTE = ['#fb6e00', '#dd2222', '#19af66', '#1d87c9', '#8c0082', '#231f20'];
+      const state = {
+        layout: 'force', shape: 'circle', color: '#fb6e00', size: 8, edgeWidth: 3, labels: true,
+        opts: {
+          force: { isPhysicsEnabled: false, collision: { radius: 15 }, manyBody: { strength: -100, theta: 0.9, distanceMin: 1, distanceMax: 400, edgeMidpointRepulsion: false }, links: { distance: 50 } },
+          circular: { radius: 120 },
+          grid: { rowGap: 50, colGap: 50 },
+          hierarchical: { orientation: 'vertical', levelGap: 60, nodeGap: 40 },
+        },
+      };
+
+      // Color swatches.
+      const colorGroup = document.getElementById('colorGroup');
+      PALETTE.forEach((c, i) => {
+        const b = document.createElement('button');
+        b.className = 'swatch' + (i === 0 ? ' active' : '');
+        b.style.background = c;
+        b.addEventListener('click', () => {
+          colorGroup.querySelectorAll('.swatch').forEach((s) => s.classList.remove('active'));
+          b.classList.add('active');
+          state.color = c;
+          applyStyle();
+        });
+        colorGroup.appendChild(b);
+      });
+
+      // Dataset: a tree with a few extra links so every layout reads well.
+      let data;
+      function generate() {
+        const nodes = [{ id: 0, label: 'root' }];
+        const edges = [];
+        let id = 1;
+        for (let a = 0; a < 4; a++) {
+          const l1 = id++;
+          nodes.push({ id: l1, label: 'N' + l1 });
+          edges.push({ id: 'e' + l1, start: 0, end: l1 });
+          for (let b = 0; b < 3; b++) {
+            const l2 = id++;
+            nodes.push({ id: l2, label: 'N' + l2 });
+            edges.push({ id: 'e' + l2, start: l1, end: l2 });
+          }
+        }
+        for (let i = 0; i < 4; i++) {
+          const s = 1 + Math.floor(Math.random() * (id - 1));
+          const t = 1 + Math.floor(Math.random() * (id - 1));
+          if (s !== t) edges.push({ id: 'x' + i, start: s, end: t });
+        }
+        data = { nodes, edges };
+      }
+
+      const orb = new OrbView(container, { layout: { type: state.layout, options: state.opts.force } });
+      orb.events.on(OrbEventType.SIMULATION_END, () => orb.recenter());
+
+      function applyStyle() {
+        orb.data.getNodes().forEach((n) =>
+          n.setStyle({ size: state.size, color: state.color, borderColor: '#00000033', borderWidth: 1,
+            shape: state.shape, label: n.getData().label, fontSize: state.labels ? state.size * 0.5 : 0, fontColor: labelColor }, { isNotifySkipped: true }),
+        );
+        orb.data.getEdges().forEach((e) => e.setStyle({ color: edgeColor, width: state.edgeWidth * 0.1 }, { isNotifySkipped: true }));
+        orb.render();
+      }
+
+      // Rebuild data + layout (used for layout type, static option changes, regenerate).
+      function rebuild() {
+        orb.data.setup(data);
+        orb.setSettings({ layout: { type: state.layout, options: state.opts[state.layout] } });
+        applyStyle();
+        if (state.layout === 'force') orb.render();
+        else orb.render(() => orb.recenter());
+      }
+
+      // Live-apply force options without resetting positions (smooth slider dragging).
+      function applyForce() {
+        orb.setSettings({ layout: { type: 'force', options: state.opts.force } });
+      }
+
+      // Build the layout-specific settings row.
+      function slider(labelText, min, max, step, value, onInput) {
+        const g = document.createElement('div');
+        g.className = 'group';
+        const label = document.createElement('span');
+        label.textContent = labelText;
+        const val = document.createElement('span');
+        val.className = 'val';
+        val.textContent = value;
+        const input = document.createElement('input');
+        input.type = 'range'; input.min = min; input.max = max; input.step = step; input.value = value;
+        input.addEventListener('input', () => { val.textContent = input.value; onInput(Number(input.value)); });
+        g.append(label, input, val);
+        return g;
+      }
+      function chips(labelText, options, active, onChange) {
+        const g = document.createElement('div');
+        g.className = 'group';
+        const label = document.createElement('span');
+        label.textContent = labelText;
+        g.append(label);
+        options.forEach(([val, text]) => {
+          const b = document.createElement('button');
+          b.className = 'chip' + (val === active ? ' active' : '');
+          b.textContent = text;
+          b.addEventListener('click', () => { g.querySelectorAll('.chip').forEach((c) => c.classList.remove('active')); b.classList.add('active'); onChange(val); });
+          g.append(b);
+        });
+        return g;
+      }
+
+      function renderLayoutSettings() {
+        const box = document.getElementById('layoutSettings');
+        box.innerHTML = '';
+        const o = state.opts[state.layout];
+        if (state.layout === 'force') {
+          box.append(chips('Physics', [['off', 'Off'], ['on', 'On']], o.isPhysicsEnabled ? 'on' : 'off', (v) => { o.isPhysicsEnabled = v === 'on'; applyForce(); }));
+          box.append(slider('Collision radius', 1, 40, 1, o.collision.radius, (v) => { o.collision.radius = v; applyForce(); }));
+          box.append(slider('Repel force', -300, -10, 10, o.manyBody.strength, (v) => { o.manyBody.strength = v; applyForce(); }));
+          box.append(slider('Link distance', 10, 200, 5, o.links.distance, (v) => { o.links.distance = v; applyForce(); }));
+          box.append(chips('Edge midpoint repel', [['off', 'Off'], ['on', 'On']], o.manyBody.edgeMidpointRepulsion ? 'on' : 'off', (v) => { o.manyBody.edgeMidpointRepulsion = v === 'on'; applyForce(); }));
+        } else if (state.layout === 'circular') {
+          box.append(slider('Radius', 40, 300, 10, o.radius, (v) => { o.radius = v; rebuild(); }));
+        } else if (state.layout === 'grid') {
+          box.append(slider('Row gap', 20, 120, 5, o.rowGap, (v) => { o.rowGap = v; rebuild(); }));
+          box.append(slider('Column gap', 20, 120, 5, o.colGap, (v) => { o.colGap = v; rebuild(); }));
+        } else if (state.layout === 'hierarchical') {
+          box.append(chips('Orientation', [['vertical', 'Vertical'], ['horizontal', 'Horizontal']], o.orientation, (v) => { o.orientation = v; rebuild(); }));
+          box.append(slider('Level gap', 30, 150, 5, o.levelGap, (v) => { o.levelGap = v; rebuild(); }));
+          box.append(slider('Node gap', 20, 120, 5, o.nodeGap, (v) => { o.nodeGap = v; rebuild(); }));
+        }
+      }
+
+      // Top toolbar wiring.
+      document.querySelectorAll('#layoutGroup .chip').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#layoutGroup .chip').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.layout = btn.dataset.layout;
+          renderLayoutSettings();
+          rebuild();
+        });
+      });
+      document.querySelectorAll('#labelsGroup .chip').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#labelsGroup .chip').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.labels = btn.dataset.labels === 'on';
+          applyStyle();
+        });
+      });
+      document.getElementById('shape').addEventListener('change', (e) => { state.shape = e.target.value; applyStyle(); });
+      document.getElementById('size').addEventListener('input', (e) => { state.size = Number(e.target.value); applyStyle(); });
+      document.getElementById('edgeWidth').addEventListener('input', (e) => { state.edgeWidth = Number(e.target.value); applyStyle(); });
+      document.getElementById('regen').addEventListener('click', () => { generate(); rebuild(); });
+
+      generate();
+      renderLayoutSettings();
+      rebuild();
+    </script>
+  </body>
+</html>

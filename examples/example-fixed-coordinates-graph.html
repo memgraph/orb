@@ -42,10 +42,9 @@
       { id: 5, start: 0, end: 1, label: 'A -> B' },
     ];
 
-    const orb = new Orb.Orb(container);
-    orb.setView((context) => new Orb.DefaultView(context, {
-      getPosition: (node) => ({ x: node.data.x, y: node.data.y })
-    }))
+    const orb = new Orb.OrbView(container, {
+      getPosition: (node) => ({ x: node.getData().x, y: node.getData().y })
+    });
 
     // Initialize nodes and edges
     orb.data.setup({ nodes, edges });
@@ -60,7 +59,7 @@
           colorHover: '#e7644e',
           colorSelected: '#e7644e',
           fontSize: 3,
-          label: node.data.label,
+          label: node.getData().label,
           size: 6,
         };
       },
@@ -73,13 +72,13 @@
           width: 0.3,
           widthHover: 0.9,
           widthSelected: 0.9,
-          label: edge.data.label,
+          label: edge.getData().label,
         };
       },
     });
 
-    orb.view.render(() => {
-      orb.view.recenter();
+    orb.render(() => {
+      orb.recenter();
     });
   </script>
 </body>

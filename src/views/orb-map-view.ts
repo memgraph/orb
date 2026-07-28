@@ -1,0 +1,564 @@
+import * as L from 'leaflet';
+import { IEdgeBase, isEdge } from '../models/edge';
+import { INode, INodeBase, isNode } from '../models/node';
+import { Graph, IGraph } from '../models/graph';
+import { IOrbView } from './shared';
+import { IPosition } from '../common';
+import { DefaultEventStrategy, IEventStrategy, IEventStrategySettings } from '../models/strategy';
+import { copyObject } from '../utils/object.utils';
+import { OrbEmitter, OrbEventType } from '../events';
+import { IRenderer, RendererType, RenderEventType, IRendererSettingsInit, IRendererSettings } from '../renderer/shared';
+import { RendererFactory } from '../renderer/factory';
+import { getDefaultGraphStyle } from '../models/style';
+import { isBoolean } from '../utils/type.utils';
+import { IObserver } from '../utils/observer.utils';
+import { GraphInteraction, IGraphInteraction } from '../models/interaction';
+
+export interface ILeafletMapTile {
+  instance: L.TileLayer;
+  attribution: string;
+}
+
+interface ILeafletEvent<T extends Event> {
+  containerPoint: { x: number; y: number };
+  latlng: { lat: number; lng: number };
+  layerPoint: { x: number; y: number };
+  originalEvent: T;
+  sourceTarget: any;
+  target: any;
+  type: string;
+}
+
+const osmAttribution =
+  '<a href="https://leafletjs.com/" target="_blank" >Leaflet</a> | ' +
+  'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors';
+
+const getDefaultMapTile = () => {
+  return {
+    instance: new L.TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+    attribution: osmAttribution,
+  };
+};
+
+const DEFAULT_ZOOM_LEVEL = 2;
+
+export type INodeSizeMode = 'fixed' | 'geographic';
+
+export interface IMapSettings {
+  zoomLevel: number;
+  tile: ILeafletMapTile;
+  nodeSizeMode: INodeSizeMode;
+}
+
+export interface IOrbMapViewSettings<N extends INodeBase, E extends IEdgeBase> {
+  getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
+  map: IMapSettings;
+  render: Partial<IRendererSettings>;
+  strategy: Partial<IEventStrategySettings>;
+  areCollapsedContainerDimensionsAllowed: boolean;
+}
+
+export interface IOrbMapViewSettingsInit<N extends INodeBase, E extends IEdgeBase> {
+  getGeoPosition(node: INode<N, E>): { lat: number; lng: number } | undefined;
+  map?: Partial<IMapSettings>;
+  render?: Partial<IRendererSettingsInit>;
+  strategy?: Partial<IEventStrategySettings>;
+}
+
+export type IOrbMapViewSettingsUpdate<N extends INodeBase, E extends IEdgeBase> = Partial<
+  IOrbMapViewSettingsInit<N, E>
+>;
+
+export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOrbView<N, E, IOrbMapViewSettings<N, E>> {
+  private _container: HTMLElement;
+  private _graph: IGraph<N, E>;
+  private _events: OrbEmitter<N, E>;
+  private _strategy: IEventStrategy<N, E>;
+  private _interaction: IGraphInteraction;
+
+  private _settings: IOrbMapViewSettings<N, E>;
+  private _map: HTMLDivElement;
+
+  private _renderer!: IRenderer<N, E>;
+  private _rendererType: RendererType;
+  private readonly _leaflet: L.Map;
+
+  constructor(container: HTMLElement, settings: IOrbMapViewSettingsInit<N, E>) {
+    this._container = container;
+    this._graph = new Graph<N, E>(undefined, {
+      onLoadedImages: () => {
+        // Not to call render() before user's .render()
+        if (this._renderer.isInitiallyRendered) {
+          this.render();
+        }
+      },
+      listeners: [this._update],
+    });
+    this._graph.setDefaultStyle(getDefaultGraphStyle());
+    this._events = new OrbEmitter<N, E>();
+    this._interaction = new GraphInteraction(this._graph);
+
+    this._settings = {
+      areCollapsedContainerDimensionsAllowed: false,
+      ...settings,
+      map: {
+        zoomLevel: settings.map?.zoomLevel ?? DEFAULT_ZOOM_LEVEL,
+        tile: settings.map?.tile ?? getDefaultMapTile(),
+        nodeSizeMode: settings.map?.nodeSizeMode ?? 'geographic',
+      },
+      render: {
+        type: RendererType.CANVAS,
+        ...settings.render,
+      },
+      strategy: {
+        isDefaultHoverEnabled: true,
+        isDefaultSelectEnabled: true,
+        isDefaultMultiSelectEnabled: false,
+        isDefaultSelectCascadeEnabled: true,
+        ...settings?.strategy,
+      },
+    };
+
+    this._strategy = new DefaultEventStrategy<N, E>({
+      isDefaultSelectEnabled: this._settings.strategy.isDefaultSelectEnabled ?? false,
+      isDefaultHoverEnabled: this._settings.strategy.isDefaultHoverEnabled ?? false,
+      isDefaultMultiSelectEnabled: this._settings.strategy.isDefaultMultiSelectEnabled ?? true,
+      isDefaultSelectCascadeEnabled: this._settings.strategy.isDefaultSelectCascadeEnabled ?? true,
+    });
+
+    this._rendererType = settings?.render?.type ?? RendererType.CANVAS;
+    this._initRenderer(this._rendererType);
+
+    this._map = this._initMap();
+
+    this._leaflet = this._initLeaflet();
+    // Setting up leaflet map tile
+    this._handleTileChange();
+  }
+
+  // Creates the renderer of the given type and wires up what is coupled to it: render-event
+  // forwarding, the resize handler, and the overlay canvas styling. Interaction handlers live
+  // on the Leaflet map (see _initLeaflet), not the canvas, so they need no rebinding on a swap.
+  // Called once from the constructor and again by setRenderer() when the type changes at runtime.
+  private _initRenderer(type?: RendererType) {
+    try {
+      this._renderer = RendererFactory.getRenderer<N, E>(this._container, type, this._settings.render);
+    } catch (error: any) {
+      this._container.textContent = error.message;
+      throw error;
+    }
+    this._renderer.on(RenderEventType.RENDER_END, (data) => {
+      this._events.emit(OrbEventType.RENDER_END, data);
+    });
+    this._renderer.on(RenderEventType.RESIZE, () => {
+      if (this._renderer.isInitiallyRendered) {
+        this._leaflet.invalidateSize(false);
+        this._renderer.render(this._graph);
+      }
+    });
+
+    this._settings.render = this._renderer.getSettings();
+    // The renderer canvas is an overlay above the Leaflet tile pane (zIndex 1) and must not
+    // capture pointer events — Leaflet handles all interaction. Reapplied here so a renderer
+    // swap keeps the overlay stacked on top and click-through intact.
+    this._renderer.canvas.style.zIndex = '2';
+    this._renderer.canvas.style.pointerEvents = 'none';
+  }
+
+  // Swaps the renderer (Canvas <-> WebGL) on a live map view. The Leaflet map is untouched;
+  // only the overlay canvas/renderer is rebuilt, and the transform is restored from the current
+  // Leaflet pane position and zoom scale so the overlay stays aligned with the tiles.
+  setRenderer(type: RendererType) {
+    if (type === this._rendererType) {
+      return;
+    }
+
+    this._renderer.destroy();
+    this._initRenderer(type);
+    this._rendererType = type;
+
+    const leafletPos = (this._leaflet as any)._mapPane._leaflet_pos;
+    const k = this._getStyleScale();
+    this._renderer.transform = { ...leafletPos, k };
+    this.render();
+  }
+
+  get data(): IGraph<N, E> {
+    return this._graph;
+  }
+
+  get events(): OrbEmitter<N, E> {
+    return this._events;
+  }
+
+  get interaction(): IGraphInteraction {
+    return this._interaction;
+  }
+
+  get leaflet(): L.Map {
+    return this._leaflet;
+  }
+
+  getSettings(): IOrbMapViewSettings<N, E> {
+    return copyObject(this._settings);
+  }
+
+  setSettings(settings: IOrbMapViewSettingsUpdate<N, E>) {
+    if (settings.getGeoPosition) {
+      this._settings.getGeoPosition = settings.getGeoPosition;
+      this._updateGraphPositions();
+    }
+
+    if (settings.map) {
+      if (typeof settings.map.zoomLevel === 'number') {
+        this._settings.map.zoomLevel = settings.map.zoomLevel;
+        this._leaflet.setZoom(settings.map.zoomLevel);
+      }
+
+      if (settings.map.tile) {
+        this._settings.map.tile = settings.map.tile;
+        this._handleTileChange();
+      }
+
+      if (settings.map.nodeSizeMode && settings.map.nodeSizeMode !== this._settings.map.nodeSizeMode) {
+        this._settings.map.nodeSizeMode = settings.map.nodeSizeMode;
+        this._updateGraphPositions();
+        const leafletPos = (this._leaflet as any)._mapPane._leaflet_pos;
+        const k = this._getStyleScale();
+        this._renderer.transform = { ...leafletPos, k };
+        this._renderer.render(this._graph);
+      }
+    }
+
+    if (settings.render) {
+      // A render.type change means switching the renderer implementation (Canvas <-> WebGL),
+      // which requires rebuilding it rather than mutating the existing one.
+      if (settings.render.type && settings.render.type !== this._rendererType) {
+        this.setRenderer(settings.render.type);
+      }
+      this._renderer.setSettings(settings.render);
+      this._settings.render = this._renderer.getSettings();
+    }
+
+    if (settings.strategy) {
+      if (isBoolean(settings.strategy.isDefaultHoverEnabled)) {
+        this._settings.strategy.isDefaultHoverEnabled = settings.strategy.isDefaultHoverEnabled;
+        this._strategy.isHoverEnabled = this._settings.strategy.isDefaultHoverEnabled;
+      }
+
+      if (isBoolean(settings.strategy.isDefaultSelectEnabled)) {
+        this._settings.strategy.isDefaultSelectEnabled = settings.strategy.isDefaultSelectEnabled;
+        this._strategy.isSelectEnabled = this._settings.strategy.isDefaultSelectEnabled;
+      }
+
+      if (isBoolean(settings.strategy.isDefaultMultiSelectEnabled)) {
+        this._settings.strategy.isDefaultMultiSelectEnabled = settings.strategy.isDefaultMultiSelectEnabled;
+        this._strategy.isMultiSelectEnabled = this._settings.strategy.isDefaultMultiSelectEnabled;
+      }
+
+      if (isBoolean(settings.strategy.isDefaultSelectCascadeEnabled)) {
+        this._settings.strategy.isDefaultSelectCascadeEnabled = settings.strategy.isDefaultSelectCascadeEnabled;
+        this._strategy.isSelectCascadeEnabled = this._settings.strategy.isDefaultSelectCascadeEnabled;
+      }
+    }
+  }
+
+  render(onRendered?: () => void) {
+    if (onRendered) {
+      this._renderer.once(RenderEventType.RENDER_END, () => onRendered());
+    }
+
+    this._updateGraphPositions();
+    this._renderer.render(this._graph);
+  }
+
+  zoomIn(onRendered?: () => void) {
+    this._leaflet.zoomIn();
+    onRendered?.();
+  }
+
+  recenter(onRendered?: () => void) {
+    const view = this._graph.getBoundingBox();
+    const k = this._getStyleScale();
+    const topRightCoordinate = this._leaflet.layerPointToLatLng([view.x * k, view.y * k]);
+    const bottomLeftCoordinate = this._leaflet.layerPointToLatLng([
+      (view.x + view.width) * k,
+      (view.y + view.height) * k,
+    ]);
+    this._leaflet.fitBounds(L.latLngBounds(topRightCoordinate, bottomLeftCoordinate));
+    onRendered?.();
+  }
+
+  zoomOut(onRendered?: () => void) {
+    this._leaflet.zoomOut();
+    onRendered?.();
+  }
+
+  getSVG(): string {
+    throw new Error('SVG export is not supported on OrbMapView.');
+  }
+
+  destroy() {
+    this._renderer.destroy();
+    this._leaflet.off();
+    this._leaflet.remove();
+    this._leaflet.getContainer().outerHTML = '';
+  }
+
+  private _invalidateStyles = (): void => {
+    (this._renderer as any).invalidateStyles?.();
+  };
+
+  private _update: IObserver = (): void => {
+    this._invalidateStyles();
+    this.render();
+  };
+
+  private _initMap() {
+    const map = document.createElement('div');
+    map.style.position = 'absolute';
+    map.style.width = '100%';
+    map.style.height = '100%';
+    map.style.zIndex = '1';
+    map.style.cursor = 'default';
+
+    this._container.appendChild(map);
+    return map;
+  }
+
+  private _initLeaflet() {
+    const leaflet = L.map(this._map, {
+      doubleClickZoom: false,
+      zoomControl: false,
+    }).setView([0, 0], this._settings.map.zoomLevel);
+
+    leaflet.on('zoomstart', () => {
+      this._renderer.reset();
+    });
+
+    leaflet.on('zoom', (event) => {
+      this._updateGraphPositions();
+      (this._renderer as any).invalidateBuffers?.();
+      const leafletPos = event.target._mapPane._leaflet_pos;
+      const k = this._getStyleScale();
+      this._renderer.transform = { ...leafletPos, k };
+      this._renderer.render(this._graph);
+      this._events.emit(OrbEventType.TRANSFORM, { transform: { ...leafletPos, k } });
+    });
+
+    leaflet.on('mousemove', (event: ILeafletEvent<MouseEvent>) => {
+      const point: IPosition = this._toSimulationPoint(event.layerPoint);
+      const containerPoint: IPosition = { x: event.containerPoint.x, y: event.containerPoint.y };
+
+      const response = this._strategy.onMouseMove(this._graph, point);
+      const subject = response.changedSubject;
+
+      if (subject && response.isStateChanged) {
+        if (isNode(subject)) {
+          this._events.emit(OrbEventType.NODE_HOVER, {
+            node: subject,
+            event: event.originalEvent,
+            localPoint: point,
+            globalPoint: containerPoint,
+          });
+        }
+        if (isEdge(subject)) {
+          this._events.emit(OrbEventType.EDGE_HOVER, {
+            edge: subject,
+            event: event.originalEvent,
+            localPoint: point,
+            globalPoint: containerPoint,
+          });
+        }
+      }
+
+      this._events.emit(OrbEventType.MOUSE_MOVE, {
+        subject,
+        event: event.originalEvent,
+        localPoint: point,
+        globalPoint: containerPoint,
+      });
+
+      if (response.isStateChanged) {
+        this._invalidateStyles();
+        this._renderer.render(this._graph);
+      }
+    });
+
+    // Leaflet doesn't have a valid type definition for click event
+    // @ts-ignore
+    leaflet.on('click contextmenu dblclick', (event: ILeafletEvent<PointerEvent>) => {
+      const point: IPosition = this._toSimulationPoint(event.layerPoint);
+      const containerPoint: IPosition = { x: event.containerPoint.x, y: event.containerPoint.y };
+
+      if (event.type === 'contextmenu') {
+        const response = this._strategy.onMouseRightClick(this._graph, point);
+        const subject = response.changedSubject;
+
+        if (subject) {
+          if (isNode(subject)) {
+            this._events.emit(OrbEventType.NODE_RIGHT_CLICK, {
+              node: subject,
+              event: event.originalEvent,
+              localPoint: point,
+              globalPoint: containerPoint,
+            });
+          }
+          if (isEdge(subject)) {
+            this._events.emit(OrbEventType.EDGE_RIGHT_CLICK, {
+              edge: subject,
+              event: event.originalEvent,
+              localPoint: point,
+              globalPoint: containerPoint,
+            });
+          }
+        }
+
+        this._events.emit(OrbEventType.MOUSE_RIGHT_CLICK, {
+          subject,
+          event: event.originalEvent,
+          localPoint: point,
+          globalPoint: containerPoint,
+        });
+
+        if (response.isStateChanged) {
+          this._invalidateStyles();
+          this._renderer.render(this._graph);
+        }
+      } else if (event.type === 'click') {
+        const response = this._strategy.onMouseClick(this._graph, point, {
+          isAppend: event.originalEvent.shiftKey,
+        });
+        const subject = response.changedSubject;
+
+        if (subject) {
+          if (isNode(subject)) {
+            this._events.emit(OrbEventType.NODE_CLICK, {
+              node: subject,
+              event: event.originalEvent,
+              localPoint: point,
+              globalPoint: containerPoint,
+            });
+          }
+          if (isEdge(subject)) {
+            this._events.emit(OrbEventType.EDGE_CLICK, {
+              edge: subject,
+              event: event.originalEvent,
+              localPoint: point,
+              globalPoint: containerPoint,
+            });
+          }
+        }
+
+        this._events.emit(OrbEventType.MOUSE_CLICK, {
+          subject,
+          event: event.originalEvent,
+          localPoint: point,
+          globalPoint: containerPoint,
+        });
+
+        if (response.isStateChanged || response.changedSubject) {
+          this._invalidateStyles();
+          this._renderer.render(this._graph);
+        }
+      } else if (event.type === 'dblclick') {
+        const response = this._strategy.onMouseDoubleClick(this._graph, point);
+        const subject = response.changedSubject;
+
+        if (subject) {
+          if (isNode(subject)) {
+            this._events.emit(OrbEventType.NODE_DOUBLE_CLICK, {
+              node: subject,
+              event: event.originalEvent,
+              localPoint: point,
+              globalPoint: containerPoint,
+            });
+          }
+          if (isEdge(subject)) {
+            this._events.emit(OrbEventType.EDGE_DOUBLE_CLICK, {
+              edge: subject,
+              event: event.originalEvent,
+              localPoint: point,
+              globalPoint: containerPoint,
+            });
+          }
+        }
+
+        this._events.emit(OrbEventType.MOUSE_DOUBLE_CLICK, {
+          subject,
+          event: event.originalEvent,
+          localPoint: point,
+          globalPoint: containerPoint,
+        });
+
+        // zoom in on double click if no subject underneath
+        if (!subject) {
+          const zoom = event.target._zoom + 1;
+          event.target.setZoomAround(event.layerPoint, zoom);
+        }
+
+        if (response.isStateChanged || response.changedSubject) {
+          this._invalidateStyles();
+          this._renderer.render(this._graph);
+        }
+      }
+    });
+
+    leaflet.on('moveend', (event) => {
+      const leafletPos = event.target._mapPane._leaflet_pos;
+      const k = this._getStyleScale();
+      this._renderer.transform = { ...leafletPos, k };
+      this._renderer.render(this._graph);
+    });
+
+    leaflet.on('drag', (event) => {
+      const leafletPos = event.target._mapPane._leaflet_pos;
+      const k = this._getStyleScale();
+      this._renderer.transform = { ...leafletPos, k };
+      this._renderer.render(this._graph);
+      this._events.emit(OrbEventType.TRANSFORM, { transform: { ...leafletPos, k } });
+    });
+
+    return leaflet;
+  }
+
+  private _updateGraphPositions() {
+    const nodes = this._graph.getNodes();
+    const k = this._getStyleScale();
+
+    for (let i = 0; i < nodes.length; i++) {
+      const coordinates = this._settings.getGeoPosition(nodes[i]);
+      if (!coordinates) {
+        continue;
+      }
+      if (typeof coordinates.lat !== 'number' || typeof coordinates.lng !== 'number') {
+        continue;
+      }
+
+      const layerPoint = this._leaflet.latLngToLayerPoint([coordinates.lat, coordinates.lng]);
+      nodes[i].setPosition({ x: layerPoint.x / k, y: layerPoint.y / k }, { isNotifySkipped: true });
+    }
+  }
+
+  private _getStyleScale(): number {
+    if (this._settings.map.nodeSizeMode === 'fixed') {
+      return 1;
+    }
+    return Math.pow(2, this._leaflet.getZoom() - this._settings.map.zoomLevel);
+  }
+
+  private _toSimulationPoint(layerPoint: { x: number; y: number }): IPosition {
+    const k = this._getStyleScale();
+    return { x: layerPoint.x / k, y: layerPoint.y / k };
+  }
+
+  private _handleTileChange() {
+    const newTile: ILeafletMapTile = this._settings.map.tile;
+
+    this._leaflet.whenReady(() => {
+      this._leaflet.attributionControl.setPrefix(newTile.attribution);
+      this._leaflet.eachLayer((layer) => this._leaflet.removeLayer(layer));
+      newTile.instance.addTo(this._leaflet);
+    });
+  }
+}

@@ -1,7 +1,10 @@
 import { IEdge, IEdgeBase } from './edge';
 import { Color, IPosition, IRectangle, isPointInRectangle } from '../common';
 import { ImageHandler } from '../services/images';
-import { GraphObjectState } from './state';
+import { GraphObjectState, IGraphObjectStateOptions, IGraphObjectStateParameters } from './state';
+import { IObserver, ISubject, Subject } from '../utils/observer.utils';
+import { patchProperties } from '../utils/object.utils';
+import { isFunction, isNumber, isPlainObject } from '../utils/type.utils';
 
 /**
  * Node baseline object with required fields
@@ -19,6 +22,23 @@ export interface INodePosition {
   id: any;
   x?: number;
   y?: number;
+}
+
+export interface INodeCoordinates {
+  x: number;
+  y: number;
+}
+
+export interface INodeSetPositionOptions {
+  isNotifySkipped: boolean;
+}
+
+export interface INodeSetStyleOptions {
+  isNotifySkipped: boolean;
+}
+
+export interface INodeSetStateOptions {
+  isNotifySkipped: boolean;
 }
 
 export enum NodeShapeType {
@@ -65,12 +85,13 @@ export interface INodeData<N extends INodeBase> {
   data: N;
 }
 
-export interface INode<N extends INodeBase, E extends IEdgeBase> {
-  data: N;
-  position: INodePosition;
-  style: INodeStyle;
-  state: number;
-  readonly id: any;
+export interface INode<N extends INodeBase, E extends IEdgeBase> extends ISubject {
+  id: number;
+  getId(): number;
+  getData(): N;
+  getPosition(): INodePosition;
+  getStyle(): INodeStyle;
+  getState(): number;
   clearPosition(): void;
   getCenter(): IPosition;
   getRadius(): number;
@@ -95,12 +116,30 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> {
   getBorderWidth(): number;
   getBorderColor(): Color | string | undefined;
   getBackgroundImage(): HTMLImageElement | undefined;
+  setData(data: N): void;
+  setData(callback: (node: INode<N, E>) => N): void;
+  patchData(data: Partial<N>): void;
+  patchData(callback: (node: INode<N, E>) => Partial<N>): void;
+  setPosition(position: INodeCoordinates | INodePosition, options?: INodeSetPositionOptions): void;
+  setPosition(
+    callback: (node: INode<N, E>) => INodeCoordinates | INodePosition,
+    options?: INodeSetPositionOptions,
+  ): void;
+  setStyle(style: INodeStyle, options?: INodeSetPositionOptions): void;
+  setStyle(callback: (node: INode<N, E>) => INodeStyle, options?: INodeSetPositionOptions): void;
+  patchStyle(style: INodeStyle, options?: INodeSetPositionOptions): void;
+  patchStyle(callback: (node: INode<N, E>) => INodeStyle, options?: INodeSetPositionOptions): void;
+  setState(state: number, options?: INodeSetStateOptions): void;
+  setState(state: IGraphObjectStateParameters, options?: INodeSetStateOptions): void;
+  setState(callback: (node: INode<N, E>) => number, options?: INodeSetStateOptions): void;
+  setState(callback: (node: INode<N, E>) => IGraphObjectStateParameters, options?: INodeSetStateOptions): void;
 }
 
 // TODO: Dirty solution: Find another way to listen for global images, maybe through
 //  events that user can listen for: images-load-start, images-load-end
 export interface INodeSettings {
   onLoadedImage: () => void;
+  listeners: IObserver[];
 }
 
 export class NodeFactory {
@@ -116,40 +155,69 @@ export const isNode = <N extends INodeBase, E extends IEdgeBase>(obj: any): obj 
   return obj instanceof Node;
 };
 
-export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, E> {
+export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject implements INode<N, E> {
   public readonly id: number;
-  public data: N;
-  public position: INodePosition;
-  public style: INodeStyle = {};
-  public state = GraphObjectState.NONE;
+  protected _data: N;
+  protected _position: INodePosition;
+  protected _style: INodeStyle = {};
+  protected _state = GraphObjectState.NONE;
 
   private readonly _inEdgesById: { [id: number]: IEdge<N, E> } = {};
   private readonly _outEdgesById: { [id: number]: IEdge<N, E> } = {};
   private readonly _onLoadedImage?: () => void;
 
   constructor(data: INodeData<N>, settings?: Partial<INodeSettings>) {
+    super();
     this.id = data.data.id;
-    this.data = data.data;
-    this.position = { id: this.id };
+    this._data = data.data;
+    this._position = { id: this.id };
     this._onLoadedImage = settings?.onLoadedImage;
+    if (settings && settings.listeners) {
+      this.listeners = settings.listeners;
+    }
+  }
+
+  getId(): number {
+    return this.id;
+  }
+
+  getData(): N {
+    // no shallow/deep copy here due to the performance issues
+    return this._data;
+  }
+
+  getPosition(): INodePosition {
+    // no shallow/deep copy here due to the performance issues
+    return this._position;
+  }
+
+  getStyle(): INodeStyle {
+    // no shallow/deep copy here due to the performance issues
+    return this._style;
+  }
+
+  getState(): number {
+    return this._state;
   }
 
   clearPosition() {
-    this.position.x = undefined;
-    this.position.y = undefined;
+    this._position.x = undefined;
+    this._position.y = undefined;
+
+    this.notifyListeners();
   }
 
   getCenter(): IPosition {
     // This should not be called in the render because nodes without position will be
     // filtered out
-    if (this.position.x === undefined || this.position.y === undefined) {
+    if (this._position.x === undefined || this._position.y === undefined) {
       return { x: 0, y: 0 };
     }
-    return { x: this.position.x, y: this.position.y };
+    return { x: this._position.x, y: this._position.y };
   }
 
   getRadius(): number {
-    return this.style.size ?? 0;
+    return this._style.size ?? 0;
   }
 
   getBorderedRadius(): number {
@@ -181,13 +249,13 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
     const outEdges = this.getOutEdges();
     for (let i = 0; i < outEdges.length; i++) {
       const outEdge = outEdges[i];
-      edgeById[outEdge.id] = outEdge;
+      edgeById[outEdge.getId()] = outEdge;
     }
 
     const inEdges = this.getInEdges();
     for (let i = 0; i < inEdges.length; i++) {
       const inEdge = inEdges[i];
-      edgeById[inEdge.id] = inEdge;
+      edgeById[inEdge.getId()] = inEdge;
     }
 
     return Object.values(edgeById);
@@ -200,7 +268,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
     for (let i = 0; i < outEdges.length; i++) {
       const adjacentNode = outEdges[i].endNode;
       if (adjacentNode) {
-        adjacentNodeById[adjacentNode.id] = adjacentNode;
+        adjacentNodeById[adjacentNode.getId()] = adjacentNode;
       }
     }
 
@@ -208,7 +276,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
     for (let i = 0; i < inEdges.length; i++) {
       const adjacentNode = inEdges[i].startNode;
       if (adjacentNode) {
-        adjacentNodeById[adjacentNode.id] = adjacentNode;
+        adjacentNodeById[adjacentNode.getId()] = adjacentNode;
       }
     }
 
@@ -216,33 +284,33 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
   }
 
   hasStyle(): boolean {
-    return this.style && Object.keys(this.style).length > 0;
+    return this._style && Object.keys(this._style).length > 0;
   }
 
   addEdge(edge: IEdge<N, E>) {
     if (edge.start === this.id) {
-      this._outEdgesById[edge.id] = edge;
+      this._outEdgesById[edge.getId()] = edge;
     }
     if (edge.end === this.id) {
-      this._inEdgesById[edge.id] = edge;
+      this._inEdgesById[edge.getId()] = edge;
     }
   }
 
   removeEdge(edge: IEdge<N, E>) {
-    delete this._outEdgesById[edge.id];
-    delete this._inEdgesById[edge.id];
+    delete this._outEdgesById[edge.getId()];
+    delete this._inEdgesById[edge.getId()];
   }
 
   isSelected(): boolean {
-    return this.state === GraphObjectState.SELECTED;
+    return this._state === GraphObjectState.SELECTED;
   }
 
   isHovered(): boolean {
-    return this.state === GraphObjectState.HOVERED;
+    return this._state === GraphObjectState.HOVERED;
   }
 
   clearState(): void {
-    this.state = GraphObjectState.NONE;
+    this.setState(GraphObjectState.NONE, { isNotifySkipped: true });
   }
 
   getDistanceToBorder(): number {
@@ -257,7 +325,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
     }
 
     // For square type, we don't need to check the circle
-    if (this.style.shape === NodeShapeType.SQUARE) {
+    if (this._style.shape === NodeShapeType.SQUARE) {
       return isInBoundingBox;
     }
 
@@ -272,31 +340,31 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
 
   hasShadow(): boolean {
     return (
-      (this.style.shadowSize ?? 0) > 0 || (this.style.shadowOffsetX ?? 0) > 0 || (this.style.shadowOffsetY ?? 0) > 0
+      (this._style.shadowSize ?? 0) > 0 || (this._style.shadowOffsetX ?? 0) > 0 || (this._style.shadowOffsetY ?? 0) > 0
     );
   }
 
   hasBorder(): boolean {
-    const hasBorderWidth = (this.style.borderWidth ?? 0) > 0;
-    const hasBorderWidthSelected = (this.style.borderWidthSelected ?? 0) > 0;
+    const hasBorderWidth = (this._style.borderWidth ?? 0) > 0;
+    const hasBorderWidthSelected = (this._style.borderWidthSelected ?? 0) > 0;
     return hasBorderWidth || (this.isSelected() && hasBorderWidthSelected);
   }
 
   getLabel(): string | undefined {
-    return this.style.label;
+    return this._style.label;
   }
 
   getColor(): Color | string | undefined {
     let color: Color | string | undefined = undefined;
 
-    if (this.style.color) {
-      color = this.style.color;
+    if (this._style.color) {
+      color = this._style.color;
     }
-    if (this.isHovered() && this.style.colorHover) {
-      color = this.style.colorHover;
+    if (this.isHovered() && this._style.colorHover) {
+      color = this._style.colorHover;
     }
-    if (this.isSelected() && this.style.colorSelected) {
-      color = this.style.colorSelected;
+    if (this.isSelected() && this._style.colorSelected) {
+      color = this._style.colorSelected;
     }
 
     return color;
@@ -304,11 +372,11 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
 
   getBorderWidth(): number {
     let borderWidth = 0;
-    if (this.style.borderWidth && this.style.borderWidth > 0) {
-      borderWidth = this.style.borderWidth;
+    if (this._style.borderWidth && this._style.borderWidth > 0) {
+      borderWidth = this._style.borderWidth;
     }
-    if (this.isSelected() && this.style.borderWidthSelected && this.style.borderWidthSelected > 0) {
-      borderWidth = this.style.borderWidthSelected;
+    if (this.isSelected() && this._style.borderWidthSelected && this._style.borderWidthSelected > 0) {
+      borderWidth = this._style.borderWidthSelected;
     }
     return borderWidth;
   }
@@ -320,31 +388,31 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
 
     let borderColor: Color | string | undefined = undefined;
 
-    if (this.style.borderColor) {
-      borderColor = this.style.borderColor;
+    if (this._style.borderColor) {
+      borderColor = this._style.borderColor;
     }
-    if (this.isHovered() && this.style.borderColorHover) {
-      borderColor = this.style.borderColorHover;
+    if (this.isHovered() && this._style.borderColorHover) {
+      borderColor = this._style.borderColorHover;
     }
-    if (this.isSelected() && this.style.borderColorSelected) {
-      borderColor = this.style.borderColorSelected.toString();
+    if (this.isSelected() && this._style.borderColorSelected) {
+      borderColor = this._style.borderColorSelected.toString();
     }
 
     return borderColor;
   }
 
   getBackgroundImage(): HTMLImageElement | undefined {
-    if ((this.style.size ?? 0) <= 0) {
+    if ((this._style.size ?? 0) <= 0) {
       return;
     }
 
     let imageUrl;
 
-    if (this.style.imageUrl) {
-      imageUrl = this.style.imageUrl;
+    if (this._style.imageUrl) {
+      imageUrl = this._style.imageUrl;
     }
-    if (this.isSelected() && this.style.imageUrlSelected) {
-      imageUrl = this.style.imageUrlSelected;
+    if (this.isSelected() && this._style.imageUrlSelected) {
+      imageUrl = this._style.imageUrlSelected;
     }
 
     if (!imageUrl) {
@@ -363,7 +431,145 @@ export class Node<N extends INodeBase, E extends IEdgeBase> implements INode<N, 
     });
   }
 
+  setData(data: N): void;
+  setData(callback: (node: INode<N, E>) => N): void;
+  setData(arg: N | ((node: INode<N, E>) => N)) {
+    if (isFunction(arg)) {
+      this._data = (arg as (node: INode<N, E>) => N)(this);
+    } else {
+      this._data = arg as N;
+    }
+    this.notifyListeners();
+  }
+
+  patchData(data: Partial<N>): void;
+  patchData(callback: (node: INode<N, E>) => Partial<N>): void;
+  patchData(arg: Partial<N> | ((node: INode<N, E>) => Partial<N>)) {
+    let data: Partial<N>;
+
+    if (isFunction(arg)) {
+      data = (arg as (node: INode<N, E>) => Partial<N>)(this);
+    } else {
+      data = arg as Partial<N>;
+    }
+
+    patchProperties(this._data, data);
+
+    this.notifyListeners();
+  }
+
+  setPosition(position: INodeCoordinates | INodePosition, options?: INodeSetPositionOptions): void;
+  setPosition(
+    callback: (node: INode<N, E>) => INodeCoordinates | INodePosition,
+    options?: INodeSetPositionOptions,
+  ): void;
+  setPosition(
+    arg: INodeCoordinates | INodePosition | ((node: INode<N, E>) => INodeCoordinates | INodePosition),
+    options?: INodeSetPositionOptions,
+  ) {
+    let position: INodeCoordinates | INodePosition;
+    if (isFunction(arg)) {
+      position = (arg as (node: INode<N, E>) => INodeCoordinates)(this);
+    } else {
+      position = arg;
+    }
+
+    if ('x' in position && 'y' in position) {
+      this._position.x = position.x;
+      this._position.y = position.y;
+      if ('id' in position) {
+        this._position.id = position.id;
+      }
+    }
+
+    if (!options?.isNotifySkipped) {
+      this.notifyListeners({ id: this.id, ...position });
+    }
+  }
+
+  setStyle(style: INodeStyle, options?: INodeSetPositionOptions): void;
+  setStyle(callback: (node: INode<N, E>) => INodeStyle, options?: INodeSetPositionOptions): void;
+  setStyle(arg: INodeStyle | ((node: INode<N, E>) => INodeStyle), options?: INodeSetPositionOptions): void {
+    if (isFunction(arg)) {
+      this._style = (arg as (node: INode<N, E>) => INodeStyle)(this);
+    } else {
+      this._style = arg as INodeStyle;
+    }
+    if (!options?.isNotifySkipped) {
+      this.notifyListeners();
+    }
+  }
+
+  patchStyle(style: INodeStyle, options?: INodeSetPositionOptions): void;
+  patchStyle(callback: (node: INode<N, E>) => INodeStyle, options?: INodeSetPositionOptions): void;
+  patchStyle(arg: INodeStyle | ((node: INode<N, E>) => INodeStyle), options?: INodeSetPositionOptions) {
+    let style: INodeStyle;
+
+    if (isFunction(arg)) {
+      style = (arg as (node: INode<N, E>) => INodeStyle)(this);
+    } else {
+      style = arg as INodeStyle;
+    }
+
+    patchProperties(this._style, style);
+
+    if (!options?.isNotifySkipped) {
+      this.notifyListeners();
+    }
+  }
+
+  setState(state: number, options?: INodeSetStateOptions): void;
+  setState(state: IGraphObjectStateParameters, options?: INodeSetStateOptions): void;
+  setState(callback: (node: INode<N, E>) => number, options?: INodeSetStateOptions): void;
+  setState(callback: (node: INode<N, E>) => IGraphObjectStateParameters, options?: INodeSetStateOptions): void;
+  setState(
+    arg:
+      | number
+      | IGraphObjectStateParameters
+      | ((node: INode<N, E>) => number)
+      | ((node: INode<N, E>) => IGraphObjectStateParameters),
+    options?: INodeSetStateOptions,
+  ): void {
+    let result: number | IGraphObjectStateParameters;
+
+    if (isFunction(arg)) {
+      result = (arg as (node: INode<N, E>) => number | IGraphObjectStateParameters)(this);
+    } else {
+      result = arg;
+    }
+
+    if (isNumber(result)) {
+      this._state = result;
+    } else if (isPlainObject(result)) {
+      const options = result.options;
+
+      this._state = this._handleState(result.state, options);
+
+      if (options) {
+        this.notifyListeners({
+          id: this.id,
+          type: 'node',
+          options: options,
+        });
+
+        return;
+      }
+    }
+
+    if (!options?.isNotifySkipped) {
+      this.notifyListeners();
+    }
+  }
+
   protected _isPointInBoundingBox(point: IPosition): boolean {
     return isPointInRectangle(this.getBoundingBox(), point);
+  }
+
+  private _handleState(state: number, options?: Partial<IGraphObjectStateOptions>): number {
+    if (options?.isToggle && this._state === state) {
+      return GraphObjectState.NONE;
+    } else {
+      return state;
+    }
   }
 }

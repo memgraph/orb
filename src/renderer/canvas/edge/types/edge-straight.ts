@@ -17,6 +17,10 @@ export const drawStraightLine = <N extends INodeBase, E extends IEdgeBase>(
   context.beginPath();
   context.moveTo(sourcePoint.x, sourcePoint.y);
   context.lineTo(targetPoint.x, targetPoint.y);
+
+  const lineDashPattern = edge.getLineDashPattern();
+  context.setLineDash(lineDashPattern ?? []);
+
   context.stroke();
 };
 
@@ -29,7 +33,7 @@ export const drawStraightLine = <N extends INodeBase, E extends IEdgeBase>(
 export const getStraightArrowShape = <N extends INodeBase, E extends IEdgeBase>(
   edge: EdgeStraight<N, E>,
 ): IEdgeArrow => {
-  const scaleFactor = edge.style.arrowSize ?? 1;
+  const scaleFactor = edge.getStyle().arrowSize ?? 1;
   const lineWidth = edge.getWidth() ?? 1;
   const sourcePoint = edge.startNode.getCenter();
   const targetPoint = edge.endNode.getCenter();
@@ -59,7 +63,7 @@ const findBorderPoint = <N extends INodeBase, E extends IEdgeBase>(
 ): IBorderPosition => {
   let endNode = edge.endNode;
   let startNode = edge.startNode;
-  if (nearNode.id === edge.startNode.id) {
+  if (nearNode.getId() === edge.startNode.getId()) {
     endNode = edge.startNode;
     startNode = edge.endNode;
   }

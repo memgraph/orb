@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orb - map view demo</title>
+    <script src="../orb.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
+      integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
+      crossorigin=""
+    />
+    <style>
+      html, body { height: 100%; margin: 0; }
+      #graph { width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <div id="graph"></div>
+    <script>
+      const container = document.getElementById('graph');
+
+      // Capitals of the EU member states.
+      const cities = [
+        { id: 'vie', label: 'Vienna', lat: 48.2082, lng: 16.3738 },
+        { id: 'bru', label: 'Brussels', lat: 50.8503, lng: 4.3517 },
+        { id: 'sof', label: 'Sofia', lat: 42.6977, lng: 23.3219 },
+        { id: 'zag', label: 'Zagreb', lat: 45.8150, lng: 15.9819 },
+        { id: 'nic', label: 'Nicosia', lat: 35.1856, lng: 33.3823 },
+        { id: 'pra', label: 'Prague', lat: 50.0755, lng: 14.4378 },
+        { id: 'cph', label: 'Copenhagen', lat: 55.6761, lng: 12.5683 },
+        { id: 'tal', label: 'Tallinn', lat: 59.4370, lng: 24.7536 },
+        { id: 'hel', label: 'Helsinki', lat: 60.1699, lng: 24.9384 },
+        { id: 'par', label: 'Paris', lat: 48.8566, lng: 2.3522 },
+        { id: 'ber', label: 'Berlin', lat: 52.5200, lng: 13.4050 },
+        { id: 'ath', label: 'Athens', lat: 37.9838, lng: 23.7275 },
+        { id: 'bud', label: 'Budapest', lat: 47.4979, lng: 19.0402 },
+        { id: 'dub', label: 'Dublin', lat: 53.3498, lng: -6.2603 },
+        { id: 'rom', label: 'Rome', lat: 41.9028, lng: 12.4964 },
+        { id: 'rig', label: 'Riga', lat: 56.9496, lng: 24.1052 },
+        { id: 'vil', label: 'Vilnius', lat: 54.6872, lng: 25.2797 },
+        { id: 'lux', label: 'Luxembourg', lat: 49.6116, lng: 6.1319 },
+        { id: 'val', label: 'Valletta', lat: 35.8989, lng: 14.5146 },
+        { id: 'ams', label: 'Amsterdam', lat: 52.3676, lng: 4.9041 },
+        { id: 'war', label: 'Warsaw', lat: 52.2297, lng: 21.0122 },
+        { id: 'lis', label: 'Lisbon', lat: 38.7223, lng: -9.1393 },
+        { id: 'buc', label: 'Bucharest', lat: 44.4268, lng: 26.1025 },
+        { id: 'bts', label: 'Bratislava', lat: 48.1486, lng: 17.1077 },
+        { id: 'lju', label: 'Ljubljana', lat: 46.0569, lng: 14.5058 },
+        { id: 'mad', label: 'Madrid', lat: 40.4168, lng: -3.7038 },
+        { id: 'sto', label: 'Stockholm', lat: 59.3293, lng: 18.0686 },
+      ];
+
+      // Connect capitals of EU countries that share a land border only.
+      // Island states (Cyprus, Ireland, Malta) have no EU land neighbour.
+      const borders = [
+        ['vie', 'ber'], ['vie', 'pra'], ['vie', 'bts'], ['vie', 'bud'], ['vie', 'lju'], ['vie', 'rom'],
+        ['bru', 'ams'], ['bru', 'ber'], ['bru', 'lux'], ['bru', 'par'],
+        ['sof', 'buc'], ['sof', 'ath'],
+        ['zag', 'lju'], ['zag', 'bud'],
+        ['pra', 'ber'], ['pra', 'war'], ['pra', 'bts'],
+        ['cph', 'ber'],
+        ['tal', 'rig'],
+        ['hel', 'sto'],
+        ['par', 'lux'], ['par', 'ber'], ['par', 'rom'], ['par', 'mad'],
+        ['ber', 'ams'], ['ber', 'lux'], ['ber', 'war'],
+        ['bud', 'bts'], ['bud', 'buc'], ['bud', 'lju'],
+        ['rom', 'lju'],
+        ['rig', 'vil'],
+        ['vil', 'war'],
+        ['war', 'bts'],
+        ['lis', 'mad'],
+      ];
+      const edges = borders.map(([start, end], id) => ({ id, start, end }));
+
+      const orb = new Orb.OrbMapView(container, {
+        getGeoPosition: (node) => ({ lat: node.getData().lat, lng: node.getData().lng }),
+        map: { zoomLevel: 4, nodeSizeMode: 'fixed' },
+      });
+
+      orb.data.setDefaultStyle({
+        getNodeStyle(node) {
+          return {
+            size: 5,
+            color: '#fb6e00',
+            borderColor: '#c25400',
+            borderWidth: 1,
+            colorHover: '#ff8f40',
+            colorSelected: '#231f20',
+            label: node.getData().label,
+            fontSize: 11,
+            fontColor: '#231f20',
+            fontBackgroundColor: 'rgba(255,255,255,0.75)',
+          };
+        },
+        getEdgeStyle() {
+          return { color: '#646265', colorHover: '#231f20', colorSelected: '#fb6e00', width: 0.8, widthHover: 2 };
+        },
+      });
+
+      orb.data.setup({ nodes: cities, edges });
+
+      // Fit to the cities' real geographic bounds directly via Leaflet. This is
+      // robust to container resizes (e.g. small preview iframes), unlike recenter()
+      // which round-trips node positions through the current map projection.
+      const lats = cities.map((c) => c.lat), lngs = cities.map((c) => c.lng);
+      const geoBounds = [[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]];
+      const fit = () => { orb.leaflet.invalidateSize(); orb.leaflet.fitBounds(geoBounds, { padding: [24, 24] }); };
+      orb.render(fit);
+      window.addEventListener('load', () => setTimeout(fit, 100));
+      setTimeout(fit, 400);
+    </script>
+  </body>
+</html>

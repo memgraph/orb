@@ -11,14 +11,18 @@ const commonConfiguration = {
         use: 'ts-loader',
         exclude: '/node_modules/',
       },
+      {
+        test: /\.(glsl|vert|frag)$/,
+        type: 'asset/source',
+      },
     ],
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
+    extensions: ['.tsx', '.ts', '.js', '.glsl', '.vert', '.frag'],
   },
   output: {
     chunkFilename(pathData) {
-      return pathData.chunk.name === 'process.worker' ? `${name}.worker.js` : `${name}.worker.vendor.js`;
+      return pathData.chunk.name === 'simulator.worker' ? `${name}.worker.js` : `${name}.worker.vendor.js`;
     },
     filename: `${name}.js`,
     path: path.resolve(__dirname, 'dist/browser'),
@@ -62,7 +66,7 @@ const productionConfiguration = {
   output: {
     ...commonConfiguration.output,
     chunkFilename(pathData) {
-      return pathData.chunk.name === 'process.worker' ? `${name}.worker.min.js` : `${name}.worker.vendor.min.js`;
+      return pathData.chunk.name === 'simulator.worker' ? `${name}.worker.min.js` : `${name}.worker.vendor.min.js`;
     },
     filename: `${name}.min.js`,
   },

@@ -1,0 +1,156 @@
+import { IPosition } from '../../../common';
+import {
+  ISimulator,
+  ISimulationNode,
+  ISimulationEdge,
+  SimulatorEventType,
+  SimulatorEvents,
+  ISimulationGraph,
+  ISimulationIds,
+} from '../../shared';
+import { IWorkerInputPayload, WorkerInputType } from './message/worker-input';
+import { IWorkerOutputPayload, WorkerOutputType } from './message/worker-output';
+import { Emitter } from '../../../utils/emitter.utils';
+import { ILayoutSettings } from '../../engine/shared';
+import { DeepPartial } from '../../../utils/type.utils';
+
+export class WebWorkerSimulator extends Emitter<SimulatorEvents> implements ISimulator {
+  protected readonly _worker: Worker;
+  private _isSimulationRunning = false;
+
+  constructor(settings: DeepPartial<ILayoutSettings>) {
+    super();
+    this._worker = new Worker(
+      new URL(
+        /* webpackChunkName: 'simulator.worker' */
+        './simulator.worker',
+        import.meta.url,
+      ),
+      { type: 'module' },
+    );
+
+    this.emitToWorker({ type: WorkerInputType.SetSettings, data: settings });
+
+    this._worker.onmessage = ({ data }: MessageEvent<IWorkerOutputPayload>) => {
+      switch (data.type) {
+        case WorkerOutputType.SIMULATION_START: {
+          this.emit(SimulatorEventType.SIMULATION_START, undefined);
+          this._isSimulationRunning = true;
+          break;
+        }
+        case WorkerOutputType.SIMULATION_PROGRESS: {
+          this.emit(SimulatorEventType.SIMULATION_PROGRESS, data.data);
+          break;
+        }
+        case WorkerOutputType.SIMULATION_END: {
+          this.emit(SimulatorEventType.SIMULATION_END, data.data);
+          this._isSimulationRunning = false;
+          break;
+        }
+        case WorkerOutputType.SIMULATION_STEP: {
+          this.emit(SimulatorEventType.SIMULATION_STEP, data.data);
+          break;
+        }
+        case WorkerOutputType.NODE_DRAG: {
+          this.emit(SimulatorEventType.NODE_DRAG, data.data);
+          break;
+        }
+        case WorkerOutputType.NODE_DRAG_END: {
+          this.emit(SimulatorEventType.NODE_DRAG_END, data.data);
+          break;
+        }
+        case WorkerOutputType.SETTINGS_UPDATE: {
+          this.emit(SimulatorEventType.SETTINGS_UPDATE, data.data);
+          break;
+        }
+      }
+    };
+  }
+
+  /**
+   * Creates a new graph with the specified data. Any existing data gets discarded.
+   * This action creates a new simulation object but keeps the existing simulation settings.
+   *
+   * @param {ISimulationGraph} data New graph (nodes and edges).
+   */
+  setupData(data: ISimulationGraph) {
+    this.emitToWorker({ type: WorkerInputType.SetupData, data });
+  }
+
+  /**
+   * Inserts or updates data to an existing graph. (Also known as upsert)
+   *
+   * @param {ISimulationGraph} data Added graph data (nodes and edges).
+   */
+  mergeData(data: ISimulationGraph) {
+    this.emitToWorker({ type: WorkerInputType.MergeData, data });
+  }
+
+  updateData(data: ISimulationGraph) {
+    this.emitToWorker({ type: WorkerInputType.UpdateData, data });
+  }
+
+  deleteData(data: ISimulationIds) {
+    this.emitToWorker({ type: WorkerInputType.DeleteData, data });
+  }
+
+  patchData(data: Partial<ISimulationGraph>): void {
+    this.emitToWorker({ type: WorkerInputType.PatchData, data });
+  }
+
+  clearData() {
+    this.emitToWorker({ type: WorkerInputType.ClearData });
+  }
+
+  activateSimulation() {
+    this.emitToWorker({ type: WorkerInputType.ActivateSimulation });
+  }
+
+  stopSimulation() {
+    this.emitToWorker({ type: WorkerInputType.StopSimulation });
+  }
+
+  updateSimulation(nodes: ISimulationNode[], edges: ISimulationEdge[]) {
+    this.emitToWorker({ type: WorkerInputType.UpdateSimulation, data: { nodes, edges } });
+  }
+
+  startDragNode() {
+    this.emitToWorker({ type: WorkerInputType.StartDragNode });
+  }
+
+  dragNode(nodeId: number, position: IPosition) {
+    this.emitToWorker({ type: WorkerInputType.DragNode, data: { id: nodeId, ...position } });
+  }
+
+  endDragNode(nodeId: number) {
+    this.emitToWorker({ type: WorkerInputType.EndDragNode, data: { id: nodeId } });
+  }
+
+  fixNodes(nodes?: ISimulationNode[]) {
+    this.emitToWorker({ type: WorkerInputType.FixNodes, data: { nodes } });
+  }
+
+  releaseNodes(nodes?: ISimulationNode[]): void {
+    this.emitToWorker({ type: WorkerInputType.ReleaseNodes, data: { nodes } });
+  }
+
+  setSettings(settings: ILayoutSettings) {
+    this.emitToWorker({
+      type: WorkerInputType.SetSettings,
+      data: settings,
+    } satisfies IWorkerInputPayload);
+  }
+
+  isSimulationRunning(): boolean {
+    return this._isSimulationRunning;
+  }
+
+  terminate() {
+    this._worker.terminate();
+    this.removeAllListeners();
+  }
+
+  protected emitToWorker(message: IWorkerInputPayload) {
+    this._worker.postMessage(message);
+  }
+}

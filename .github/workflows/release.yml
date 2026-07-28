@@ -8,12 +8,25 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: github.repository == 'memgraph/orb'
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      # Required for npm trusted publishing (OIDC) and provenance
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
         with:
-          node-version: "16.x"
+          # semantic-release needs full history + tags to compute the next version
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      # npm >= 11.5 is required for trusted publishing; Node 22 ships npm 10
+      - name: 'Update npm'
+        run: npm install -g npm@latest
 
       - name: 'Install'
         run: npm ci
@@ -21,8 +34,9 @@ jobs:
         run: npm run lint
       - name: 'Build'
         run: npm run build:release
+      - name: 'Test'
+        run: npm run test
       - name: 'Release'
         run: npm run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

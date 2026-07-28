@@ -46,7 +46,7 @@
       };
     }
 
-    const orb = new Orb.Orb(container);
+    const orb = new Orb.OrbView(container);
 
     orb.data.setDefaultStyle({
       getNodeStyle(node) {
@@ -57,7 +57,7 @@
           colorHover: '#e7644e',
           colorSelected: '#e7644e',
           fontSize: 3,
-          label: node.data.label,
+          label: node.getData().label,
           size: 6,
         };
       },
@@ -70,7 +70,7 @@
           width: 0.3,
           widthHover: 0.9,
           widthSelected: 0.9,
-          label: edge.data.label,
+          label: edge.getData().label,
         };
       },
     });
@@ -97,7 +97,7 @@
         if (currentNodes.length) {
           const newEdge = {
             id: n,
-            start: currentNodes[Math.floor(Math.random() * currentNodes.length)].id,
+            start: currentNodes[Math.floor(Math.random() * currentNodes.length)].getId(),
             end: n,
             label: `Edge ${n} (new)`
           };
@@ -106,7 +106,7 @@
         n += 1;
 
         orb.data.merge(graphUpdates);
-        orb.view.render();
+        orb.render();
         randomlyExpandGraph();
       }, 3000);
     };
@@ -115,13 +115,13 @@
     
     orb.events.on(Orb.OrbEventType.NODE_CLICK, (event) => {
       console.log('Node clicked: ', event.node);
-      orb.data.remove({ nodeIds: [event.node.id] });
-      orb.view.render();
+      orb.data.remove({ nodeIds: [event.node.getId()] });
+      orb.render();
     });
 
     // Render and recenter the view
-    orb.view.render(() => {
-      orb.view.recenter();
+    orb.render(() => {
+      orb.recenter();
     });
 
   </script>

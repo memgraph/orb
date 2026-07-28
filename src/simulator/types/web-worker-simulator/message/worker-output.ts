@@ -1,17 +1,27 @@
 import { ISimulationNode, ISimulationEdge } from '../../../shared';
 import { IWorkerPayload } from './worker-payload';
-import { ID3SimulatorEngineSettings } from '../../../engine/d3-simulator-engine';
+import { ILayoutSettings } from '../../../engine/shared';
 
 export enum WorkerOutputType {
   SIMULATION_START = 'simulation-start',
+  SIMULATION_STEP = 'simulation-step',
   SIMULATION_PROGRESS = 'simulation-progress',
   SIMULATION_END = 'simulation-end',
+  SIMULATION_TICK = 'simulation-tick',
   NODE_DRAG = 'node-drag',
   NODE_DRAG_END = 'node-drag-end',
   SETTINGS_UPDATE = 'settings-update',
 }
 
 type IWorkerOutputSimulationStartPayload = IWorkerPayload<WorkerOutputType.SIMULATION_START>;
+
+type IWorkerOutputSimulationStepPayload = IWorkerPayload<
+  WorkerOutputType.SIMULATION_STEP,
+  {
+    nodes: ISimulationNode[];
+    edges: ISimulationEdge[];
+  }
+>;
 
 type IWorkerOutputSimulationProgressPayload = IWorkerPayload<
   WorkerOutputType.SIMULATION_PROGRESS,
@@ -49,12 +59,13 @@ type IWorkerOutputNodeDragEndPayload = IWorkerPayload<
 type IWorkerOutputSettingsUpdatePayload = IWorkerPayload<
   WorkerOutputType.SETTINGS_UPDATE,
   {
-    settings: ID3SimulatorEngineSettings;
+    settings: ILayoutSettings;
   }
 >;
 
 export type IWorkerOutputPayload =
   | IWorkerOutputSimulationStartPayload
+  | IWorkerOutputSimulationStepPayload
   | IWorkerOutputSimulationProgressPayload
   | IWorkerOutputSimulationEndPayload
   | IWorkerOutputNodeDragPayload

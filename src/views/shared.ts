@@ -2,24 +2,19 @@ import { INodeBase } from '../models/node';
 import { IEdgeBase } from '../models/edge';
 import { IGraph } from '../models/graph';
 import { OrbEmitter } from '../events';
-import { IEventStrategy } from '../models/strategy';
+import { IGraphInteraction } from '../models/interaction';
+import { ISVGExportOptions } from '../renderer/svg';
+import { RendererType } from '../renderer/shared';
 
-export interface IOrbView<S> {
-  isInitiallyRendered(): boolean;
+export interface IOrbView<N extends INodeBase, E extends IEdgeBase, S> {
+  data: IGraph<N, E>;
+  events: OrbEmitter<N, E>;
+  interaction: IGraphInteraction;
   getSettings(): S;
   setSettings(settings: Partial<S>): void;
+  setRenderer(type: RendererType): void;
   render(onRendered?: () => void): void;
   recenter(onRendered?: () => void): void;
+  getSVG(options?: ISVGExportOptions): string;
   destroy(): void;
 }
-
-export interface IOrbViewContext<N extends INodeBase, E extends IEdgeBase> {
-  container: HTMLElement;
-  graph: IGraph<N, E>;
-  events: OrbEmitter<N, E>;
-  strategy: IEventStrategy<N, E>;
-}
-
-export type IOrbViewFactory<N extends INodeBase, E extends IEdgeBase, S> = (
-  context: IOrbViewContext<N, E>,
-) => IOrbView<S>;

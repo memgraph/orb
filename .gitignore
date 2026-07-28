@@ -6,6 +6,7 @@ node_modules/
 
 # IDEs and editors
 .idea/
+.vscode/
 
 # Optional npm cache directory
 .npm

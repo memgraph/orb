@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orb - styling showcase</title>
+    <script src="../orb.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap" />
+    <style>
+      :root { --bg:#fff; --text:#231f20; }
+      :root[data-theme='dark'] { --bg:#231f20; --text:#e6e6e6; }
+      html, body { height:100%; margin:0; font-family:'Inter Tight',system-ui,sans-serif; background:var(--bg); color:var(--text); }
+      #graph { width:100%; height:100%; }
+    </style>
+  </head>
+  <body>
+    <div id="graph"></div>
+    <script>
+      const container = document.getElementById('graph');
+      const { OrbView, EdgeLineStyleType } = Orb;
+      const params = new URLSearchParams(location.search);
+      const dark = params.get('theme') ? params.get('theme') === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      const labelColor = dark ? '#e6e6e6' : '#231f20';
+      const edgeColor = dark ? '#8a8790' : '#646265';
+
+      const nodes = [];
+      const edges = [];
+
+      // Row 1 - every node shape.
+      const shapes = ['circle', 'square', 'diamond', 'triangle', 'triangleDown', 'star', 'hexagon', 'dot'];
+      shapes.forEach((shape, i) => {
+        nodes.push({
+          id: 'shape-' + i, x: -245 + i * 70, y: -140,
+          style: { shape, size: 12, color: '#fb6e00', borderColor: '#c25400', borderWidth: 1.5, label: shape, fontSize: 7, fontColor: labelColor },
+        });
+      });
+
+      // Row 2 - a color palette.
+      const palette = ['#fb6e00', '#ffc500', '#dd2222', '#19af66', '#1d87c9', '#8c0082'];
+      palette.forEach((color, i) => {
+        nodes.push({
+          id: 'color-' + i, x: -175 + i * 70, y: -20,
+          style: { shape: 'circle', size: 12, color, borderColor: '#00000033', borderWidth: 1, label: color, fontSize: 6, fontColor: labelColor },
+        });
+      });
+
+      // Row 3 - edge line styles.
+      const lineStyles = [
+        { name: 'solid', ls: { type: EdgeLineStyleType.SOLID } },
+        { name: 'dashed', ls: { type: EdgeLineStyleType.DASHED } },
+        { name: 'dotted', ls: { type: EdgeLineStyleType.DOTTED } },
+        { name: 'custom', ls: { type: EdgeLineStyleType.CUSTOM, pattern: [8, 3, 2, 3] } },
+      ];
+      lineStyles.forEach((entry, i) => {
+        const baseX = -230 + i * 155;
+        const a = 'ls-a-' + i;
+        const b = 'ls-b-' + i;
+        nodes.push({ id: a, x: baseX, y: 110, style: { size: 8, color: '#231f20', label: '', fontSize: 0 } });
+        nodes.push({ id: b, x: baseX + 110, y: 110, style: { size: 8, color: '#231f20', label: '', fontSize: 0 } });
+        edges.push({ id: 'ls-' + i, start: a, end: b, style: { color: '#fb6e00', width: 1.4, lineStyle: entry.ls, label: entry.name, fontSize: 7, fontColor: labelColor } });
+      });
+
+      const orb = new OrbView(container, {
+        getPosition: (node) => ({ x: node.getData().x, y: node.getData().y }),
+        // Pin the catalog layout instead of running a force simulation.
+        layout: { type: 'force', options: { isSimulatingOnDataUpdate: false } },
+      });
+
+      // Each node/edge carries its own style, so just pass it through.
+      orb.data.setDefaultStyle({
+        getNodeStyle: (node) => ({ borderColor: '#00000022', ...node.getData().style }),
+        getEdgeStyle: (edge) => ({ color: edgeColor, width: 1, ...edge.getData().style }),
+      });
+
+      orb.data.setup({ nodes, edges });
+      orb.render(() => orb.recenter());
+    </script>
+  </body>
+</html>
