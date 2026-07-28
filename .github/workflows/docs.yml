@@ -5,7 +5,7 @@ on:
     # NOTE: `new/add-docs-page` is a TEMPORARY entry so the team can review a live
     # deploy from the docs branch. Remove it before/at merge so main deploys only
     # from main.
-    branches: [main, release/1.0.0, new/add-docs-page]
+    branches: [main]
   # Validate the bundle + docs build on any PR that touches them, so reviewers
   # get a green check without needing Pages enabled or a merge to main. The
   # deploy job below is skipped for PRs.
