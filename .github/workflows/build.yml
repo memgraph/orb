@@ -6,10 +6,11 @@ jobs:
   build_and_test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: "18.x"
+          node-version: 22
+          cache: npm
 
       - name: 'Install'
         run: npm ci

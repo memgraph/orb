@@ -1,6 +1,6 @@
 {
   "name": "@memgraph/orb",
-  "version": "1.0.0",
+  "version": "0.4.3",
   "description": "Graph visualization library",
   "engines": {
     "node": ">=18.0.0"
@@ -38,7 +38,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "release": "semantic-release",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "dependencies": {
     "d3-drag": "^3.0.0",
@@ -51,6 +51,10 @@
   },
   "files": [
     "dist",
+    "!dist/browser/*.html",
+    "!dist/browser/orb.js",
+    "!dist/browser/orb.worker.js",
+    "!dist/browser/orb.worker.vendor.js",
     "LICENSE",
     "README.md"
   ],
@@ -58,40 +62,40 @@
     "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
-    "@commitlint/cli": "^17.0.0",
-    "@commitlint/config-conventional": "^17.0.0",
-    "@semantic-release/changelog": "^6.0.1",
-    "@semantic-release/git": "^10.0.1",
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
+    "@semantic-release/changelog": "^7.0.0",
+    "@semantic-release/git": "^11.0.1",
     "@types/d3-drag": "^3.0.1",
     "@types/d3-ease": "^3.0.0",
     "@types/d3-force": "^3.0.3",
     "@types/d3-selection": "^3.0.1",
     "@types/d3-transition": "^3.0.1",
     "@types/d3-zoom": "^3.0.1",
-    "@types/jest": "^29.5.12",
+    "@types/jest": "^30.0.0",
     "@types/leaflet": "^1.9.4",
     "@types/resize-observer-browser": "^0.1.7",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
-    "conventional-changelog-eslint": "^3.0.9",
-    "copy-webpack-plugin": "^11.0.0",
-    "eslint": "^8.57.0",
+    "conventional-changelog-eslint": "^6.1.0",
+    "copy-webpack-plugin": "^14.0.0",
+    "eslint": "^8.57.1",
     "eslint-config-google": "^0.14.0",
-    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jest": "^29.15.0",
     "eslint-plugin-prettier": "^5.5.5",
     "http-server": "^14.1.1",
-    "husky": "^8.0.1",
-    "jest": "^29.7.0",
-    "prettier": "^3.8.1",
-    "semantic-release": "^19.0.3",
+    "husky": "^9.1.7",
+    "jest": "^30.4.2",
+    "prettier": "^3.9.6",
+    "semantic-release": "^25.0.8",
     "ts-jest": "^29.1.2",
     "ts-loader": "^9.3.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "webpack": "^5.73.0",
-    "webpack-cli": "^4.10.0",
-    "webpack-dev-server": "^5.2.0"
+    "webpack": "^5.109.1",
+    "webpack-cli": "^7.2.1",
+    "webpack-dev-server": "^6.0.0"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -107,10 +111,5 @@
     "coverageDirectory": "coverage",
     "testEnvironment": "node",
     "testTimeout": 5000
-  },
-  "release": {
-    "branches": [
-      "main"
-    ]
   }
 }
