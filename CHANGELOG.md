@@ -1,3 +1,14 @@
+# [1.0.0](https://github.com/memgraph/orb/compare/v0.4.3...v1.0.0) (2026-07-28)
+
+
+### Breaking
+
+* Release 1.0.0 with docs site, WebGL renderer and modernized tooling ([19bbf02](https://github.com/memgraph/orb/commit/19bbf02d32b615fab6e2e5b1ac16d23adcf1838e)), closes [#33](https://github.com/memgraph/orb/issues/33) [#34](https://github.com/memgraph/orb/issues/34) [#61](https://github.com/memgraph/orb/issues/61)
+
+### chore
+
+* Update workflows (#106) ([e502ab7](https://github.com/memgraph/orb/commit/e502ab7220ee8f31f378b43b477d782cb7b1c64f)), closes [#106](https://github.com/memgraph/orb/issues/106)
+
 ## 0.4.3
 
 * Fix: Color class is incorrectly converting hex to rgb (#85) (fixes #84) - by @rgoewedky
