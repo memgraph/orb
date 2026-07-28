@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orb - styling demo</title>
+    <script src="../orb.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap"
+    />
+    <style>
+      :root {
+        --brand-black: #231f20;
+        --brand-orange: #fb6e00;
+        --gray-4: #e6e6e6;
+        --gray-5: #f9f9f9;
+        --bg: #ffffff;
+        --muted: #646265;
+        --accent-soft: #fff4eb;
+      }
+      :root[data-theme='dark'] {
+        --brand-black: #e6e6e6;
+        --gray-4: #3a3536;
+        --gray-5: #2b2727;
+        --bg: #231f20;
+        --muted: #bab8bb;
+        --accent-soft: #3a2a1a;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        font-family: 'Inter Tight', system-ui, sans-serif;
+        color: var(--brand-black);
+        background: var(--bg);
+      }
+      .wrap {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--gray-4);
+        background: var(--gray-5);
+      }
+      .group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .group > span {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      button.chip {
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 6px 12px;
+        border: 1px solid var(--gray-4);
+        border-radius: 4px;
+        background: var(--bg);
+        color: var(--brand-black);
+        cursor: pointer;
+        transition: all 0.12s ease;
+      }
+      button.chip:hover {
+        background: var(--gray-5);
+      }
+      button.chip.active {
+        border-color: var(--brand-orange);
+        background: var(--accent-soft);
+        color: var(--brand-orange);
+      }
+      #graph {
+        flex: 1;
+        width: 100%;
+        min-height: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="toolbar">
+        <div class="group" id="paletteGroup">
+          <span>Palette</span>
+          <button class="chip active" data-palette="brand">Brand</button>
+          <button class="chip" data-palette="mono">Mono</button>
+          <button class="chip" data-palette="cool">Cool</button>
+        </div>
+        <div class="group" id="shapeGroup">
+          <span>Shape</span>
+          <button class="chip active" data-shape="circle">Circle</button>
+          <button class="chip" data-shape="square">Square</button>
+          <button class="chip" data-shape="diamond">Diamond</button>
+          <button class="chip" data-shape="hexagon">Hexagon</button>
+        </div>
+        <div class="group" id="labelsGroup">
+          <span>Labels</span>
+          <button class="chip active" data-labels="on">On</button>
+          <button class="chip" data-labels="off">Off</button>
+        </div>
+      </div>
+      <div id="graph"></div>
+    </div>
+
+    <script>
+      const container = document.getElementById('graph');
+      let __dark = false; // set by the docs theme via window.__orbSetTheme
+
+      const PALETTES = {
+        brand: { node: '#FB6E00', border: '#E36300', edge: '#BAB8BB' },
+        mono: { node: '#231F20', border: '#000000', edge: '#BAB8BB' },
+        cool: { node: '#1D87C9', border: '#0C447C', edge: '#B9D6EA' },
+      };
+
+      const state = { palette: 'brand', shape: 'circle', labels: 'on' };
+
+      const nodes = [
+        { id: 1, label: 'Orb' },
+        { id: 2, label: 'Graph' },
+        { id: 3, label: 'Canvas' },
+        { id: 4, label: 'WebGL' },
+        { id: 5, label: 'Layout' },
+        { id: 6, label: 'Events' },
+      ];
+      const edges = [
+        { id: 1, start: 1, end: 2, label: 'DRAWS' },
+        { id: 2, start: 2, end: 3, label: 'ON' },
+        { id: 3, start: 2, end: 4, label: 'ON' },
+        { id: 4, start: 1, end: 5, label: 'USES' },
+        { id: 5, start: 1, end: 6, label: 'EMITS' },
+        { id: 6, start: 5, end: 3, label: 'POSITIONS' },
+      ];
+
+      const orb = new Orb.OrbView(container);
+      // Force layout settles asynchronously; refit once it ends (not just after
+      // the first render, which happens before the worker has positioned nodes).
+      orb.events.on(Orb.OrbEventType.SIMULATION_END, () => orb.recenter());
+
+      // setDefaultStyle only styles objects that don't already have a style, so it
+      // can't restyle the existing graph. Apply directly to every node/edge instead.
+      function applyStyle() {
+        const p = PALETTES[state.palette];
+        orb.data.getNodes().forEach((node) => {
+          node.setStyle(
+            {
+              size: 8,
+              color: p.node,
+              borderColor: p.border,
+              borderWidth: 1,
+              shape: state.shape,
+              label: node.getData().label,
+              fontSize: state.labels === 'on' ? 4 : 0,
+              fontColor: __dark ? '#e6e6e6' : '#231F20',
+            },
+            { isNotifySkipped: true },
+          );
+        });
+        orb.data.getEdges().forEach((edge) => {
+          edge.setStyle(
+            {
+              color: p.edge,
+              width: 0.5,
+              label: edge.getData().label,
+              fontSize: state.labels === 'on' ? 3 : 0,
+              fontColor: '#857F87',
+            },
+            { isNotifySkipped: true },
+          );
+        });
+      }
+
+      orb.data.setup({ nodes, edges });
+      applyStyle();
+      orb.render();
+
+      function wireGroup(groupId, key) {
+        document.querySelectorAll('#' + groupId + ' .chip').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            document
+              .querySelectorAll('#' + groupId + ' .chip')
+              .forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            state[key] = btn.dataset[key];
+            applyStyle();
+            orb.render();
+          });
+        });
+      }
+      wireGroup('paletteGroup', 'palette');
+      wireGroup('shapeGroup', 'shape');
+      wireGroup('labelsGroup', 'labels');
+
+      // Called by the docs page to match the site's light/dark theme.
+      window.__orbSetTheme = (dark) => {
+        __dark = !!dark;
+        document.documentElement.dataset.theme = __dark ? 'dark' : 'light';
+        applyStyle();
+        orb.render();
+      };
+    </script>
+  </body>
+</html>

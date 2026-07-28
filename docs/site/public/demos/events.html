@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orb - events demo</title>
+    <script src="../orb.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=Ubuntu+Mono&display=swap" />
+    <style>
+      :root { --black:#231f20; --orange:#fb6e00; --g4:#e6e6e6; --g5:#f9f9f9; --g2:#646265; --bg:#ffffff; --tooltip-bg:#231f20; }
+      :root[data-theme="dark"] { --black:#e6e6e6; --g4:#3a3536; --g5:#2b2727; --g2:#bab8bb; --bg:#231f20; --tooltip-bg:#4a4446; }
+      html, body { height:100%; margin:0; font-family:'Inter Tight',system-ui,sans-serif; color:var(--black); background:var(--bg); }
+      .wrap { display:flex; height:100%; }
+      #graph { flex:1; min-width:0; position:relative; }
+      .log { width:230px; border-left:1px solid var(--g4); background:var(--g5); display:flex; flex-direction:column; }
+      .log h4 { margin:0; padding:10px 12px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--g2); border-bottom:1px solid var(--g4); }
+      .log ul { margin:0; padding:0; list-style:none; overflow-y:auto; flex:1; font-family:'Ubuntu Mono',monospace; font-size:12px; }
+      .log li { padding:5px 12px; border-bottom:1px solid var(--g4); }
+      .log li .ev { color:var(--orange); }
+      .tooltip { position:absolute; pointer-events:none; background:var(--tooltip-bg); color:#fff; font-size:12px; padding:4px 8px; border-radius:4px; transform:translate(-50%,-140%); white-space:nowrap; opacity:0; transition:opacity .1s; }
+
+      /* Narrow screens: stack the log under the graph instead of squeezing it beside.
+         `min-height: 0` lets the log stay at its 40% basis and scroll its list, instead of
+         growing to fit every event (flex items default to a min-content floor). */
+      @media (max-width: 600px) {
+        .wrap { flex-direction: column; }
+        #graph { flex: 1 1 60%; min-height: 0; }
+        .log { width: auto; flex: 0 0 40%; min-height: 0; border-left: 0; border-top: 1px solid var(--g4); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div id="graph"><div class="tooltip" id="tip"></div></div>
+      <div class="log">
+        <h4>Event log</h4>
+        <ul id="list"></ul>
+      </div>
+    </div>
+
+    <script>
+      const container = document.getElementById('graph');
+      const tip = document.getElementById('tip');
+      const list = document.getElementById('list');
+      const { OrbView, OrbEventType } = Orb;
+
+      let __dark = false;
+      const labelColor = () => (__dark ? '#e6e6e6' : '#231f20');
+
+      const orb = new OrbView(container);
+      // Refit once the async force layout settles.
+      orb.events.on(OrbEventType.SIMULATION_END, () => orb.recenter());
+
+      window.__orbSetTheme = (dark) => {
+        __dark = !!dark;
+        document.documentElement.dataset.theme = __dark ? 'dark' : 'light';
+        orb.data.getNodes().forEach((n) => n.patchStyle({ fontColor: labelColor() }, { isNotifySkipped: true }));
+        orb.render();
+      };
+      orb.data.setDefaultStyle({
+        getNodeStyle(n) { return { size: 9, color: '#fb6e00', borderColor: '#e36300', borderWidth: 1, label: n.getData().label, fontSize: 4, fontColor: labelColor() }; },
+        getEdgeStyle() { return { color: '#bab8bb', width: 0.6 }; },
+      });
+
+      const nodes = [
+        { id: 1, label: 'Orb' }, { id: 2, label: 'Graph' }, { id: 3, label: 'Canvas' },
+        { id: 4, label: 'WebGL' }, { id: 5, label: 'Layout' }, { id: 6, label: 'Events' },
+      ];
+      const edges = [
+        { id: 1, start: 1, end: 2 }, { id: 2, start: 2, end: 3 }, { id: 3, start: 2, end: 4 },
+        { id: 4, start: 1, end: 5 }, { id: 5, start: 1, end: 6 }, { id: 6, start: 5, end: 3 },
+      ];
+      orb.data.setup({ nodes, edges });
+      orb.render();
+
+      function log(ev, detail) {
+        const li = document.createElement('li');
+        li.innerHTML = '<span class="ev">' + ev + '</span> ' + (detail || '');
+        list.prepend(li);
+        while (list.children.length > 40) list.removeChild(list.lastChild);
+      }
+
+      orb.events.on(OrbEventType.NODE_CLICK, ({ node }) => log('NODE_CLICK', 'node ' + node.getId()));
+      orb.events.on(OrbEventType.EDGE_CLICK, ({ edge }) => log('EDGE_CLICK', 'edge ' + edge.getId()));
+      orb.events.on(OrbEventType.NODE_DOUBLE_CLICK, ({ node }) => log('NODE_DOUBLE_CLICK', 'node ' + node.getId()));
+      orb.events.on(OrbEventType.NODE_RIGHT_CLICK, ({ node, event }) => { event.preventDefault(); log('NODE_RIGHT_CLICK', 'node ' + node.getId()); });
+      orb.events.on(OrbEventType.NODE_DRAG_END, ({ node }) => log('NODE_DRAG_END', 'node ' + node.getId()));
+
+      // Hover: show a tooltip positioned with the DOM-space `globalPoint`.
+      orb.events.on(OrbEventType.NODE_HOVER, ({ node, globalPoint }) => {
+        tip.textContent = node.getLabel();
+        tip.style.left = globalPoint.x + 'px';
+        tip.style.top = globalPoint.y + 'px';
+        tip.style.opacity = '1';
+      });
+      orb.events.on(OrbEventType.MOUSE_MOVE, ({ subject }) => { if (!subject) tip.style.opacity = '0'; });
+
+      log('SETUP', 'click, double-click, right-click or drag a node');
+    </script>
+  </body>
+</html>

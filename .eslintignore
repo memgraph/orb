@@ -2,4 +2,5 @@ coverage/
 dist/
 node_modules/
 examples/
+docs/
 webpack.config.js

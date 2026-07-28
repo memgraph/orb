@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orb - interaction showcase</title>
+    <script src="../orb.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=Ubuntu+Mono&display=swap" />
+    <style>
+      :root { --black:#231f20; --orange:#fb6e00; --g4:#e6e6e6; --g5:#f9f9f9; --g2:#646265; --bg:#ffffff; }
+      :root[data-theme="dark"] { --black:#e6e6e6; --g4:#3a3536; --g5:#2b2727; --g2:#bab8bb; --bg:#231f20; }
+      html, body { height:100%; margin:0; font-family:'Inter Tight',system-ui,sans-serif; color:var(--black); background:var(--bg); }
+      .wrap { display:flex; flex-direction:column; height:100%; }
+      .toolbar { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--g4); background:var(--g5); }
+      label.chk { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:500; }
+      button { font-family:inherit; font-size:13px; font-weight:500; padding:6px 12px; border:1px solid var(--g4); border-radius:4px; background:var(--bg); color:var(--black); cursor:pointer; }
+      button:hover { background:var(--g5); }
+      .hint { margin-left:auto; font-size:12px; color:var(--g2); }
+      .hint b { color:var(--black); }
+      .main { display:flex; flex:1; min-height:0; }
+      .stage { position:relative; flex:1; min-width:0; }
+      #graph { width:100%; height:100%; }
+      .menu { position:absolute; display:none; z-index:10; min-width:170px; padding:4px; background:var(--bg); border:1px solid var(--g4); border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,0.18); }
+      .menu button { display:block; width:100%; text-align:left; border:0; border-radius:4px; padding:7px 10px; }
+      .menu button:hover { background:var(--g5); color:var(--orange); }
+      .log { width:220px; display:flex; flex-direction:column; border-left:1px solid var(--g4); background:var(--g5); }
+      .log h4 { margin:0; padding:10px 12px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--g2); border-bottom:1px solid var(--g4); }
+      .log ul { margin:0; padding:0; list-style:none; overflow-y:auto; flex:1; font-family:'Ubuntu Mono',monospace; font-size:12px; }
+      .log li { padding:5px 12px; border-bottom:1px solid var(--g4); }
+      .log li .ev { color:var(--orange); }
+      body.preview .toolbar, body.preview .log { display:none; }
+
+      /* Narrow screens: stack the log under the graph. min-height:0 lets it stay at 40%
+         and scroll rather than growing to fit every event. */
+      @media (max-width: 600px) {
+        .main { flex-direction: column; }
+        .stage { flex: 1 1 60%; }
+        .log { width:auto; flex:0 0 40%; min-height:0; border-left:0; border-top:1px solid var(--g4); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="toolbar">
+        <label class="chk"><input type="checkbox" id="multi" /> Multi-select (Shift-click)</label>
+        <button id="clear">Clear selection</button>
+        <button id="reset">Reset graph</button>
+        <span class="hint">hover to focus &middot; click to select &middot; right-click for actions &middot; drag to move &middot; <b id="sel">0</b> selected</span>
+      </div>
+      <div class="main">
+        <div class="stage">
+          <div id="graph"></div>
+          <div class="menu" id="menu">
+            <button data-act="select">Select neighborhood</button>
+            <button data-act="remove">Remove node</button>
+          </div>
+        </div>
+        <aside class="log">
+          <h4>Event log</h4>
+          <ul id="log"></ul>
+        </aside>
+      </div>
+    </div>
+
+    <script>
+      // Follow the docs theme (?theme=), falling back to the OS preference.
+      const params = new URLSearchParams(location.search);
+      const dark = params.get('theme') ? params.get('theme') === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      const isPreview = params.has('preview');
+      if (isPreview) document.body.classList.add('preview');
+
+      const container = document.getElementById('graph');
+      const menu = document.getElementById('menu');
+      const logEl = document.getElementById('log');
+      const { OrbView, OrbEventType } = Orb;
+
+      function log(ev, detail) {
+        const li = document.createElement('li');
+        li.innerHTML = '<span class="ev">' + ev + '</span> ' + (detail || '');
+        logEl.prepend(li);
+        while (logEl.children.length > 40) logEl.removeChild(logEl.lastChild);
+      }
+      let labelColor = dark ? '#e6e6e6' : '#231f20';
+      let edgeColor = dark ? '#57565a' : '#bab8bb';
+
+      // A small clustered network: three hubs, their satellites, and a few cross-links,
+      // so hovering and selecting a neighborhood is visually meaningful.
+      function buildData() {
+        const nodes = [
+          { id: 'A', label: 'A' }, { id: 'B', label: 'B' }, { id: 'C', label: 'C' },
+        ];
+        const edges = [
+          { id: 'AB', start: 'A', end: 'B' }, { id: 'BC', start: 'B', end: 'C' }, { id: 'AC', start: 'A', end: 'C' },
+        ];
+        const sats = { A: 5, B: 5, C: 4 };
+        Object.keys(sats).forEach((hub) => {
+          for (let i = 1; i <= sats[hub]; i++) {
+            const id = hub.toLowerCase() + i;
+            nodes.push({ id, label: id });
+            edges.push({ id: hub + '-' + id, start: hub, end: id });
+          }
+        });
+        // A few cross-links between satellites of different hubs.
+        [['a1', 'b2'], ['b3', 'c1'], ['c2', 'a4'], ['a3', 'b5']].forEach(([s, t], i) => edges.push({ id: 'x' + i, start: s, end: t }));
+        return { nodes, edges };
+      }
+
+      let orb, menuNodeId = null;
+
+      function updateCount() {
+        document.getElementById('sel').textContent = orb.data.getSelectedNodes().length + orb.data.getSelectedEdges().length;
+      }
+
+      function nodeStyle(n) {
+        return {
+          size: 10, color: '#fb6e00', colorHover: '#ff8f40', colorSelected: '#b34e00',
+          borderColor: '#e36300', borderColorSelected: '#8a3f00', borderWidth: 1.5, borderWidthSelected: 2.5,
+          label: n.getData().label, fontSize: 5, fontColor: labelColor,
+        };
+      }
+      function edgeStyle() {
+        return { color: edgeColor, colorHover: '#fb6e00', colorSelected: '#fb6e00', width: 0.8, widthHover: 2, widthSelected: 2 };
+      }
+
+      function build() {
+        menu.style.display = 'none';
+        if (orb) orb.destroy();
+        // Cascade selection highlights a node together with its immediate neighborhood.
+        orb = new OrbView(container, {
+          strategy: { isDefaultMultiSelectEnabled: document.getElementById('multi').checked, isDefaultSelectCascadeEnabled: true },
+        });
+        orb.data.setDefaultStyle({ getNodeStyle: nodeStyle, getEdgeStyle: edgeStyle });
+        orb.data.setup(buildData());
+        orb.events.on(OrbEventType.SIMULATION_END, () => {
+          orb.recenter();
+          // Show the neighborhood-focus effect in the static preview thumbnail.
+          if (isPreview) { orb.interaction.selectNodeById('B'); orb.render(); }
+        });
+        orb.render();
+
+        const selCount = () => orb.data.getSelectedNodes().length + orb.data.getSelectedEdges().length;
+        orb.events.on(OrbEventType.NODE_CLICK, ({ node }) => { updateCount(); log('NODE_CLICK', 'node ' + node.getId() + ' · ' + selCount() + ' selected'); });
+        orb.events.on(OrbEventType.NODE_DOUBLE_CLICK, ({ node }) => log('NODE_DOUBLE_CLICK', 'node ' + node.getId()));
+        orb.events.on(OrbEventType.EDGE_CLICK, ({ edge }) => { updateCount(); log('EDGE_CLICK', 'edge ' + edge.getId()); });
+        // MOUSE_CLICK fires for every click; only log the ones on empty space (which clear selection).
+        orb.events.on(OrbEventType.MOUSE_CLICK, ({ subject }) => { updateCount(); if (!subject) log('MOUSE_CLICK', 'empty · selection cleared'); });
+        orb.events.on(OrbEventType.NODE_DRAG_END, ({ node }) => log('NODE_DRAG_END', 'node ' + node.getId()));
+
+        // Right-click a node -> contextual actions.
+        orb.events.on(OrbEventType.NODE_RIGHT_CLICK, ({ node, event }) => {
+          event.preventDefault();
+          menuNodeId = node.getId();
+          menu.style.left = event.offsetX + 'px';
+          menu.style.top = event.offsetY + 'px';
+          menu.style.display = 'block';
+          log('NODE_RIGHT_CLICK', 'node ' + node.getId());
+        });
+        updateCount();
+      }
+
+      // Context-menu actions.
+      menu.addEventListener('click', (e) => {
+        const act = e.target.dataset.act;
+        if (act === 'select') {
+          orb.interaction.unselectAll();
+          orb.interaction.selectNodeById(menuNodeId);
+          log('SELECT', 'node ' + menuNodeId + ' + neighborhood');
+        } else if (act === 'remove') {
+          orb.data.remove({ nodeIds: [menuNodeId] }); // connected edges are removed too
+          log('REMOVE', 'node ' + menuNodeId);
+        }
+        orb.render();
+        updateCount();
+        menu.style.display = 'none';
+      });
+      // Any click elsewhere (or a pan/zoom) dismisses the menu.
+      document.addEventListener('pointerdown', (e) => { if (!menu.contains(e.target)) menu.style.display = 'none'; });
+
+      document.getElementById('multi').addEventListener('change', (e) => {
+        orb.setSettings({ strategy: { isDefaultMultiSelectEnabled: e.target.checked } });
+      });
+      document.getElementById('clear').addEventListener('click', () => { orb.interaction.unselectAll(); orb.render(); updateCount(); });
+      document.getElementById('reset').addEventListener('click', build);
+
+      window.__orbSetTheme = (isDark) => {
+        document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+        labelColor = isDark ? '#e6e6e6' : '#231f20';
+        edgeColor = isDark ? '#57565a' : '#bab8bb';
+        orb.data.getNodes().forEach((n) => n.patchStyle({ fontColor: labelColor }, { isNotifySkipped: true }));
+        orb.data.getEdges().forEach((edge) => edge.patchStyle({ color: edgeColor }, { isNotifySkipped: true }));
+        orb.render();
+      };
+
+      build();
+    </script>
+  </body>
+</html>

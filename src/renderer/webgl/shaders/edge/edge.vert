@@ -29,6 +29,9 @@ out vec2 vStart;
 out vec2 vEnd;
 out vec2 vControl;
 out float vHalfWidth;
+out float vWidthFade;
+out float vHalfWidthPx;
+out float vPerpPx;
 out float vLoopbackRadius;
 out float vArrowSize;
 out vec2 vArrowTip;
@@ -46,6 +49,9 @@ void main() {
   vControl = aControl;
   float effectiveWidth = max(aWidth, 1.0 / uScale);
   vHalfWidth = effectiveWidth * 0.5;
+  vWidthFade = clamp(aWidth * uScale, 0.0, 1.0);
+  vHalfWidthPx = vHalfWidth * uScale;
+  vPerpPx = 0.0;
   vLoopbackRadius = aLoopbackRadius;
   vArrowSize = aArrowSize;
   vArrowTip = aArrowTip;
@@ -69,6 +75,7 @@ void main() {
     worldPos = midpoint
       + unitDir * (len * 0.5 + totalHalf) * aQuadPosition.x
       + perp * totalHalf * aQuadPosition.y;
+    vPerpPx = totalHalf * aQuadPosition.y * uScale;
   } else if (vEdgeType == 1) {
     float margin = pad + aArrowSize;
     vec2 bboxMin = min(min(aStart, aEnd), aControl) - margin;

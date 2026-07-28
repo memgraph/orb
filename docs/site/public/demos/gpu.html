@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orb - renderer & GPU playground</title>
+    <script src="../orb.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap" />
+    <style>
+      :root { --black:#231f20; --orange:#fb6e00; --g4:#e6e6e6; --g5:#f9f9f9; --g2:#646265; --bg:#ffffff; }
+      :root[data-theme="dark"] { --black:#e6e6e6; --g4:#3a3536; --g5:#2b2727; --g2:#bab8bb; --bg:#231f20; }
+      html, body { height:100%; margin:0; font-family:'Inter Tight',system-ui,sans-serif; color:var(--black); background:var(--bg); }
+      .wrap { display:flex; flex-direction:column; height:100%; }
+      .toolbar { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--g4); background:var(--g5); }
+      label { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:500; }
+      select, button { font-family:inherit; font-size:13px; padding:5px 8px; border:1px solid var(--g4); border-radius:4px; background:var(--bg); color:var(--black); cursor:pointer; }
+      button.primary { background:var(--orange); border-color:var(--orange); color:#fff; font-weight:600; }
+      select:disabled { opacity:0.45; cursor:default; }
+      label:has(select:disabled) { opacity:0.6; }
+      .stats { margin-left:auto; display:flex; gap:16px; font-size:12px; color:var(--g2); font-variant-numeric:tabular-nums; }
+      .stats b { color:var(--black); font-weight:600; }
+      #graph { flex:1; width:100%; min-height:0; }
+      body.preview .toolbar { display:none; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="toolbar">
+        <label>Renderer
+          <select id="renderer"><option value="canvas">Canvas</option><option value="webgl" selected>WebGL</option></select>
+        </label>
+        <label>Layout
+          <select id="layout">
+            <option value="force-cpu">Force (CPU)</option>
+            <option value="force-gpu" selected>Force (GPU)</option>
+            <option value="circular">Circular</option>
+            <option value="grid">Grid</option>
+            <option value="hierarchical">Hierarchical</option>
+          </select>
+        </label>
+        <label>Nodes
+          <select id="size"><option>100</option><option>500</option><option selected>2000</option><option>5000</option><option>10000</option><option>20000</option><option>50000</option></select>
+        </label>
+        <label title="Repel nodes from every edge midpoint so edges don't run under nodes. Heavier on large graphs.">Midpoint repel
+          <select id="midpoint"><option value="off" selected>Off</option><option value="on">On</option></select>
+        </label>
+        <button class="primary" id="regen">Regenerate</button>
+        <div class="stats">
+          <span><b id="statNodes">0</b> nodes</span>
+          <span><b id="statEdges">0</b> edges</span>
+          <span>layout <b id="statTime">-</b></span>
+          <span><b id="statFps">-</b> fps</span>
+        </div>
+      </div>
+      <div id="graph"></div>
+    </div>
+
+    <script>
+      // Follow the docs theme (?theme=), falling back to the OS preference.
+      const params = new URLSearchParams(location.search);
+      const dark = params.get('theme') ? params.get('theme') === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      const isPreview = params.has('preview');
+      if (isPreview) document.body.classList.add('preview'); // gallery card preview: chrome hidden
+
+      const container = document.getElementById('graph');
+      const rendererSel = document.getElementById('renderer');
+      const layoutSel = document.getElementById('layout');
+      const sizeSel = document.getElementById('size');
+      const midpointSel = document.getElementById('midpoint');
+      const statNodes = document.getElementById('statNodes');
+      const statEdges = document.getElementById('statEdges');
+      const statTime = document.getElementById('statTime');
+      const statFps = document.getElementById('statFps');
+
+      let edgeColor = dark ? '#3f3b3c' : '#d8d6d9';
+
+      // Keep the homepage preview light: a smaller graph that still reads as "big".
+      // NOTE: must be one of the <select> options above, or the value blanks out to 0.
+      if (isPreview) sizeSel.value = '500';
+
+      function generate(count) {
+        const nodes = [];
+        const edges = [];
+        for (let i = 0; i < count; i++) nodes.push({ id: i });
+        let e = 0;
+        for (let i = 1; i < count; i++) edges.push({ id: e++, start: i, end: Math.floor(Math.random() * i) });
+        const extra = Math.floor(count * 0.4);
+        for (let i = 0; i < extra; i++) {
+          const s = Math.floor(Math.random() * count);
+          const t = Math.floor(Math.random() * count);
+          if (s !== t) edges.push({ id: e++, start: s, end: t });
+        }
+        return { nodes, edges };
+      }
+
+      // Live fps meter (browser frame rate) - stays smooth on WebGL while Canvas
+      // drops when you pan/zoom a large graph.
+      let frames = 0, fpsLast = performance.now();
+      function fpsLoop() {
+        frames++;
+        const now = performance.now();
+        if (now - fpsLast >= 500) {
+          statFps.textContent = Math.round((frames * 1000) / (now - fpsLast));
+          frames = 0;
+          fpsLast = now;
+        }
+        requestAnimationFrame(fpsLoop);
+      }
+      requestAnimationFrame(fpsLoop);
+
+      let orb;
+      let simStart = 0;
+      function build() {
+        const type = rendererSel.value;
+        const count = Number(sizeSel.value);
+        const layoutVal = layoutSel.value;
+        const isForce = layoutVal === 'force-cpu' || layoutVal === 'force-gpu';
+        const useGPU = layoutVal === 'force-gpu';
+        const edgeMidpointRepulsion = isForce && midpointSel.value === 'on';
+
+        // Edge-midpoint repulsion only applies to the force layout.
+        midpointSel.disabled = !isForce;
+
+        // The renderer type could be switched live with orb.setRenderer(type), but the
+        // layout (and force engine) is chosen when the view is created, so a full rebuild
+        // keeps things simple. Force = physics simulation; the others place nodes
+        // deterministically, so the renderer can be exercised without any simulation.
+        if (orb) orb.destroy();
+        const layout = isForce
+          ? {
+              type: 'force',
+              // Passing the default manyBody explicitly so toggling only flips the
+              // edge-midpoint repulsion, not the rest of the physics.
+              options: { useGPU, manyBody: { strength: -100, theta: 0.9, distanceMin: 1, distanceMax: 5000, edgeMidpointRepulsion } },
+            }
+          : { type: layoutVal };
+        orb = new Orb.OrbView(container, {
+          // Large graphs need to zoom out well past the default minZoom (0.25) to fit.
+          render: { type, minZoom: 0.001 },
+          layout,
+        });
+        orb.data.setDefaultStyle({
+          getNodeStyle() { return { size: 6, color: '#fb6e00', borderColor: '#e36300', borderWidth: 0.5 }; },
+          getEdgeStyle() { return { color: edgeColor, width: 0.3 }; },
+        });
+
+        if (isForce) {
+          // Force settles asynchronously; time it and refit when it ends.
+          statTime.textContent = 'settling...';
+          orb.events.on(Orb.OrbEventType.SIMULATION_START, () => { simStart = performance.now(); });
+          orb.events.on(Orb.OrbEventType.SIMULATION_END, () => {
+            statTime.textContent = Math.round(performance.now() - simStart) + ' ms';
+            orb.recenter();
+          });
+        } else {
+          // Static layouts position synchronously (no simulation), so refit in render().
+          statTime.textContent = 'static';
+        }
+
+        const data = generate(count);
+        statNodes.textContent = data.nodes.length.toLocaleString();
+        statEdges.textContent = data.edges.length.toLocaleString();
+        orb.data.setup(data);
+        orb.render(isForce ? undefined : () => orb.recenter());
+      }
+
+      // Re-theme without rebuilding, for the docs page theme toggle.
+      window.__orbSetTheme = (isDark) => {
+        document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+        edgeColor = isDark ? '#3f3b3c' : '#d8d6d9';
+        if (orb) {
+          orb.data.getEdges().forEach((e) => e.patchStyle({ color: edgeColor }, { isNotifySkipped: true }));
+          orb.render();
+        }
+      };
+
+      [rendererSel, layoutSel, sizeSel, midpointSel].forEach((el) => el.addEventListener('change', build));
+      document.getElementById('regen').addEventListener('click', build);
+      build();
+    </script>
+  </body>
+</html>

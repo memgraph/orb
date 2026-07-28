@@ -112,7 +112,9 @@
         orb.destroy();
       }
       orb = new Orb.OrbView(container, {
-        render: { type },
+        // Lower minZoom (default 0.25) so recenter() can zoom out far enough to
+        // fit large generated graphs (up to 20000 nodes) fully in view.
+        render: { type, minZoom: 0.001 },
         layout: { type: 'force', options: { useGPU } },
       });
 

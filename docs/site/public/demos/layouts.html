@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orb - layouts demo</title>
+    <script src="../orb.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap" />
+    <style>
+      :root { --black:#231f20; --orange:#fb6e00; --g4:#e6e6e6; --g5:#f9f9f9; --g2:#646265; --bg:#ffffff; --accent-soft:#fff4eb; }
+      :root[data-theme="dark"] { --black:#e6e6e6; --g4:#3a3536; --g5:#2b2727; --g2:#bab8bb; --bg:#231f20; --accent-soft:#3a2a1a; }
+      html, body { height:100%; margin:0; font-family:'Inter Tight',system-ui,sans-serif; color:var(--black); background:var(--bg); }
+      .wrap { display:flex; flex-direction:column; height:100%; }
+      .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--g4); background:var(--g5); }
+      .toolbar span { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--g2); margin-right:4px; }
+      button.chip { font-family:inherit; font-size:13px; font-weight:500; padding:6px 12px; border:1px solid var(--g4); border-radius:4px; background:var(--bg); color:var(--black); cursor:pointer; transition:all .12s ease; }
+      button.chip:hover { background:var(--g5); }
+      button.chip.active { border-color:var(--orange); background:var(--accent-soft); color:var(--orange); }
+      #graph { flex:1; width:100%; min-height:0; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="toolbar">
+        <span>Layout</span>
+        <button class="chip" data-type="force">Force</button>
+        <button class="chip" data-type="hierarchical">Hierarchical</button>
+        <button class="chip" data-type="circular">Circular</button>
+        <button class="chip" data-type="grid">Grid</button>
+      </div>
+      <div id="graph"></div>
+    </div>
+
+    <script>
+      const container = document.getElementById('graph');
+      const { OrbView } = Orb;
+      let __dark = false;
+      const labelColor = () => (__dark ? '#e6e6e6' : '#231f20');
+
+      // A small tree (plus a couple of extra links) so hierarchical reads well.
+      const nodes = [];
+      const edges = [];
+      let id = 0;
+      const root = id++;
+      nodes.push({ id: root, label: '0' });
+      for (let a = 0; a < 3; a++) {
+        const lvl1 = id++;
+        nodes.push({ id: lvl1, label: '' + lvl1 });
+        edges.push({ id: 'e' + lvl1, start: root, end: lvl1 });
+        for (let b = 0; b < 2; b++) {
+          const lvl2 = id++;
+          nodes.push({ id: lvl2, label: '' + lvl2 });
+          edges.push({ id: 'e' + lvl2, start: lvl1, end: lvl2 });
+        }
+      }
+      edges.push({ id: 'x1', start: 2, end: 5 });
+
+      let orb;
+      function build(type) {
+        if (orb) orb.destroy();
+        // Rebuilding on switch is the most robust way to change layout type.
+        orb = new OrbView(container, { layout: { type } });
+        orb.data.setDefaultStyle({
+          getNodeStyle(n) { return { size: 8, color: '#fb6e00', borderColor: '#e36300', borderWidth: 1, label: n.getData().label, fontSize: 4, fontColor: labelColor() }; },
+          getEdgeStyle() { return { color: '#bab8bb', width: 0.5 }; },
+        });
+        // Force layout settles async, so refit on SIMULATION_END; static layouts
+        // (circular/grid/hierarchical) position synchronously and emit no
+        // simulation end, so those refit via render()'s callback instead.
+        orb.events.on(Orb.OrbEventType.SIMULATION_END, () => orb.recenter());
+        orb.data.setup({ nodes, edges });
+        orb.render(type === 'force' ? undefined : () => orb.recenter());
+
+        document.querySelectorAll('.chip').forEach((c) => c.classList.toggle('active', c.dataset.type === type));
+      }
+
+      document.querySelectorAll('.chip').forEach((btn) => {
+        btn.addEventListener('click', () => build(btn.dataset.type));
+      });
+
+      window.__orbSetTheme = (dark) => {
+        __dark = !!dark;
+        document.documentElement.dataset.theme = __dark ? 'dark' : 'light';
+        if (orb) {
+          orb.data.getNodes().forEach((n) => n.patchStyle({ fontColor: labelColor() }, { isNotifySkipped: true }));
+          orb.render();
+        }
+      };
+
+      // Preselect from ?type= so the same demo can front different pages.
+      const initial = new URLSearchParams(location.search).get('type') || 'force';
+      const valid = ['force', 'hierarchical', 'circular', 'grid'];
+      build(valid.includes(initial) ? initial : 'force');
+    </script>
+  </body>
+</html>
