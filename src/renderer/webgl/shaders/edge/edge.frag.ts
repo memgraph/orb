@@ -1,4 +1,4 @@
-#version 300 es
+export default `#version 300 es
 
 precision highp float;
 
@@ -154,3 +154,4 @@ void main() {
     fragColor = edgeColor;
   }
 }
+`;

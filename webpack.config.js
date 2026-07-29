@@ -11,14 +11,10 @@ const commonConfiguration = {
         use: 'ts-loader',
         exclude: '/node_modules/',
       },
-      {
-        test: /\.(glsl|vert|frag)$/,
-        type: 'asset/source',
-      },
     ],
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js', '.glsl', '.vert', '.frag'],
+    extensions: ['.tsx', '.ts', '.js'],
   },
   output: {
     chunkFilename(pathData) {
