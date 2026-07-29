@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/memgraph/orb/compare/v1.0.0...v1.0.1) (2026-07-29)
+
+
+### Fix
+
+* Shaders bundling (#113) ([23efa00](https://github.com/memgraph/orb/commit/23efa00eb17f4ec137b974cfd9f135c834efc766)), closes [#113](https://github.com/memgraph/orb/issues/113)
+
 # [1.0.0](https://github.com/memgraph/orb/compare/v0.4.3...v1.0.0) (2026-07-28)
 
 

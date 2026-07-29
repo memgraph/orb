@@ -1,6 +1,6 @@
 {
   "name": "@memgraph/orb",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Graph visualization library",
   "engines": {
     "node": ">=18.0.0"
