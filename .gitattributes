@@ -1,0 +1,3 @@
+# Git hooks must keep LF line endings so their shebang line runs on Windows too
+# (core.autocrlf=true would otherwise check them out with CRLF and break execution).
+.husky/** text eol=lf

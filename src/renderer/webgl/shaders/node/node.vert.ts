@@ -1,4 +1,4 @@
-#version 300 es
+export default `#version 300 es
 
 precision highp float;
 
@@ -62,3 +62,4 @@ void main() {
   vec2 clip = (screenPos / uResolution) * 2.0 - 1.0;
   gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
 }
+`;

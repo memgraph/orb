@@ -1,4 +1,4 @@
-#version 300 es
+export default `#version 300 es
 
 precision highp float;
 
@@ -13,3 +13,4 @@ void main() {
   if (texel.a < 0.01) discard;
   fragColor = texel;
 }
+`;

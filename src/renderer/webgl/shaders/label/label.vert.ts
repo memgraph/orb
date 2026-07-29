@@ -1,4 +1,4 @@
-#version 300 es
+export default `#version 300 es
 
 in vec2 aQuadPosition;
 
@@ -23,3 +23,4 @@ void main() {
   vec2 uv01 = aQuadPosition * 0.5 + 0.5;
   vAtlasUV = mix(aLabelUV0, aLabelUV1, uv01);
 }
+`;
