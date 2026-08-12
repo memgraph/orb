@@ -1,6 +1,6 @@
 {
   "name": "@memgraph/orb",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Graph visualization library",
   "engines": {
     "node": ">=18.0.0"
@@ -28,8 +28,8 @@
   "author": "Memgraph Ltd. <contact@memgraph.com>",
   "license": "Apache-2.0",
   "scripts": {
-    "build": "tsc",
-    "build:release": "tsc && webpack",
+    "build": "tsc && node scripts/build-inline-worker.mjs",
+    "build:release": "npm run build && webpack",
     "webpack": "webpack",
     "webpack:watch": "webpack --watch",
     "serve": "http-server ./dist/browser/ -o -c-1 -p 8082",
@@ -53,8 +53,6 @@
     "dist",
     "!dist/browser/*.html",
     "!dist/browser/orb.js",
-    "!dist/browser/orb.worker.js",
-    "!dist/browser/orb.worker.vendor.js",
     "LICENSE",
     "README.md"
   ],
@@ -79,6 +77,7 @@
     "@typescript-eslint/parser": "^8.56.1",
     "conventional-changelog-eslint": "^6.1.0",
     "copy-webpack-plugin": "^14.0.0",
+    "esbuild": "^0.28.1",
     "eslint": "^8.57.1",
     "eslint-config-google": "^0.14.0",
     "eslint-config-prettier": "^10.1.8",
@@ -104,6 +103,9 @@
       "ts"
     ],
     "rootDir": "",
+    "moduleNameMapper": {
+      "simulator\\.worker\\.inline$": "<rootDir>/test/stubs/worker-inline.ts"
+    },
     "testRegex": ".spec.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"

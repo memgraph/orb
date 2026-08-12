@@ -1,6 +1,20 @@
 const path = require('path');
+const fs = require('fs');
+const webpack = require('webpack');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const name = 'orb';
+
+const inlineWorkerPath = path.resolve(__dirname, 'dist/simulator/types/web-worker-simulator/simulator.worker.inline.js');
+
+if (!fs.existsSync(inlineWorkerPath)) {
+  throw new Error(
+    `Missing generated worker bundle at ${inlineWorkerPath}.\n` +
+      'Run "node scripts/build-inline-worker.mjs" (or "npm run build") before webpack. ' +
+      'The "build:release" script does this automatically.',
+  );
+}
+
+const inlineWorkerReplacement = new webpack.NormalModuleReplacementPlugin(/simulator\.worker\.inline$/, inlineWorkerPath);
 
 const commonConfiguration = {
   entry: './src/index.ts',
@@ -17,9 +31,6 @@ const commonConfiguration = {
     extensions: ['.tsx', '.ts', '.js'],
   },
   output: {
-    chunkFilename(pathData) {
-      return pathData.chunk.name === 'simulator.worker' ? `${name}.worker.js` : `${name}.worker.vendor.js`;
-    },
     filename: `${name}.js`,
     path: path.resolve(__dirname, 'dist/browser'),
     library: {
@@ -35,6 +46,7 @@ const commonConfiguration = {
     port: 9000,
   },
   plugins: [
+    inlineWorkerReplacement,
     new CopyWebpackPlugin({
       patterns: [
         {
@@ -61,9 +73,6 @@ const productionConfiguration = {
   mode: 'production',
   output: {
     ...commonConfiguration.output,
-    chunkFilename(pathData) {
-      return pathData.chunk.name === 'simulator.worker' ? `${name}.worker.min.js` : `${name}.worker.vendor.min.js`;
-    },
     filename: `${name}.min.js`,
   },
 }

@@ -2,9 +2,9 @@ import {
   ISimulationNode,
   ISimulator,
   SimulatorEvents,
-  SimulatorEventType,
   ISimulationGraph,
   ISimulationIds,
+  relaySimulatorEvents,
 } from '../shared';
 import { IPosition } from '../../common';
 import { Emitter } from '../../utils/emitter.utils';
@@ -97,25 +97,8 @@ export class MainThreadSimulator extends Emitter<SimulatorEvents> implements ISi
   }
 
   private _wireEngineEvents() {
-    this._engine.on(SimulatorEventType.SIMULATION_START, () => {
-      this.emit(SimulatorEventType.SIMULATION_START, undefined);
-      this._isSimulationRunning = true;
-    });
-    this._engine.on(SimulatorEventType.SIMULATION_PROGRESS, (data) => {
-      this.emit(SimulatorEventType.SIMULATION_PROGRESS, data);
-    });
-    this._engine.on(SimulatorEventType.SIMULATION_END, (data) => {
-      this.emit(SimulatorEventType.SIMULATION_END, data);
-      this._isSimulationRunning = false;
-    });
-    this._engine.on(SimulatorEventType.SIMULATION_STEP, (data) => {
-      this.emit(SimulatorEventType.SIMULATION_STEP, data);
-    });
-    this._engine.on(SimulatorEventType.NODE_DRAG, (data) => {
-      this.emit(SimulatorEventType.NODE_DRAG, data);
-    });
-    this._engine.on(SimulatorEventType.SETTINGS_UPDATE, (data) => {
-      this.emit(SimulatorEventType.SETTINGS_UPDATE, data);
+    relaySimulatorEvents(this._engine, this, (isRunning) => {
+      this._isSimulationRunning = isRunning;
     });
   }
 }

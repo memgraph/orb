@@ -3,6 +3,7 @@ import { IWorkerPayload } from './worker-payload';
 import { ILayoutSettings } from '../../../engine/shared';
 
 export enum WorkerOutputType {
+  READY = 'ready',
   SIMULATION_START = 'simulation-start',
   SIMULATION_STEP = 'simulation-step',
   SIMULATION_PROGRESS = 'simulation-progress',
@@ -12,6 +13,8 @@ export enum WorkerOutputType {
   NODE_DRAG_END = 'node-drag-end',
   SETTINGS_UPDATE = 'settings-update',
 }
+
+type IWorkerOutputReadyPayload = IWorkerPayload<WorkerOutputType.READY>;
 
 type IWorkerOutputSimulationStartPayload = IWorkerPayload<WorkerOutputType.SIMULATION_START>;
 
@@ -64,6 +67,7 @@ type IWorkerOutputSettingsUpdatePayload = IWorkerPayload<
 >;
 
 export type IWorkerOutputPayload =
+  | IWorkerOutputReadyPayload
   | IWorkerOutputSimulationStartPayload
   | IWorkerOutputSimulationStepPayload
   | IWorkerOutputSimulationProgressPayload

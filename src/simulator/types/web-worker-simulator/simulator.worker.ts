@@ -4,6 +4,7 @@ import { ILayoutEngine, ILayoutSettings } from '../../engine/shared';
 import { SimulatorEventType } from '../../shared';
 import { IWorkerInputPayload, WorkerInputType } from './message/worker-input';
 import { IWorkerOutputPayload, WorkerOutputType } from './message/worker-output';
+import { dispatchLayoutInput } from './message/input-dispatch';
 
 let engine: ILayoutEngine | null = null;
 
@@ -20,24 +21,7 @@ function wireEngineEvents(target: ILayoutEngine) {
   target.on(SimulatorEventType.SETTINGS_UPDATE, (data) => emitToMain({ type: WorkerOutputType.SETTINGS_UPDATE, data }));
 }
 
-type ExtractPayload<T extends WorkerInputType> = Extract<IWorkerInputPayload, { type: T }>;
-type EngineHandler<T extends WorkerInputType> = (engine: ILayoutEngine, payload: ExtractPayload<T>) => void;
-
-const handlers: { [T in WorkerInputType]?: EngineHandler<T> } = {
-  [WorkerInputType.SetupData]: (e, { data }) => e.setupData(data),
-  [WorkerInputType.MergeData]: (e, { data }) => e.mergeData(data),
-  [WorkerInputType.UpdateData]: (e, { data }) => e.updateData(data),
-  [WorkerInputType.DeleteData]: (e, { data }) => e.deleteData(data),
-  [WorkerInputType.PatchData]: (e, { data }) => e.patchData(data),
-  [WorkerInputType.ClearData]: (e) => e.clearData(),
-  [WorkerInputType.ActivateSimulation]: (e) => e.activateSimulation(),
-  [WorkerInputType.StopSimulation]: (e) => e.stopSimulation(),
-  [WorkerInputType.StartDragNode]: (e) => e.startDragNode(),
-  [WorkerInputType.DragNode]: (e, { data }) => e.dragNode(data.id, { x: data.x, y: data.y }),
-  [WorkerInputType.EndDragNode]: (e, { data }) => e.endDragNode(data.id),
-  [WorkerInputType.FixNodes]: (e, { data }) => e.fixNodes(data.nodes),
-  [WorkerInputType.ReleaseNodes]: (e, { data }) => e.releaseNodes(data.nodes),
-};
+emitToMain({ type: WorkerOutputType.READY });
 
 addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {
   if (data.type === WorkerInputType.SetSettings) {
@@ -55,7 +39,6 @@ addEventListener('message', ({ data }: MessageEvent<IWorkerInputPayload>) => {
   }
 
   if (engine) {
-    const handler = handlers[data.type] as EngineHandler<typeof data.type> | undefined;
-    handler?.(engine, data);
+    dispatchLayoutInput(engine, data);
   }
 });
