@@ -44,14 +44,11 @@ jobs:
           npm ci
           npm run build:release
 
-      # 2. Refresh the copies the docs site embeds.
+      # 2. Refresh the copy the docs site embeds. The worker is inlined into
+      #    orb.min.js, so there are no separate worker chunks to copy.
       - name: Sync bundle into docs site
         run: |
           cp dist/browser/orb.min.js docs/site/public/orb.min.js
-          cp dist/browser/orb.worker.min.js docs/site/public/orb.worker.min.js
-          # The module worker loads this shared vendor chunk as a sibling; without
-          # it the worker fails silently and layout simulation never runs.
-          cp dist/browser/orb.worker.vendor.min.js docs/site/public/orb.worker.vendor.min.js
 
       # 3. Build the VitePress site.
       - name: Build docs

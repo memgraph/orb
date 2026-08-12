@@ -16,8 +16,6 @@ const result = await build({
   target: 'es2020',
   minify: true,
   write: false,
-  // Keep third-party license notices (d3-force et al. are BSD/ISC and require the
-  // copyright notice be retained in redistributions); collect them at end of file.
   legalComments: 'eof',
 });
 

@@ -2,14 +2,6 @@ import { IPosition } from '../../../../common';
 import { ISimulationNode, ISimulationGraph, ISimulationIds } from '../../../shared';
 import { IWorkerInputPayload, WorkerInputType } from './worker-input';
 
-/**
- * The layout-mutation surface shared by `ILayoutEngine` (worker side) and `ISimulator`
- * (main-thread fallback). Both encode an identical `WorkerInputType -> method` mapping,
- * so it lives here once and is applied to either target.
- *
- * `SetSettings` is intentionally excluded: the two targets apply settings differently
- * (engine recreation vs. `setSettings`) and handle it at their own call sites.
- */
 export interface ILayoutInputTarget {
   setupData(data: ISimulationGraph): void;
   mergeData(data: ISimulationGraph): void;
@@ -68,7 +60,6 @@ export function dispatchLayoutInput(target: ILayoutInputTarget, message: IWorker
       target.releaseNodes(message.data.nodes);
       break;
     default:
-      // SetSettings is handled by callers; UpdateSimulation has no engine handler.
       break;
   }
 }
