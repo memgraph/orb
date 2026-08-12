@@ -80,6 +80,36 @@ export interface ISimulator extends IEmitter<SimulatorEvents> {
   terminate(): void;
 }
 
+// Forwards every simulator event from `source` to `target`, toggling running state via
+// `onRunningChange` on start/end. Shared by the main-thread simulator (engine -> self)
+// and the web-worker simulator's fallback (fallback -> self).
+export function relaySimulatorEvents(
+  source: IEmitter<SimulatorEvents>,
+  target: IEmitter<SimulatorEvents>,
+  onRunningChange: (isRunning: boolean) => void,
+): void {
+  source.on(SimulatorEventType.SIMULATION_START, () => {
+    target.emit(SimulatorEventType.SIMULATION_START, undefined);
+    onRunningChange(true);
+  });
+  source.on(SimulatorEventType.SIMULATION_PROGRESS, (data) => {
+    target.emit(SimulatorEventType.SIMULATION_PROGRESS, data);
+  });
+  source.on(SimulatorEventType.SIMULATION_END, (data) => {
+    target.emit(SimulatorEventType.SIMULATION_END, data);
+    onRunningChange(false);
+  });
+  source.on(SimulatorEventType.SIMULATION_STEP, (data) => {
+    target.emit(SimulatorEventType.SIMULATION_STEP, data);
+  });
+  source.on(SimulatorEventType.NODE_DRAG, (data) => {
+    target.emit(SimulatorEventType.NODE_DRAG, data);
+  });
+  source.on(SimulatorEventType.SETTINGS_UPDATE, (data) => {
+    target.emit(SimulatorEventType.SETTINGS_UPDATE, data);
+  });
+}
+
 export interface ISimulatorEventGraph {
   nodes: ISimulationNode[];
   edges: ISimulationEdge[];
