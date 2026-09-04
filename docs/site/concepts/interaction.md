@@ -35,9 +35,18 @@ const orb = new OrbView(container, {
   interaction: {
     isDragEnabled: true, // drag nodes (default: true)
     isZoomEnabled: true, // scroll to zoom, drag background to pan (default: true)
+    backgroundDrag: {
+      isEnabled: false, // emit background-drag events on a modifier + drag (default: false)
+      modifier: 'shift', // 'shift' | 'ctrl' | 'alt' | 'meta' | null (default: 'shift')
+    },
   },
 });
 ```
+
+- **Background drag** - off by default. When enabled, dragging the empty background with the
+  modifier held emits neutral `BACKGROUND_DRAG_*` [events](/concepts/events) instead of
+  panning; a plain drag still pans. It's the gesture [rectangle selection](#rectangle-selection)
+  is built on, and is equally usable for custom box-zoom or lasso.
 
 To disable Orb's built-in selection entirely and handle it yourself, turn off the strategy
 flags and drive state from [events](/concepts/events).
@@ -80,6 +89,12 @@ orb.interaction.unselectNodeById(1);
 orb.interaction.unselectEdgeById(10);
 orb.interaction.unselectAll();
 
+// Select many at once (non-cascading by default), returns the matched count
+orb.interaction.selectNodesByIds([1, 2, 3]);
+orb.interaction.unselectNodesByIds([1, 2, 3]);
+orb.interaction.selectEdgesByIds([10, 11]);
+orb.interaction.unselectEdgesByIds([10, 11]);
+
 // Hover
 orb.interaction.hoverNodeById(1);
 orb.interaction.hoverEdgeById(10);
@@ -105,6 +120,63 @@ searchInput.addEventListener('change', (e) => {
   orb.interaction.unselectAll();
   if (match) orb.interaction.selectNodeById(match.getId());
 });
+```
+
+## Rectangle selection
+
+Selecting a whole region at once - drag a box, select the nodes inside - ships as an opt-in
+module, `@memgraph/orb/interactions`, kept out of the core bundle so you only pay for it when
+you use it.
+
+<OrbDemo src="/demos/rectangle-selection.html" :height="460" />
+
+It takes **two steps**: enable the background-drag gesture on the view, then attach a
+`RectangleSelection` to it.
+
+```typescript
+import { OrbView } from '@memgraph/orb';
+import { RectangleSelection } from '@memgraph/orb/interactions';
+
+const orb = new OrbView(container, {
+  interaction: { backgroundDrag: { isEnabled: true, modifier: 'shift' } },
+});
+
+const selection = new RectangleSelection(orb);
+selection.on('select', ({ nodes, edges, mode }) => {
+  // nodes (and edges, if enabled) are now selected; mode is 'replace' or 'add'
+});
+```
+
+By default, **Shift-drag** over the empty background draws the box and replaces the
+selection; holding **Ctrl/Cmd** as well adds to it. Dragging a node still moves it, and a
+plain drag still pans. Call `selection.destroy()` to detach it.
+
+::: warning Requires background drag
+`RectangleSelection` only listens - it does not enable the gesture. If
+`interaction.backgroundDrag.isEnabled` is not set on the view, attaching it does nothing and
+Shift-drag is a no-op.
+:::
+
+`RectangleSelection` accepts `IRectangleSelectionOptions`:
+
+| Option | Type | Default |
+| --- | --- | --- |
+| `resolveMode` | `(event: MouseEvent) => 'replace' \| 'add'` | ctrl/meta → `add`, else `replace` |
+| `includeEdges` | `'none' \| 'endpointsInside'` | `'none'` - `'endpointsInside'` also selects edges whose both endpoints fall in the box |
+| `style` | `Partial<IRectangleSelectionStyle>` | dashed blue overlay |
+
+The overlay element carries the `orb-selection-rectangle` class, so you can also style it
+from CSS.
+
+The module is built entirely on public API, so the same primitives are available if you want
+a different gesture (lasso, custom modifiers):
+
+```typescript
+import { RectangleArea } from '@memgraph/orb';
+
+const area = new RectangleArea({ x, y, width, height });
+const nodes = orb.data.getNodesInArea(area); // nodes whose center is inside
+orb.interaction.selectNodesByIds(nodes.map((n) => n.getId()));
 ```
 
 ## Dimming the rest of the graph

@@ -22,3 +22,17 @@ export const isPointInRectangle = (rectangle: IRectangle, point: IPosition): boo
   const endY = rectangle.y + rectangle.height;
   return point.x >= rectangle.x && point.x <= endX && point.y >= rectangle.y && point.y <= endY;
 };
+
+/**
+ * Builds a normalized rectangle spanning two opposite corner points, given in any order.
+ *
+ * @param {IPosition} pointA First corner (x, y)
+ * @param {IPosition} pointB Opposite corner (x, y)
+ * @return {IRectangle} Rectangle spanning the two corners
+ */
+export const getRectangleFromPoints = (pointA: IPosition, pointB: IPosition): IRectangle => ({
+  x: Math.min(pointA.x, pointB.x),
+  y: Math.min(pointA.y, pointB.y),
+  width: Math.abs(pointA.x - pointB.x),
+  height: Math.abs(pointA.y - pointB.y),
+});

@@ -1,6 +1,6 @@
 import { INode, INodeBase, INodePosition, NodeFactory } from './node';
 import { IEdge, EdgeFactory, IEdgeBase, IEdgePosition } from './edge';
-import { IPosition, IRectangle } from '../common';
+import { IPosition, IRectangle, ISelectionArea, isPointInRectangle } from '../common';
 import { IGraphStyle } from './style';
 import { ImageHandler } from '../services/images';
 import { getEdgeOffsets } from './topology';
@@ -49,6 +49,8 @@ export interface IGraph<N extends INodeBase, E extends IEdgeBase> extends ISubje
   getBoundingBox(): IRectangle;
   getNearestNode(point: IPosition): INode<N, E> | undefined;
   getNearestEdge(point: IPosition, minDistance?: number): IEdge<N, E> | undefined;
+  getNodesInArea(area: ISelectionArea): INode<N, E>[];
+  getStyleVersion(): number;
   setSettings(settings: Partial<IGraphSettings<N, E>>): void;
 }
 
@@ -73,6 +75,14 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
   });
   private _defaultStyle?: Partial<IGraphStyle<N, E>>;
   private _settings: IGraphSettings<N, E>;
+
+  // Monotonic counter bumped whenever a node/edge state changes silently (notify skipped).
+  // Renderers that cache styles (WebGL) compare it to detect selection/hover changes a
+  // bare render() would otherwise miss; the canvas renderer reads state fresh and ignores it.
+  private _styleVersion = 0;
+  private _bumpStyleVersion = (): void => {
+    this._styleVersion++;
+  };
 
   constructor(data?: Partial<IGraphData<N, E>>, settings?: Partial<IGraphSettings<N, E>>) {
     // TODO(dlozic): How to use object assign here? If I add add and export a default const here, it needs N, E.
@@ -410,6 +420,24 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     return nearestEdge;
   }
 
+  getNodesInArea(area: ISelectionArea): INode<N, E>[] {
+    const boundingBox = area.getBoundingBox();
+    return this.getNodes((node) => {
+      const position = node.getPosition();
+      // Skip unpositioned nodes; getCenter() would report them at (0, 0).
+      if (position.x === undefined || position.y === undefined) {
+        return false;
+      }
+      const center: IPosition = { x: position.x, y: position.y };
+      // Cheap bounding-box reject before the exact contains check.
+      return isPointInRectangle(boundingBox, center) && area.contains(center);
+    });
+  }
+
+  getStyleVersion(): number {
+    return this._styleVersion;
+  }
+
   // Arrow function is used because they inherit the context from the enclosing scope
   // which is important for the callback to notify listeners as expected
   private _update: IObserver = (data?: IObserverDataPayload): void => {
@@ -443,7 +471,11 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
     for (let i = 0; i < nodes.length; i++) {
       newNodes[i] = NodeFactory.create<N, E>(
         { data: nodes[i] },
-        { onLoadedImage: () => this._settings?.onLoadedImages?.(), listeners: [this._update] },
+        {
+          onLoadedImage: () => this._settings?.onLoadedImages?.(),
+          listeners: [this._update],
+          onStateChange: this._bumpStyleVersion,
+        },
       );
     }
     this._nodes.setMany(newNodes);
@@ -465,6 +497,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
             },
             {
               listeners: [this._update],
+              onStateChange: this._bumpStyleVersion,
             },
           ),
         );
@@ -486,7 +519,11 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
       newNodes.push(
         NodeFactory.create<N, E>(
           { data: nodes[i] },
-          { onLoadedImage: () => this._settings?.onLoadedImages?.(), listeners: [this._update] },
+          {
+            onLoadedImage: () => this._settings?.onLoadedImages?.(),
+            listeners: [this._update],
+            onStateChange: this._bumpStyleVersion,
+          },
         ),
       );
     }
@@ -515,6 +552,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
             },
             {
               listeners: [this._update],
+              onStateChange: this._bumpStyleVersion,
             },
           );
           newEdges.push(edge);
@@ -548,6 +586,7 @@ export class Graph<N extends INodeBase, E extends IEdgeBase> extends Subject imp
         },
         {
           listeners: [this._update],
+          onStateChange: this._bumpStyleVersion,
         },
       );
       edge.setState(existingEdge.getState(), { isNotifySkipped: true });

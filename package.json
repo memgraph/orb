@@ -11,6 +11,16 @@
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./interactions": {
+      "types": "./dist/interactions/index.d.ts",
+      "default": "./dist/interactions/index.js"
+    }
+  },
   "contributors": [
     {
       "name": "David Lozic",

@@ -69,6 +69,15 @@ export interface IRenderer<N extends INodeBase, E extends IEdgeBase> extends IEm
   getSimulationPosition(canvasPoint: IPosition): IPosition;
 
   /**
+   * Converts a point in simulation coordinates into canvas (screen) pixels.
+   * Inverse of {@link getSimulationPosition}.
+   *
+   * @param {IPosition} simulationPoint Point (x, y) in simulation coordinates
+   * @return {IPosition} Point (x, y) relative to the canvas element
+   */
+  getCanvasPosition(simulationPoint: IPosition): IPosition;
+
+  /**
    * Returns the visible rectangle view in the simulation coordinates.
    *
    * @return {IRectangle} Visible view in the simulation coordinates

@@ -432,6 +432,10 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     this._isColorCacheDirty = true;
   }
 
+  // Graph style version seen at the last render, to detect silent (notify-skipped)
+  // state changes such as programmatic/batched selection.
+  private _lastStyleVersion = -1;
+
   getRenderCacheStats(): { hits: number; misses: number } {
     return { ...this._bufferCacheStats };
   }
@@ -454,6 +458,13 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
 
     this.emit(RenderEventType.RENDER_START, undefined);
     const renderStartedAt = performance.now();
+
+    // Silent state changes (skipped notify) bump the graph style version; rebuild colours when it moves.
+    const styleVersion = graph.getStyleVersion();
+    if (styleVersion !== this._lastStyleVersion) {
+      this.invalidateStyles();
+      this._lastStyleVersion = styleVersion;
+    }
 
     const gl = this._gl;
 
@@ -481,7 +492,10 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    // Separate alpha factors: colour blends straight-over, but the framebuffer alpha must
+    // accumulate with ONE (not SRC_ALPHA) or semi-transparent shapes over the transparent
+    // clear get their alpha squared and wash out when the canvas composites over the page.
+    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
     const edges = graph.getEdges();
     const FLOATS_PER_EDGE = 25;
@@ -498,6 +512,16 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
     } else {
       this._bufferCacheStats.misses++;
     }
+
+    // Match the canvas renderer's contextAlphaOnEvent behaviour: dim non-selected/hovered
+    // shapes when any is selected/hovered. Evaluated per type (like canvas), so selecting only
+    // nodes dims the other nodes but leaves edges untouched. Only on a rebuild, so panning stays free.
+    const contextAlpha = this._settings.contextAlphaOnEventIsEnabled ? this._settings.contextAlphaOnEvent : 1;
+    const isDimmingActive = !canSkipRebuild && contextAlpha < 1;
+    const hasStateChangedNodes =
+      isDimmingActive && graph.getNodes().some((node) => node.isSelected() || node.isHovered());
+    const hasStateChangedEdges =
+      isDimmingActive && graph.getEdges().some((edge) => edge.isSelected() || edge.isHovered());
 
     let nodeCxCache: Float64Array | null = null;
     let nodeCyCache: Float64Array | null = null;
@@ -569,6 +593,7 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
           edge.isHovered() || edge.isSelected()
             ? this._resolveColor(edge.getColor())
             : this._edgeColorCache.get(edge.id) || EDGE_DEFAULT_RGBA;
+        const dim = hasStateChangedEdges && !(edge.isHovered() || edge.isSelected()) ? contextAlpha : 1;
 
         let edgeType = EDGE_TYPE_STRAIGHT;
         let controlX = 0;
@@ -689,11 +714,11 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
         edgeData[off + 14] = rgba[0];
         edgeData[off + 15] = rgba[1];
         edgeData[off + 16] = rgba[2];
-        edgeData[off + 17] = rgba[3];
+        edgeData[off + 17] = rgba[3] * dim;
         edgeData[off + 18] = shadowColor[0];
         edgeData[off + 19] = shadowColor[1];
         edgeData[off + 20] = shadowColor[2];
-        edgeData[off + 21] = shadowColor[3];
+        edgeData[off + 21] = shadowColor[3] * dim;
         edgeData[off + 22] = shadowSize;
         edgeData[off + 23] = shadowOffsetX;
         edgeData[off + 24] = shadowOffsetY;
@@ -787,6 +812,7 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
           borderColor = this._nodeBorderColorCache.get(node.id) || TRANSPARENT_RGBA;
           borderWidth = node.getBorderWidth();
         }
+        const dim = hasStateChangedNodes && !(node.isHovered() || node.isSelected()) ? contextAlpha : 1;
 
         instanceData[off] = center.x;
         instanceData[off + 1] = center.y;
@@ -794,16 +820,16 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
         instanceData[off + 3] = rgba[0];
         instanceData[off + 4] = rgba[1];
         instanceData[off + 5] = rgba[2];
-        instanceData[off + 6] = rgba[3];
+        instanceData[off + 6] = rgba[3] * dim;
         instanceData[off + 7] = borderColor[0];
         instanceData[off + 8] = borderColor[1];
         instanceData[off + 9] = borderColor[2];
-        instanceData[off + 10] = borderColor[3];
+        instanceData[off + 10] = borderColor[3] * dim;
         instanceData[off + 11] = borderWidth;
         instanceData[off + 12] = shadowColor[0];
         instanceData[off + 13] = shadowColor[1];
         instanceData[off + 14] = shadowColor[2];
-        instanceData[off + 15] = shadowColor[3];
+        instanceData[off + 15] = shadowColor[3] * dim;
         instanceData[off + 16] = shadowSize;
         instanceData[off + 17] = shadowOffsetX;
         instanceData[off + 18] = shadowOffsetY;
@@ -1001,6 +1027,11 @@ export class WebGLRenderer<N extends INodeBase, E extends IEdgeBase> extends Emi
       x: x - this._width / 2,
       y: y - this._height / 2,
     };
+  }
+
+  getCanvasPosition(simulationPoint: IPosition): IPosition {
+    const [x, y] = this.transform.apply([simulationPoint.x + this._width / 2, simulationPoint.y + this._height / 2]);
+    return { x, y };
   }
 
   getSimulationViewRectangle(): IRectangle {

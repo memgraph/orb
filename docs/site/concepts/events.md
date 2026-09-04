@@ -75,6 +75,15 @@ Node drag emits a sequence of `node` + position events. Dragging is controlled b
 | `NODE_DRAG` | `node`, position, `event` | The node moves during a drag. |
 | `NODE_DRAG_END` | `node`, position, `event` | The drag ends. |
 
+Dragging the empty background emits a separate, subject-less sequence, off by default and
+enabled with `interaction.backgroundDrag` - see [Selection & interaction](/concepts/interaction).
+
+| Event | Payload | Fires when |
+| --- | --- | --- |
+| `BACKGROUND_DRAG_START` | position, `event` | A background drag begins (modifier held, no node hit). |
+| `BACKGROUND_DRAG` | position, `event` | The cursor moves during a background drag. |
+| `BACKGROUND_DRAG_END` | position, `event` | The background drag ends. |
+
 ## Examples
 
 ### A tooltip that follows the cursor

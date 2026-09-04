@@ -63,6 +63,46 @@ export const selectOnlyNode = <N extends INodeBase, E extends IEdgeBase>(
   selectNode(node, options);
 };
 
+export const selectNodes = <N extends INodeBase, E extends IEdgeBase>(
+  nodes: INode<N, E>[],
+  options?: ISelectionOptions,
+): { changedCount: number } => {
+  for (let i = 0; i < nodes.length; i++) {
+    selectNode(nodes[i], options);
+  }
+  return { changedCount: nodes.length };
+};
+
+export const unselectNodes = <N extends INodeBase, E extends IEdgeBase>(
+  nodes: INode<N, E>[],
+  options?: ISelectionOptions,
+): { changedCount: number } => {
+  for (let i = 0; i < nodes.length; i++) {
+    unselectNode(nodes[i], options);
+  }
+  return { changedCount: nodes.length };
+};
+
+export const selectEdges = <N extends INodeBase, E extends IEdgeBase>(
+  edges: IEdge<N, E>[],
+  options?: ISelectionOptions,
+): { changedCount: number } => {
+  for (let i = 0; i < edges.length; i++) {
+    selectEdge(edges[i], options);
+  }
+  return { changedCount: edges.length };
+};
+
+export const unselectEdges = <N extends INodeBase, E extends IEdgeBase>(
+  edges: IEdge<N, E>[],
+  options?: ISelectionOptions,
+): { changedCount: number } => {
+  for (let i = 0; i < edges.length; i++) {
+    unselectEdge(edges[i], options);
+  }
+  return { changedCount: edges.length };
+};
+
 export const selectOnlyEdge = <N extends INodeBase, E extends IEdgeBase>(
   graph: IGraph<N, E>,
   edge: IEdge<N, E>,

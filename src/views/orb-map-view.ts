@@ -3,7 +3,7 @@ import { IEdgeBase, isEdge } from '../models/edge';
 import { INode, INodeBase, isNode } from '../models/node';
 import { Graph, IGraph } from '../models/graph';
 import { IOrbView } from './shared';
-import { IPosition } from '../common';
+import { IPosition, IRectangle } from '../common';
 import { DefaultEventStrategy, IEventStrategy, IEventStrategySettings } from '../models/strategy';
 import { copyObject } from '../utils/object.utils';
 import { OrbEmitter, OrbEventType } from '../events';
@@ -197,6 +197,35 @@ export class OrbMapView<N extends INodeBase, E extends IEdgeBase> implements IOr
 
   get leaflet(): L.Map {
     return this._leaflet;
+  }
+
+  get canvas(): HTMLCanvasElement {
+    return this._renderer.canvas;
+  }
+
+  getSimulationPosition(canvasPoint: IPosition): IPosition {
+    // The canvas overlays the Leaflet container, so canvas pixels are container pixels.
+    // The renderer's own conversion assumes origin centering, which the map view doesn't apply.
+    const layerPoint = this._leaflet.containerPointToLayerPoint([canvasPoint.x, canvasPoint.y]);
+    return this._toSimulationPoint(layerPoint);
+  }
+
+  getCanvasPosition(simulationPoint: IPosition): IPosition {
+    const k = this._getStyleScale();
+    const containerPoint = this._leaflet.layerPointToContainerPoint([simulationPoint.x * k, simulationPoint.y * k]);
+    return { x: containerPoint.x, y: containerPoint.y };
+  }
+
+  getSimulationViewRectangle(): IRectangle {
+    const size = this._leaflet.getSize();
+    const topLeft = this.getSimulationPosition({ x: 0, y: 0 });
+    const bottomRight = this.getSimulationPosition({ x: size.x, y: size.y });
+    return {
+      x: topLeft.x,
+      y: topLeft.y,
+      width: bottomRight.x - topLeft.x,
+      height: bottomRight.y - topLeft.y,
+    };
   }
 
   getSettings(): IOrbMapViewSettings<N, E> {
