@@ -24,7 +24,7 @@
   <body>
     <div class="wrap">
       <div class="toolbar">
-        <span class="chk"><kbd>Shift</kbd>+drag to select &middot; <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> to add</span>
+        <span class="chk"><kbd>Shift</kbd>+drag to add &middot; <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> to replace</span>
         <label class="chk"><input type="checkbox" id="edges" /> Include edges</label>
         <button id="clear">Clear</button>
         <span class="hint"><b id="sel">0</b> nodes, <b id="seledge">0</b> edges</span>
@@ -139,7 +139,8 @@
         if (!start) return;
         const area = RectangleArea.fromPoints(start.sim, e.localPoint);
         const selected = orb.data.getNodesInArea(area);
-        if (!(e.event.ctrlKey || e.event.metaKey)) orb.interaction.unselectAll();
+        // Shift-drag adds (like Shift-click); holding Ctrl/Cmd replaces instead.
+        if (e.event.ctrlKey || e.event.metaKey) orb.interaction.unselectAll();
         orb.interaction.selectNodesByIds(selected.map((n) => n.getId()));
         if (includeEdgesEl.checked) {
           const set = new Set(selected.map((n) => n.getId()));

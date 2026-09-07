@@ -142,14 +142,20 @@ const orb = new OrbView(container, {
 });
 
 const selection = new RectangleSelection(orb);
-selection.on('select', ({ nodes, edges, mode }) => {
-  // nodes (and edges, if enabled) are now selected; mode is 'replace' or 'add'
+selection.on('select', ({ nodes, area, mode }) => {
+  // nodes are now selected; mode is 'add' or 'replace'. Want edges too? You have the
+  // nodes, so select whichever edges you like - e.g. those fully inside the box:
+  const ids = new Set(nodes.map((n) => n.getId()));
+  const edges = orb.data.getEdges((e) => ids.has(e.startNode?.getId()) && ids.has(e.endNode?.getId()));
+  orb.interaction.selectEdgesByIds(edges.map((e) => e.getId()));
+  orb.render();
 });
 ```
 
-By default, **Shift-drag** over the empty background draws the box and replaces the
-selection; holding **Ctrl/Cmd** as well adds to it. Dragging a node still moves it, and a
-plain drag still pans. Call `selection.destroy()` to detach it.
+By default, **Shift-drag** over the empty background draws the box and adds the nodes to
+the selection (mirroring Shift-click); holding **Ctrl/Cmd** as well replaces it instead.
+Dragging a node still moves it, and a plain drag still pans. Call `selection.destroy()` to
+detach it.
 
 ::: warning Requires background drag
 `RectangleSelection` only listens - it does not enable the gesture. If
@@ -161,8 +167,7 @@ Shift-drag is a no-op.
 
 | Option | Type | Default |
 | --- | --- | --- |
-| `resolveMode` | `(event: MouseEvent) => 'replace' \| 'add'` | ctrl/meta → `add`, else `replace` |
-| `includeEdges` | `'none' \| 'endpointsInside'` | `'none'` - `'endpointsInside'` also selects edges whose both endpoints fall in the box |
+| `resolveMode` | `(event: MouseEvent) => 'add' \| 'replace'` | ctrl/meta → `replace`, else `add` |
 | `style` | `Partial<IRectangleSelectionStyle>` | dashed blue overlay |
 
 The overlay element carries the `orb-selection-rectangle` class, so you can also style it

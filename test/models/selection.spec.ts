@@ -101,6 +101,19 @@ describe('GraphInteraction batch selection', () => {
     expect(graph.getNodeById(0)!.isSelected()).toBe(true);
   });
 
+  test('selectNodesByIds counts only nodes whose state actually changed', () => {
+    const graph = buildGraph();
+    const interaction = new GraphInteraction(graph);
+    interaction.selectNodesByIds([0]);
+
+    // 0 is already selected, so only 1 changes.
+    const count = interaction.selectNodesByIds([0, 1]);
+
+    expect(count).toBe(1);
+    expect(graph.getNodeById(0)!.isSelected()).toBe(true);
+    expect(graph.getNodeById(1)!.isSelected()).toBe(true);
+  });
+
   test('unselectNodesByIds clears only the listed nodes', () => {
     const graph = buildGraph();
     const interaction = new GraphInteraction(graph);

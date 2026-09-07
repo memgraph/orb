@@ -1,10 +1,8 @@
 import { INode, INodeBase } from '../models/node';
-import { IEdge, IEdgeBase } from '../models/edge';
+import { IEdgeBase } from '../models/edge';
 import { RectangleArea } from '../common';
 
 export type IRectangleSelectionMode = 'replace' | 'add';
-
-export type IRectangleSelectionEdgeMode = 'none' | 'endpointsInside';
 
 // Applied as inline styles on the overlay element, which also carries the
 // `orb-selection-rectangle` class for CSS overrides.
@@ -17,16 +15,13 @@ export interface IRectangleSelectionStyle {
 }
 
 export interface IRectangleSelectionOptions {
-  // Defaults to: ctrl/meta held -> 'add', otherwise 'replace'.
+  // Defaults to: ctrl/meta held -> 'replace', otherwise 'add'.
   resolveMode?: (event: MouseEvent) => IRectangleSelectionMode;
-  // 'endpointsInside' also selects edges whose both endpoints fall in the area.
-  includeEdges?: IRectangleSelectionEdgeMode;
   style?: Partial<IRectangleSelectionStyle>;
 }
 
 export interface IRectangleSelectionSelectEvent<N extends INodeBase, E extends IEdgeBase> {
   nodes: INode<N, E>[];
-  edges: IEdge<N, E>[];
   area: RectangleArea;
   mode: IRectangleSelectionMode;
 }

@@ -67,40 +67,60 @@ export const selectNodes = <N extends INodeBase, E extends IEdgeBase>(
   nodes: INode<N, E>[],
   options?: ISelectionOptions,
 ): { changedCount: number } => {
+  let changedCount = 0;
   for (let i = 0; i < nodes.length; i++) {
+    const previousState = nodes[i].getState();
     selectNode(nodes[i], options);
+    if (nodes[i].getState() !== previousState) {
+      changedCount += 1;
+    }
   }
-  return { changedCount: nodes.length };
+  return { changedCount };
 };
 
 export const unselectNodes = <N extends INodeBase, E extends IEdgeBase>(
   nodes: INode<N, E>[],
   options?: ISelectionOptions,
 ): { changedCount: number } => {
+  let changedCount = 0;
   for (let i = 0; i < nodes.length; i++) {
+    const previousState = nodes[i].getState();
     unselectNode(nodes[i], options);
+    if (nodes[i].getState() !== previousState) {
+      changedCount += 1;
+    }
   }
-  return { changedCount: nodes.length };
+  return { changedCount };
 };
 
 export const selectEdges = <N extends INodeBase, E extends IEdgeBase>(
   edges: IEdge<N, E>[],
   options?: ISelectionOptions,
 ): { changedCount: number } => {
+  let changedCount = 0;
   for (let i = 0; i < edges.length; i++) {
+    const previousState = edges[i].getState();
     selectEdge(edges[i], options);
+    if (edges[i].getState() !== previousState) {
+      changedCount += 1;
+    }
   }
-  return { changedCount: edges.length };
+  return { changedCount };
 };
 
 export const unselectEdges = <N extends INodeBase, E extends IEdgeBase>(
   edges: IEdge<N, E>[],
   options?: ISelectionOptions,
 ): { changedCount: number } => {
+  let changedCount = 0;
   for (let i = 0; i < edges.length; i++) {
+    const previousState = edges[i].getState();
     unselectEdge(edges[i], options);
+    if (edges[i].getState() !== previousState) {
+      changedCount += 1;
+    }
   }
-  return { changedCount: edges.length };
+  return { changedCount };
 };
 
 export const selectOnlyEdge = <N extends INodeBase, E extends IEdgeBase>(

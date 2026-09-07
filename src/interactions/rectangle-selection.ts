@@ -2,12 +2,11 @@ import { Emitter } from '../utils/emitter.utils';
 import { IOrbView } from '../views/shared';
 import { OrbEventType, IOrbEventBackgroundDrag } from '../events';
 import { getRectangleFromPoints, IPosition, RectangleArea } from '../common';
-import { INode, INodeBase } from '../models/node';
-import { IEdge, IEdgeBase } from '../models/edge';
+import { INodeBase } from '../models/node';
+import { IEdgeBase } from '../models/edge';
 import {
   CLASS_NAME,
   DEFAULT_RECTANGLE_SELECTION_STYLE,
-  IRectangleSelectionEdgeMode,
   IRectangleSelectionMode,
   IRectangleSelectionOptions,
   IRectangleSelectionStyle,
@@ -15,8 +14,10 @@ import {
   RectangleSelectionEventType,
 } from './shared';
 
+// Shift already enables the gesture, so mirror Shift-click's additive behavior:
+// a plain Shift-drag adds to the selection, holding Ctrl/Cmd replaces it.
 const DEFAULT_RESOLVE_MODE = (event: MouseEvent): IRectangleSelectionMode =>
-  event.ctrlKey || event.metaKey ? 'add' : 'replace';
+  event.ctrlKey || event.metaKey ? 'replace' : 'add';
 
 // Marquee selection built on Orb's public API: it listens for the view's neutral
 // BACKGROUND_DRAG_* events, draws its own DOM overlay, and applies the selection
@@ -27,7 +28,6 @@ export class RectangleSelection<N extends INodeBase, E extends IEdgeBase> extend
 > {
   private readonly _view: IOrbView<N, E, any>;
   private readonly _resolveMode: (event: MouseEvent) => IRectangleSelectionMode;
-  private readonly _includeEdges: IRectangleSelectionEdgeMode;
   private readonly _style: IRectangleSelectionStyle;
 
   private _overlay?: HTMLDivElement;
@@ -38,7 +38,6 @@ export class RectangleSelection<N extends INodeBase, E extends IEdgeBase> extend
     super();
     this._view = view;
     this._resolveMode = options?.resolveMode ?? DEFAULT_RESOLVE_MODE;
-    this._includeEdges = options?.includeEdges ?? 'none';
     this._style = { ...DEFAULT_RECTANGLE_SELECTION_STYLE, ...options?.style };
 
     this._view.events.on(OrbEventType.BACKGROUND_DRAG_START, this._onDragStart);
@@ -83,27 +82,12 @@ export class RectangleSelection<N extends INodeBase, E extends IEdgeBase> extend
     }
     this._view.interaction.selectNodesByIds(nodes.map((node) => node.getId()));
 
-    const edges = this._selectEdges(nodes);
-
     this._view.render();
     this._removeOverlay();
     this._start = undefined;
 
-    this.emit(RectangleSelectionEventType.SELECT, { nodes, edges, area, mode });
+    this.emit(RectangleSelectionEventType.SELECT, { nodes, area, mode });
   };
-
-  private _selectEdges(nodes: INode<N, E>[]): IEdge<N, E>[] {
-    if (this._includeEdges !== 'endpointsInside') {
-      return [];
-    }
-
-    const nodeIds = new Set(nodes.map((node) => node.getId()));
-    const edges = this._view.data.getEdges(
-      (edge) => nodeIds.has(edge.startNode?.getId()) && nodeIds.has(edge.endNode?.getId()),
-    );
-    this._view.interaction.selectEdgesByIds(edges.map((edge) => edge.getId()));
-    return edges;
-  }
 
   private _createOverlay(): void {
     const canvas = this._view.canvas;
