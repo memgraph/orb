@@ -152,10 +152,11 @@ selection.on('select', ({ nodes, area, mode }) => {
 });
 ```
 
-By default, **Shift-drag** over the empty background draws the box and adds the nodes to
-the selection (mirroring Shift-click); holding **Ctrl/Cmd** as well replaces it instead.
-Dragging a node still moves it, and a plain drag still pans. Call `selection.destroy()` to
-detach it.
+By default, **Shift-drag** over the empty background draws the box and replaces the
+selection with the nodes inside (like a fresh marquee); holding **Ctrl/Cmd** as well adds
+to the current selection instead. A too-small drag counts as a click and leaves the
+selection untouched. Dragging a node still moves it, and a plain drag still pans. Call
+`selection.destroy()` to detach it.
 
 ::: warning Requires background drag
 `RectangleSelection` only listens - it does not enable the gesture. If
@@ -167,7 +168,7 @@ Shift-drag is a no-op.
 
 | Option | Type | Default |
 | --- | --- | --- |
-| `resolveMode` | `(event: MouseEvent) => 'add' \| 'replace'` | ctrl/meta → `replace`, else `add` |
+| `resolveMode` | `(event: MouseEvent) => 'add' \| 'replace'` | ctrl/meta → `add`, else `replace` |
 | `style` | `Partial<IRectangleSelectionStyle>` | dashed blue overlay |
 
 The overlay element carries the `orb-selection-rectangle` class, so you can also style it

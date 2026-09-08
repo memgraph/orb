@@ -24,7 +24,7 @@
   <body>
     <div class="wrap">
       <div class="toolbar">
-        <span class="chk"><kbd>Shift</kbd>+drag to add &middot; <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> to replace</span>
+        <span class="chk"><kbd>Shift</kbd>+drag to select &middot; <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> to add</span>
         <label class="chk"><input type="checkbox" id="edges" /> Include edges</label>
         <button id="clear">Clear</button>
         <span class="hint"><b id="sel">0</b> nodes, <b id="seledge">0</b> edges</span>
@@ -135,12 +135,22 @@
       orb.events.on(OrbEventType.BACKGROUND_DRAG, (e) => {
         if (start) setOverlay(start.canvas, e.globalPoint);
       });
+      // Below this canvas-pixel span in both axes, treat the gesture as a click, not a
+      // marquee: leave the selection alone so a stray Shift-click doesn't clear it.
+      const MIN_DRAG_PX = 3;
+
       orb.events.on(OrbEventType.BACKGROUND_DRAG_END, (e) => {
         if (!start) return;
+        if (Math.abs(e.globalPoint.x - start.canvas.x) < MIN_DRAG_PX &&
+            Math.abs(e.globalPoint.y - start.canvas.y) < MIN_DRAG_PX) {
+          clearOverlay();
+          start = null;
+          return;
+        }
         const area = RectangleArea.fromPoints(start.sim, e.localPoint);
         const selected = orb.data.getNodesInArea(area);
-        // Shift-drag adds (like Shift-click); holding Ctrl/Cmd replaces instead.
-        if (e.event.ctrlKey || e.event.metaKey) orb.interaction.unselectAll();
+        // Shift-drag replaces (fresh marquee); holding Ctrl/Cmd adds to the selection instead.
+        if (!(e.event.ctrlKey || e.event.metaKey)) orb.interaction.unselectAll();
         orb.interaction.selectNodesByIds(selected.map((n) => n.getId()));
         if (includeEdgesEl.checked) {
           const set = new Set(selected.map((n) => n.getId()));
