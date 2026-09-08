@@ -105,6 +105,7 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> extends ISubjec
   getStyle(): IEdgeStyle;
   getState(): number;
   getListeners(): IObserver[];
+  getOnStateChange(): (() => void) | undefined;
   hasStyle(): boolean;
   isSelected(): boolean;
   isHovered(): boolean;
@@ -135,6 +136,9 @@ export interface IEdge<N extends INodeBase, E extends IEdgeBase> extends ISubjec
 
 export interface IEdgeSettings {
   listeners: IObserver[];
+  // Called on every state change, including ones that skip listener notification,
+  // so renderers with cached styles can detect it.
+  onStateChange?: () => void;
 }
 
 export class EdgeFactory {
@@ -159,12 +163,15 @@ export class EdgeFactory {
     edge: IEdge<N, E>,
     data?: Omit<IEdgeData<N, E>, 'data' | 'startNode' | 'endNode'>,
   ): IEdge<N, E> {
-    const newEdge = EdgeFactory.create<N, E>({
-      data: edge.getData(),
-      offset: data?.offset !== undefined ? data.offset : edge.offset,
-      startNode: edge.startNode,
-      endNode: edge.endNode,
-    });
+    const newEdge = EdgeFactory.create<N, E>(
+      {
+        data: edge.getData(),
+        offset: data?.offset !== undefined ? data.offset : edge.offset,
+        startNode: edge.startNode,
+        endNode: edge.endNode,
+      },
+      { listeners: [], onStateChange: edge.getOnStateChange() },
+    );
     newEdge.setState(edge.getState());
     newEdge.setStyle(edge.getStyle());
     const listeners = edge.getListeners();
@@ -194,6 +201,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
   protected _position: IEdgePosition;
 
   private _type: EdgeType = EdgeType.STRAIGHT;
+  private readonly _onStateChange?: () => void;
 
   constructor(data: IEdgeData<N, E>, settings?: IEdgeSettings) {
     super();
@@ -208,6 +216,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
     this.startNode.addEdge(this);
     this.endNode.addEdge(this);
 
+    this._onStateChange = settings?.onStateChange;
     if (settings && settings.listeners) {
       this.listeners = settings.listeners;
     }
@@ -236,6 +245,10 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
     return this._state;
   }
 
+  getOnStateChange(): (() => void) | undefined {
+    return this._onStateChange;
+  }
+
   get type(): EdgeType {
     return this._type;
   }
@@ -261,7 +274,10 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
   }
 
   clearState(): void {
-    this._state = GraphObjectState.NONE;
+    if (this._state !== GraphObjectState.NONE) {
+      this._state = GraphObjectState.NONE;
+      this._onStateChange?.();
+    }
   }
 
   isLoopback(): boolean {
@@ -428,6 +444,7 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
       | ((edge: IEdge<N, E>) => IGraphObjectStateParameters),
     options?: IEdgeSetStateOptions,
   ): void {
+    const previousState = this._state;
     let result: number | IGraphObjectStateParameters;
 
     if (isFunction(arg)) {
@@ -456,6 +473,8 @@ abstract class Edge<N extends INodeBase, E extends IEdgeBase> extends Subject im
 
     if (!options?.isNotifySkipped) {
       this.notifyListeners();
+    } else if (this._state !== previousState) {
+      this._onStateChange?.();
     }
   }
 

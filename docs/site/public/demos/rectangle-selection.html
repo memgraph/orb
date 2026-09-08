@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orb - rectangle selection demo</title>
+    <script src="../orb.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap" />
+    <style>
+      :root { --black:#231f20; --orange:#fb6e00; --g4:#e6e6e6; --g5:#f9f9f9; --g2:#646265; --bg:#ffffff; }
+      :root[data-theme="dark"] { --black:#e6e6e6; --g4:#3a3536; --g5:#2b2727; --g2:#bab8bb; --bg:#231f20; }
+      html, body { height:100%; margin:0; font-family:'Inter Tight',system-ui,sans-serif; color:var(--black); background:var(--bg); }
+      .wrap { display:flex; flex-direction:column; height:100%; }
+      .toolbar { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--g4); background:var(--g5); }
+      label.chk { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:500; }
+      button { font-family:inherit; font-size:13px; font-weight:500; padding:6px 12px; border:1px solid var(--g4); border-radius:4px; background:var(--bg); color:var(--black); cursor:pointer; }
+      button:hover { background:var(--g5); }
+      kbd { font-family:inherit; font-size:12px; background:var(--g4); border-radius:3px; padding:1px 5px; }
+      .hint { margin-left:auto; font-size:13px; color:var(--g2); }
+      .hint b { color:var(--black); }
+      #graph { flex:1; width:100%; min-height:0; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="toolbar">
+        <span class="chk"><kbd>Shift</kbd>+drag to select &middot; <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> to add</span>
+        <label class="chk"><input type="checkbox" id="edges" /> Include edges</label>
+        <button id="clear">Clear</button>
+        <span class="hint"><b id="sel">0</b> nodes, <b id="seledge">0</b> edges</span>
+      </div>
+      <div id="graph"></div>
+    </div>
+
+    <script>
+      const container = document.getElementById('graph');
+      const { OrbView, OrbEventType, RectangleArea } = Orb;
+      let __dark = false;
+      const labelColor = () => (__dark ? '#e6e6e6' : '#231f20');
+
+      // Enable the neutral background-drag gesture in core (shift-drag over empty canvas).
+      const orb = new OrbView(container, {
+        interaction: { backgroundDrag: { isEnabled: true, modifier: 'shift' } },
+      });
+
+      orb.data.setDefaultStyle({
+        getNodeStyle(n) {
+          return {
+            size: 7,
+            color: '#fb6e00',
+            colorHover: '#ff8f40',
+            colorSelected: '#b34e00',
+            borderColor: '#e36300',
+            borderColorSelected: '#8a3f00',
+            borderWidth: 1,
+            borderWidthSelected: 2,
+            label: n.getData().label,
+            fontSize: 4,
+            fontColor: labelColor(),
+          };
+        },
+        getEdgeStyle() {
+          return { color: '#bab8bb', colorSelected: '#fb6e00', width: 0.6, widthSelected: 1.6 };
+        },
+      });
+
+      // A larger random graph so there's plenty to marquee over.
+      const NODE_COUNT = 60;
+      const nodes = [];
+      const edges = [];
+      for (let i = 0; i < NODE_COUNT; i++) nodes.push({ id: i, label: String(i) });
+      let edgeId = 0;
+      for (let i = 1; i < NODE_COUNT; i++) {
+        // Connect each node back to a couple of earlier ones -> one connected, spread-out graph.
+        edges.push({ id: edgeId++, start: i, end: Math.floor(Math.random() * i) });
+        if (i > 3 && Math.random() < 0.4) edges.push({ id: edgeId++, start: i, end: Math.floor(Math.random() * i) });
+      }
+      orb.data.setup({ nodes, edges });
+      orb.events.on(OrbEventType.SIMULATION_END, () => orb.recenter());
+      orb.render();
+
+      window.__orbSetTheme = (dark) => {
+        __dark = !!dark;
+        document.documentElement.dataset.theme = __dark ? 'dark' : 'light';
+        orb.data.getNodes().forEach((n) => n.patchStyle({ fontColor: labelColor() }, { isNotifySkipped: true }));
+        orb.render();
+      };
+
+      const selEl = document.getElementById('sel');
+      const selEdgeEl = document.getElementById('seledge');
+      const includeEdgesEl = document.getElementById('edges');
+      const updateCount = () => {
+        selEl.textContent = orb.data.getSelectedNodes().length;
+        selEdgeEl.textContent = orb.data.getSelectedEdges().length;
+      };
+
+      document.getElementById('clear').addEventListener('click', () => {
+        orb.interaction.unselectAll();
+        orb.render();
+        updateCount();
+      });
+
+      // Marquee overlay + selection. In an app you'd use `@memgraph/orb/interactions`
+      // RectangleSelection; the UMD bundle here is core-only, so the same logic is inlined.
+      let overlay = null;
+      let start = null;
+      const overlayStyle = { fill: 'rgba(251,110,0,0.10)', border: '#fb6e00' };
+
+      const setOverlay = (a, b) => {
+        const canvas = orb.canvas;
+        const parent = canvas.parentElement;
+        if (!overlay) {
+          overlay = document.createElement('div');
+          overlay.style.cssText =
+            'position:absolute;pointer-events:none;box-sizing:border-box;background:' +
+            overlayStyle.fill + ';border:1px dashed ' + overlayStyle.border + ';border-radius:2px';
+          parent.appendChild(overlay);
+          canvas.style.cursor = 'crosshair';
+        }
+        const left = Math.min(a.x, b.x), top = Math.min(a.y, b.y);
+        overlay.style.left = left + 'px';
+        overlay.style.top = top + 'px';
+        overlay.style.width = Math.abs(a.x - b.x) + 'px';
+        overlay.style.height = Math.abs(a.y - b.y) + 'px';
+      };
+      const clearOverlay = () => {
+        if (overlay) { overlay.remove(); overlay = null; }
+        orb.canvas.style.cursor = '';
+      };
+
+      orb.events.on(OrbEventType.BACKGROUND_DRAG_START, (e) => {
+        start = { canvas: e.globalPoint, sim: e.localPoint };
+        setOverlay(e.globalPoint, e.globalPoint);
+      });
+      orb.events.on(OrbEventType.BACKGROUND_DRAG, (e) => {
+        if (start) setOverlay(start.canvas, e.globalPoint);
+      });
+      // Below this canvas-pixel span in both axes, treat the gesture as a click, not a
+      // marquee: leave the selection alone so a stray Shift-click doesn't clear it.
+      const MIN_DRAG_PX = 3;
+
+      orb.events.on(OrbEventType.BACKGROUND_DRAG_END, (e) => {
+        if (!start) return;
+        if (Math.abs(e.globalPoint.x - start.canvas.x) < MIN_DRAG_PX &&
+            Math.abs(e.globalPoint.y - start.canvas.y) < MIN_DRAG_PX) {
+          clearOverlay();
+          start = null;
+          return;
+        }
+        const area = RectangleArea.fromPoints(start.sim, e.localPoint);
+        const selected = orb.data.getNodesInArea(area);
+        // Shift-drag replaces (fresh marquee); holding Ctrl/Cmd adds to the selection instead.
+        if (!(e.event.ctrlKey || e.event.metaKey)) orb.interaction.unselectAll();
+        orb.interaction.selectNodesByIds(selected.map((n) => n.getId()));
+        if (includeEdgesEl.checked) {
+          const set = new Set(selected.map((n) => n.getId()));
+          const edgeIds = orb.data
+            .getEdges((edge) => set.has(edge.startNode?.getId()) && set.has(edge.endNode?.getId()))
+            .map((edge) => edge.getId());
+          orb.interaction.selectEdgesByIds(edgeIds);
+        }
+        orb.render();
+        clearOverlay();
+        start = null;
+        updateCount();
+      });
+    </script>
+  </body>
+</html>

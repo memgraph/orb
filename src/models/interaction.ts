@@ -3,21 +3,29 @@ import {
   hoverNode,
   ISelectionOptions,
   selectEdge,
+  selectEdges,
   selectNode,
+  selectNodes,
   unhoverAll,
   unselectAll,
   unselectEdge,
+  unselectEdges,
   unselectNode,
+  unselectNodes,
 } from '../utils/graph.utils';
-import { IEdgeBase } from './edge';
+import { IEdge, IEdgeBase } from './edge';
 import { IGraph } from './graph';
-import { INodeBase } from './node';
+import { INode, INodeBase } from './node';
 
 export interface IGraphInteraction {
   selectNodeById(id: any, options?: ISelectionOptions): boolean;
+  selectNodesByIds(ids: any[], options?: ISelectionOptions): number;
   selectEdgeById(id: any, options?: ISelectionOptions): boolean;
+  selectEdgesByIds(ids: any[], options?: ISelectionOptions): number;
   unselectNodeById(id: any, options?: ISelectionOptions): boolean;
+  unselectNodesByIds(ids: any[], options?: ISelectionOptions): number;
   unselectEdgeById(id: any, options?: ISelectionOptions): boolean;
+  unselectEdgesByIds(ids: any[], options?: ISelectionOptions): number;
   unselectAll(): number;
   hoverNodeById(id: any): boolean;
   hoverEdgeById(id: any): boolean;
@@ -40,6 +48,19 @@ export class GraphInteraction<N extends INodeBase, E extends IEdgeBase> implemen
     return true;
   }
 
+  // Defaults to non-cascading (unlike selectNodeById): only the listed nodes change state.
+  selectNodesByIds(ids: any[], options?: ISelectionOptions): number {
+    const nodes: INode<N, E>[] = [];
+    for (let i = 0; i < ids.length; i++) {
+      const node = this._graph.getNodeById(ids[i]);
+      if (node) {
+        nodes.push(node);
+      }
+    }
+    const { changedCount } = selectNodes(nodes, { cascade: false, ...options });
+    return changedCount;
+  }
+
   selectEdgeById(id: any, options?: ISelectionOptions): boolean {
     const edge = this._graph.getEdgeById(id);
     if (!edge) {
@@ -47,6 +68,19 @@ export class GraphInteraction<N extends INodeBase, E extends IEdgeBase> implemen
     }
     selectEdge(edge, options);
     return true;
+  }
+
+  // Defaults to non-cascading (unlike selectEdgeById): only the listed edges change state.
+  selectEdgesByIds(ids: any[], options?: ISelectionOptions): number {
+    const edges: IEdge<N, E>[] = [];
+    for (let i = 0; i < ids.length; i++) {
+      const edge = this._graph.getEdgeById(ids[i]);
+      if (edge) {
+        edges.push(edge);
+      }
+    }
+    const { changedCount } = selectEdges(edges, { cascade: false, ...options });
+    return changedCount;
   }
 
   unselectNodeById(id: any, options?: ISelectionOptions): boolean {
@@ -58,6 +92,18 @@ export class GraphInteraction<N extends INodeBase, E extends IEdgeBase> implemen
     return true;
   }
 
+  unselectNodesByIds(ids: any[], options?: ISelectionOptions): number {
+    const nodes: INode<N, E>[] = [];
+    for (let i = 0; i < ids.length; i++) {
+      const node = this._graph.getNodeById(ids[i]);
+      if (node) {
+        nodes.push(node);
+      }
+    }
+    const { changedCount } = unselectNodes(nodes, { cascade: false, ...options });
+    return changedCount;
+  }
+
   unselectEdgeById(id: any, options?: ISelectionOptions): boolean {
     const edge = this._graph.getEdgeById(id);
     if (!edge) {
@@ -65,6 +111,18 @@ export class GraphInteraction<N extends INodeBase, E extends IEdgeBase> implemen
     }
     unselectEdge(edge, options);
     return true;
+  }
+
+  unselectEdgesByIds(ids: any[], options?: ISelectionOptions): number {
+    const edges: IEdge<N, E>[] = [];
+    for (let i = 0; i < ids.length; i++) {
+      const edge = this._graph.getEdgeById(ids[i]);
+      if (edge) {
+        edges.push(edge);
+      }
+    }
+    const { changedCount } = unselectEdges(edges, { cascade: false, ...options });
+    return changedCount;
   }
 
   unselectAll(): number {

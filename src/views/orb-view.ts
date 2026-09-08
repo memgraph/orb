@@ -6,7 +6,7 @@ import transition from 'd3-transition';
 /* eslint-enable @typescript-eslint/no-unused-vars */
 import { D3ZoomEvent, zoom, ZoomBehavior } from 'd3-zoom';
 import { select } from 'd3-selection';
-import { IPosition, isEqualPosition } from '../common';
+import { IPosition, IRectangle, isEqualPosition } from '../common';
 import { ISimulator, SimulatorFactory } from '../simulator';
 import { Graph, IGraph, INodeFilter, IEdgeFilter } from '../models/graph';
 import { INode, INodeBase, isNode } from '../models/node';
@@ -32,10 +32,17 @@ import { isBoolean } from '../utils/type.utils';
 import { IObserver, IObserverDataPayload } from '../utils/observer.utils';
 import { GraphInteraction, IGraphInteraction } from '../models/interaction';
 import { getLayoutAnchors } from '../utils/graph.utils';
+import {
+  BACKGROUND_DRAG_SUBJECT,
+  IBackgroundDragSettings,
+  IBackgroundDragSubject,
+  isBackgroundDragSubject,
+} from './background-drag';
 
 export interface IGraphInteractionSettings {
   isDragEnabled: boolean;
   isZoomEnabled: boolean;
+  backgroundDrag: IBackgroundDragSettings;
 }
 
 export interface IOrbViewSettings<N extends INodeBase, E extends IEdgeBase> {
@@ -97,6 +104,11 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         isDragEnabled: true,
         isZoomEnabled: true,
         ...settings?.interaction,
+        backgroundDrag: {
+          isEnabled: false,
+          modifier: 'shift',
+          ...settings?.interaction?.backgroundDrag,
+        },
       },
     };
 
@@ -180,11 +192,13 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
     this._d3Zoom = zoom<HTMLCanvasElement, any>()
       .scaleExtent([this._renderer.getSettings().minZoom, this._renderer.getSettings().maxZoom])
+      .filter(this._zoomFilter)
       .on('zoom', this.zoomed);
 
     select<HTMLCanvasElement, any>(this._renderer.canvas)
       .call(
         drag<HTMLCanvasElement, any>()
+          .filter(this._dragFilter)
           .container(this._renderer.canvas)
           .subject(this.dragSubject)
           .on('start', this.dragStarted)
@@ -225,6 +239,22 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
 
   get interaction(): IGraphInteraction {
     return this._interaction;
+  }
+
+  get canvas(): HTMLCanvasElement {
+    return this._renderer.canvas;
+  }
+
+  getSimulationPosition(canvasPoint: IPosition): IPosition {
+    return this._renderer.getSimulationPosition(canvasPoint);
+  }
+
+  getCanvasPosition(simulationPoint: IPosition): IPosition {
+    return this._renderer.getCanvasPosition(simulationPoint);
+  }
+
+  getSimulationViewRectangle(): IRectangle {
+    return this._renderer.getSimulationViewRectangle();
   }
 
   getSettings(): IOrbViewSettings<N, E> {
@@ -317,6 +347,14 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
         // Update the internal isZoomEnabled setting based on the provided value
         this._settings.interaction.isZoomEnabled = settings.interaction.isZoomEnabled;
       }
+
+      // The zoom filter and drag subject read this live, so no renderer re-init is needed.
+      if (settings.interaction.backgroundDrag) {
+        this._settings.interaction.backgroundDrag = {
+          ...this._settings.interaction.backgroundDrag,
+          ...settings.interaction.backgroundDrag,
+        };
+      }
     }
   }
 
@@ -384,13 +422,84 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
     this._simulator.terminate();
   }
 
-  dragSubject = (event: D3DragEvent<any, MouseEvent, INode<N, E>>) => {
+  private _isBackgroundDragModifierActive(
+    event: Pick<MouseEvent, 'shiftKey' | 'ctrlKey' | 'altKey' | 'metaKey'>,
+  ): boolean {
+    const backgroundDrag = this._settings.interaction.backgroundDrag;
+    if (!backgroundDrag?.isEnabled) {
+      return false;
+    }
+    switch (backgroundDrag.modifier ?? 'shift') {
+      case 'shift':
+        return event.shiftKey;
+      case 'ctrl':
+        return event.ctrlKey;
+      case 'alt':
+        return event.altKey;
+      case 'meta':
+        return event.metaKey;
+      case null:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  // Mirror d3-zoom's default filter, but skip panning for modifier-matched background drags.
+  private _zoomFilter = (event: any): boolean => {
+    if (event.button) {
+      return false;
+    }
+    if (event.ctrlKey && event.type !== 'wheel') {
+      return false;
+    }
+    if (event.type === 'wheel') {
+      return true;
+    }
+    return !this._isBackgroundDragModifierActive(event);
+  };
+
+  // d3-drag's default filter rejects ctrl+drag; allow it through for background-drag gestures.
+  private _dragFilter = (event: any): boolean => {
+    if (event.button) {
+      return false;
+    }
+    if (this._isBackgroundDragModifierActive(event)) {
+      return true;
+    }
+    return !event.ctrlKey;
+  };
+
+  private _emitBackgroundDrag(
+    type: OrbEventType.BACKGROUND_DRAG_START | OrbEventType.BACKGROUND_DRAG | OrbEventType.BACKGROUND_DRAG_END,
+    sourceEvent: MouseEvent,
+  ): void {
+    const globalPoint = this.getCanvasMousePosition(sourceEvent);
+    const localPoint = this._renderer.getSimulationPosition(globalPoint);
+    this._events.emit(type, { event: sourceEvent, localPoint, globalPoint });
+  }
+
+  dragSubject = (
+    event: D3DragEvent<any, MouseEvent, INode<N, E>>,
+  ): INode<N, E> | IBackgroundDragSubject | undefined => {
     const mousePoint = this.getCanvasMousePosition(event.sourceEvent);
     const simulationPoint = this._renderer?.getSimulationPosition(mousePoint);
-    return this._graph.getNearestNode(simulationPoint);
+    const node = this._graph.getNearestNode(simulationPoint);
+    if (node) {
+      return node;
+    }
+    if (this._isBackgroundDragModifierActive(event.sourceEvent)) {
+      return BACKGROUND_DRAG_SUBJECT;
+    }
+    return undefined;
   };
 
   dragStarted = (event: D3DragEvent<any, any, INode<N, E>>) => {
+    if (isBackgroundDragSubject(event.subject)) {
+      this._emitBackgroundDrag(OrbEventType.BACKGROUND_DRAG_START, event.sourceEvent);
+      return;
+    }
+
     // If drag is disabled then return
     if (!this._settings.interaction.isDragEnabled) {
       return;
@@ -411,6 +520,11 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   };
 
   dragged = (event: D3DragEvent<any, any, INode<N, E>>) => {
+    if (isBackgroundDragSubject(event.subject)) {
+      this._emitBackgroundDrag(OrbEventType.BACKGROUND_DRAG, event.sourceEvent);
+      return;
+    }
+
     // If drag is disabled then return
     if (!this._settings.interaction.isDragEnabled) {
       return;
@@ -434,6 +548,11 @@ export class OrbView<N extends INodeBase, E extends IEdgeBase> implements IOrbVi
   };
 
   dragEnded = (event: D3DragEvent<any, any, INode<N, E>>) => {
+    if (isBackgroundDragSubject(event.subject)) {
+      this._emitBackgroundDrag(OrbEventType.BACKGROUND_DRAG_END, event.sourceEvent);
+      return;
+    }
+
     // If drag is disabled then return
     if (!this._settings.interaction.isDragEnabled) {
       return;

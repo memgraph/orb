@@ -24,6 +24,11 @@ export enum OrbEventType {
   NODE_DRAG_START = 'node-drag-start',
   NODE_DRAG = 'node-drag',
   NODE_DRAG_END = 'node-drag-end',
+  // Neutral drag on the empty background (e.g. shift-drag), not on a node.
+  BACKGROUND_DRAG_START = 'background-drag-start',
+  BACKGROUND_DRAG = 'background-drag',
+  BACKGROUND_DRAG_END = 'background-drag-end',
+  // Right click events
   NODE_RIGHT_CLICK = 'node-right-click',
   EDGE_RIGHT_CLICK = 'edge-right-click',
   MOUSE_RIGHT_CLICK = 'mouse-right-click',
@@ -107,6 +112,8 @@ export type IOrbEventNodeDrag<N extends INodeBase, E extends IEdgeBase> = IOrbEv
 export type IOrbEventNodeDragEnd<N extends INodeBase, E extends IEdgeBase> = IOrbEventMouseNodeEvent<N, E> &
   IOrbEventMouseMoveEvent;
 
+export type IOrbEventBackgroundDrag = IOrbEventMouseMoveEvent;
+
 export class OrbEmitter<N extends INodeBase, E extends IEdgeBase> extends Emitter<{
   [OrbEventType.RENDER_START]: undefined;
   [OrbEventType.RENDER_END]: IOrbEventRenderEnd;
@@ -123,6 +130,9 @@ export class OrbEmitter<N extends INodeBase, E extends IEdgeBase> extends Emitte
   [OrbEventType.NODE_DRAG_START]: IOrbEventNodeDragStart<N, E>;
   [OrbEventType.NODE_DRAG]: IOrbEventNodeDrag<N, E>;
   [OrbEventType.NODE_DRAG_END]: IOrbEventNodeDragEnd<N, E>;
+  [OrbEventType.BACKGROUND_DRAG_START]: IOrbEventBackgroundDrag;
+  [OrbEventType.BACKGROUND_DRAG]: IOrbEventBackgroundDrag;
+  [OrbEventType.BACKGROUND_DRAG_END]: IOrbEventBackgroundDrag;
   [OrbEventType.NODE_RIGHT_CLICK]: IOrbEventMouseNodeEvent<N, E> & IOrbEventMouseClickEvent;
   [OrbEventType.EDGE_RIGHT_CLICK]: IOrbEventMouseEdgeEvent<N, E> & IOrbEventMouseClickEvent;
   [OrbEventType.MOUSE_RIGHT_CLICK]: IOrbEventMouseEvent<N, E> & IOrbEventMouseClickEvent;

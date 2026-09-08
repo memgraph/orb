@@ -140,6 +140,9 @@ export interface INode<N extends INodeBase, E extends IEdgeBase> extends ISubjec
 export interface INodeSettings {
   onLoadedImage: () => void;
   listeners: IObserver[];
+  // Called on every state change, including ones that skip listener notification
+  // (e.g. batched selection), so renderers with cached styles can detect it.
+  onStateChange: () => void;
 }
 
 export class NodeFactory {
@@ -165,6 +168,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
   private readonly _inEdgesById: { [id: number]: IEdge<N, E> } = {};
   private readonly _outEdgesById: { [id: number]: IEdge<N, E> } = {};
   private readonly _onLoadedImage?: () => void;
+  private readonly _onStateChange?: () => void;
 
   constructor(data: INodeData<N>, settings?: Partial<INodeSettings>) {
     super();
@@ -172,6 +176,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
     this._data = data.data;
     this._position = { id: this.id };
     this._onLoadedImage = settings?.onLoadedImage;
+    this._onStateChange = settings?.onStateChange;
     if (settings && settings.listeners) {
       this.listeners = settings.listeners;
     }
@@ -530,6 +535,7 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
       | ((node: INode<N, E>) => IGraphObjectStateParameters),
     options?: INodeSetStateOptions,
   ): void {
+    const previousState = this._state;
     let result: number | IGraphObjectStateParameters;
 
     if (isFunction(arg)) {
@@ -558,6 +564,8 @@ export class Node<N extends INodeBase, E extends IEdgeBase> extends Subject impl
 
     if (!options?.isNotifySkipped) {
       this.notifyListeners();
+    } else if (this._state !== previousState) {
+      this._onStateChange?.();
     }
   }
 

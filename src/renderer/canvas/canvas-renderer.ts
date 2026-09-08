@@ -343,6 +343,11 @@ export class CanvasRenderer<N extends INodeBase, E extends IEdgeBase> extends Em
     };
   }
 
+  getCanvasPosition(simulationPoint: IPosition): IPosition {
+    const [x, y] = this.transform.apply([simulationPoint.x + this._width / 2, simulationPoint.y + this._height / 2]);
+    return { x, y };
+  }
+
   /**
    * Returns the visible rectangle view in the simulation coordinates.
    *
